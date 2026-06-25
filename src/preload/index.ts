@@ -6,6 +6,7 @@ import type {
   PathKind,
   PreviewData,
   FileOpResult,
+  CreateResult,
   QuickAccessData,
   GitStatus,
   GitActionResult,
@@ -70,6 +71,14 @@ const api = {
       ipcRenderer.invoke(IPC.fsCopy, paths, destDir),
     move: (paths: string[], destDir: string): Promise<FileOpResult> =>
       ipcRenderer.invoke(IPC.fsMove, paths, destDir),
+    rename: (path: string, newName: string): Promise<CreateResult> =>
+      ipcRenderer.invoke(IPC.fsRename, path, newName),
+    createFile: (dir: string, base: string): Promise<CreateResult> =>
+      ipcRenderer.invoke(IPC.fsCreateFile, dir, base),
+    createDir: (dir: string, base: string): Promise<CreateResult> =>
+      ipcRenderer.invoke(IPC.fsCreateDir, dir, base),
+    createShortcut: (path: string): Promise<CreateResult> =>
+      ipcRenderer.invoke(IPC.fsCreateShortcut, path),
     startDrag: (paths: string[]): void => ipcRenderer.send(IPC.fsStartDrag, paths),
     /** Chemin absolu d'un File déposé (drag depuis l'explorateur/une autre instance). */
     pathForFile: (file: File): string => webUtils.getPathForFile(file),

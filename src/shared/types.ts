@@ -28,6 +28,13 @@ export interface FileOpResult {
   errors: string[]
 }
 
+/** Résultat d'une création/renommage : chemin produit, ou erreur. */
+export interface CreateResult {
+  ok: boolean
+  path?: string
+  error?: string
+}
+
 // --- Aperçu de fichier (phase 6) ---
 
 export type PreviewKind = 'text' | 'code' | 'markdown' | 'json' | 'image' | 'binary'

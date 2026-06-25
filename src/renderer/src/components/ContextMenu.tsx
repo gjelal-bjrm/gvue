@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 
 /**
  * Menu contextuel générique positionné au curseur. Se ferme au clic extérieur,
@@ -25,31 +25,41 @@ export default function ContextMenu(props: {
   entries: MenuEntry[]
   onClose: () => void
 }): JSX.Element {
+  const menuRef = useRef<HTMLDivElement>(null)
+  const { onClose } = props
+
   useEffect(() => {
-    const onKey = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape') props.onClose()
+    // Ferme au clic en dehors du menu (comme l'explorateur), à Échap, au scroll
+    // et au redimensionnement. Le clic à l'intérieur n'est pas intercepté.
+    const onDown = (e: MouseEvent): void => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) onClose()
     }
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('mousedown', onDown, true)
+    window.addEventListener('contextmenu', onDown, true)
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [props])
+    window.addEventListener('resize', onClose)
+    window.addEventListener('blur', onClose)
+    return () => {
+      window.removeEventListener('mousedown', onDown, true)
+      window.removeEventListener('contextmenu', onDown, true)
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('resize', onClose)
+      window.removeEventListener('blur', onClose)
+    }
+  }, [onClose])
 
   const left = Math.min(props.x, window.innerWidth - MENU_WIDTH)
   const top = Math.min(props.y, window.innerHeight - MENU_EST_HEIGHT)
 
   return (
-    <>
-      <div
-        className="fixed inset-0 z-40"
-        onClick={props.onClose}
-        onContextMenu={(e) => {
-          e.preventDefault()
-          props.onClose()
-        }}
-      />
-      <div
-        className="fixed z-50 w-52 rounded-app border border-border bg-bg-secondary py-1 text-[12px] shadow-lg"
-        style={{ left, top }}
-      >
+    <div
+      ref={menuRef}
+      className="fixed z-50 w-52 rounded-app border border-border bg-bg-secondary py-1 text-[12px] shadow-lg"
+      style={{ left, top }}
+    >
         {props.entries.map((it, i) =>
           'type' in it && it.type === 'sep' ? (
             <div key={i} className="my-1 h-px bg-border" />
@@ -72,7 +82,6 @@ export default function ContextMenu(props: {
             </button>
           )
         )}
-      </div>
-    </>
+    </div>
   )
 }

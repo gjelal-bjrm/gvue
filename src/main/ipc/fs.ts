@@ -1,4 +1,5 @@
 import { ipcMain, shell, app, nativeImage } from 'electron'
+import { dirname, basename } from 'node:path'
 import { IPC } from '@shared/ipc'
 import type { NavLocations, DirEntry, QuickAccessData } from '@shared/types'
 import * as filesystem from '../services/filesystem'
@@ -76,6 +77,30 @@ export function registerFsHandlers(): void {
 
   ipcMain.handle(IPC.fsMove, async (_e, paths: string[], destDir: string) => {
     return fileops.move(paths, destDir)
+  })
+
+  ipcMain.handle(IPC.fsRename, async (_e, targetPath: string, newName: string) => {
+    return fileops.rename(targetPath, newName)
+  })
+
+  ipcMain.handle(IPC.fsCreateFile, async (_e, dir: string, base: string) => {
+    return fileops.createFile(dir, base)
+  })
+
+  ipcMain.handle(IPC.fsCreateDir, async (_e, dir: string, base: string) => {
+    return fileops.createDir(dir, base)
+  })
+
+  // Raccourci Windows (.lnk) vers l'élément, déposé dans son dossier.
+  ipcMain.handle(IPC.fsCreateShortcut, async (_e, targetPath: string) => {
+    try {
+      const target = filesystem.assertAbsolute(targetPath)
+      const link = await fileops.freeName(dirname(target), `${basename(target)} - Raccourci.lnk`)
+      const ok = shell.writeShortcutLink(link, 'create', { target })
+      return ok ? { ok: true, path: link } : { ok: false, error: 'Échec de création du raccourci.' }
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : String(e) }
+    }
   })
 
   // Démarre un glisser natif (vrais fichiers) → fonctionne vers l'explorateur

@@ -12,7 +12,10 @@ import { formatSize, formatDate } from '../lib/format'
  * Markdown faits maison, sans injection de HTML brut).
  */
 export default function PreviewPanel(): JSX.Element {
-  const selectedPath = useNavStore((s) => activePane(s).selectedPath)
+  const selectedPath = useNavStore((s) => {
+    const sel = activePane(s).selected
+    return sel.length === 1 ? sel[0] : null
+  })
   const closePanel = useUiStore((s) => s.togglePreview)
   const [data, setData] = useState<PreviewData | null>(null)
   const [loading, setLoading] = useState(false)

@@ -12,6 +12,7 @@ import PreviewPanel from './components/PreviewPanel'
 import TerminalPanel from './components/TerminalPanel'
 import CommandPalette from './components/CommandPalette'
 import { useNavStore, activePane } from './state/useNavStore'
+import { useGitStore } from './state/useGitStore'
 import { useAppearanceStore } from './state/useAppearanceStore'
 import { useUiStore } from './state/useUiStore'
 import { useSearchStore } from './state/useSearchStore'
@@ -87,23 +88,54 @@ export default function App(): JSX.Element {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  // Presse-papiers de fichiers : Ctrl+X / Ctrl+C / Ctrl+V (hors champs de saisie).
+  // Raccourcis fichiers : Ctrl+X/C/V/A, F2 (renommer), Suppr (corbeille).
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
-      if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey) return
       const t = e.target as HTMLElement | null
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
-      const pane = activePane(useNavStore.getState())
-      const k = e.key.toLowerCase()
-      if (k === 'c' && pane.selectedPath) {
+      const s = useNavStore.getState()
+      const pane = activePane(s)
+      if (pane.quickAccess) return
+      const ctrl = (e.ctrlKey || e.metaKey) && !e.altKey
+
+      if (ctrl && !e.shiftKey) {
+        const k = e.key.toLowerCase()
+        if (k === 'c' && pane.selected.length) {
+          e.preventDefault()
+          clipFiles(pane.selected, 'copy')
+        } else if (k === 'x' && pane.selected.length) {
+          e.preventDefault()
+          clipFiles(pane.selected, 'cut')
+        } else if (k === 'v' && pane.path) {
+          e.preventDefault()
+          void pasteInto(pane.path)
+        } else if (k === 'a' && pane.path) {
+          e.preventDefault()
+          const ignored = useGitStore.getState().ignored
+          const all = pane.entries.filter(
+            (en) =>
+              (s.showHidden || !en.hidden) &&
+              !(s.hideGitIgnored && ignored.has(pathKey(en.path)))
+          )
+          s.setSelected(all.map((en) => en.path))
+        }
+      } else if (e.key === 'F2' && pane.selected.length === 1) {
         e.preventDefault()
-        clipFiles([pane.selectedPath], 'copy')
-      } else if (k === 'x' && pane.selectedPath) {
+        s.setRenaming(pane.selected[0])
+      } else if (e.key === 'Delete' && pane.selected.length) {
         e.preventDefault()
-        clipFiles([pane.selectedPath], 'cut')
-      } else if (k === 'v' && pane.path && !pane.quickAccess) {
-        e.preventDefault()
-        void pasteInto(pane.path)
+        const toTrash = pane.selected
+        void (async () => {
+          for (const p of toTrash) {
+            try {
+              await window.api.fs.trash(p)
+            } catch {
+              /* ignore */
+            }
+          }
+          s.setSelected([])
+          s.refreshAll()
+        })()
       }
     }
     window.addEventListener('keydown', onKey)

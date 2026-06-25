@@ -12,7 +12,12 @@ import {
   Undo2,
   Scissors,
   ClipboardCopy,
-  ClipboardPaste
+  ClipboardPaste,
+  FolderPlus,
+  FilePlus,
+  RefreshCw,
+  Link2,
+  Pencil
 } from 'lucide-react'
 import { useNavStore, type SortKey } from '../state/useNavStore'
 import { useAppearanceStore } from '../state/useAppearanceStore'
@@ -51,13 +56,15 @@ function gitBadge(category: GitCategory): { letter: string; color: string } {
  */
 const EMPTY_MAP: Record<string, GitFileChange> = {}
 const EMPTY_SET = new Set<string>()
+const EMPTY_LIST: string[] = []
 
 export default function FileList(props: { paneId: string }): JSX.Element {
   const pane = useNavStore((s) => s.panes.find((p) => p.id === props.paneId))
   const activeId = useNavStore((s) => s.activeId)
   const setSort = useNavStore((s) => s.setSort)
   const navigate = useNavStore((s) => s.navigate)
-  const setSelected = useNavStore((s) => s.setSelectedPath)
+  const setSelected = useNavStore((s) => s.setSelected)
+  const setRenaming = useNavStore((s) => s.setRenaming)
   const showHidden = useNavStore((s) => s.showHidden)
   const hideGitIgnored = useNavStore((s) => s.hideGitIgnored)
   const density = useAppearanceStore((s) => s.appearance.density)
@@ -65,10 +72,11 @@ export default function FileList(props: { paneId: string }): JSX.Element {
   const statusByPath = useGitStore((s) => s.statusByPath)
   const dirtyDirs = useGitStore((s) => s.dirtyDirs)
   const ignoredAll = useGitStore((s) => s.ignored)
-  const [menu, setMenu] = useState<{ x: number; y: number; entry: DirEntry } | null>(null)
+  const [menu, setMenu] = useState<{ x: number; y: number; entry: DirEntry | null } | null>(null)
   const [dragOver, setDragOver] = useState<string | null>(null)
   const clipboard = useUiStore((s) => s.clipboard)
   const parentRef = useRef<HTMLDivElement>(null)
+  const anchorRef = useRef<number | null>(null)
 
   const isActive = activeId === props.paneId
   const entries = pane?.entries ?? []
@@ -77,7 +85,9 @@ export default function FileList(props: { paneId: string }): JSX.Element {
   const sortKey = pane?.sortKey ?? 'name'
   const sortDir = pane?.sortDir ?? 'asc'
   const path = pane?.path ?? ''
-  const selected = pane?.selectedPath ?? null
+  const selected = pane?.selected ?? EMPTY_LIST
+  const renaming = pane?.renaming ?? null
+  const selectedSet = useMemo(() => new Set(selected), [selected])
 
   // Le store Git est global → on n'affiche les badges que dans le volet actif.
   const gitMap = isActive ? statusByPath : EMPTY_MAP
@@ -114,19 +124,65 @@ export default function FileList(props: { paneId: string }): JSX.Element {
     else void window.api.fs.open(entry.path)
   }
 
+  // Sélection façon explorateur : clic simple = remplace ; Ctrl = bascule ;
+  // Maj = plage depuis l'ancre. L'index est celui dans la liste visible.
+  const onRowClick = (e: React.MouseEvent, entry: DirEntry, index: number): void => {
+    if (e.shiftKey && anchorRef.current !== null) {
+      const [a, b] = [anchorRef.current, index].sort((x, y) => x - y)
+      setSelected(visible.slice(a, b + 1).map((en) => en.path))
+    } else if (e.ctrlKey || e.metaKey) {
+      const next = selectedSet.has(entry.path)
+        ? selected.filter((p) => p !== entry.path)
+        : [...selected, entry.path]
+      setSelected(next)
+      anchorRef.current = index
+    } else {
+      setSelected([entry.path])
+      anchorRef.current = index
+    }
+  }
+
   // Rafraîchit statut Git + liste après une action (stage/discard/corbeille…).
   const refreshAfter = async (): Promise<void> => {
     await useGitStore.getState().refresh(path)
     useNavStore.getState().refresh()
   }
 
-  const trash = async (entry: DirEntry): Promise<void> => {
-    try {
-      await window.api.fs.trash(entry.path)
-      if (selected === entry.path) setSelected(null)
+  const trashPaths = async (paths: string[]): Promise<void> => {
+    for (const p of paths) {
+      try {
+        await window.api.fs.trash(p)
+      } catch {
+        /* annulé ou échec sur cet élément */
+      }
+    }
+    setSelected([])
+    await refreshAfter()
+  }
+
+  // Renommage en place : valide via fs.rename, sélectionne le nouveau chemin.
+  const commitRename = async (oldPath: string, newName: string): Promise<void> => {
+    setRenaming(null)
+    const trimmed = newName.trim()
+    if (!trimmed || trimmed === oldPath.split(/[\\/]/).pop()) return
+    const res = await window.api.fs.rename(oldPath, trimmed)
+    if (res.ok && res.path) {
+      setSelected([res.path])
       await refreshAfter()
-    } catch {
-      /* annulé ou échec : la liste reste inchangée */
+    }
+  }
+
+  // Création d'un fichier/dossier puis renommage immédiat (flux Windows).
+  const createThen = async (
+    fn: (dir: string, base: string) => Promise<{ ok: boolean; path?: string }>,
+    base: string
+  ): Promise<void> => {
+    const res = await fn(path, base)
+    if (res.ok && res.path) {
+      const created = res.path
+      await refreshAfter()
+      setSelected([created])
+      setRenaming(created)
     }
   }
 
@@ -146,14 +202,50 @@ export default function FileList(props: { paneId: string }): JSX.Element {
     if (isActive) void useGitStore.getState().refresh(path)
   }
 
+  // Menu de la zone vide (clic droit hors d'un élément) : créer / coller / actualiser.
+  const backgroundMenu = (): MenuEntry[] => [
+    {
+      label: 'Nouveau dossier',
+      icon: <FolderPlus size={14} />,
+      onClick: () => void createThen(window.api.fs.createDir, 'Nouveau dossier')
+    },
+    {
+      label: 'Nouveau fichier',
+      icon: <FilePlus size={14} />,
+      onClick: () => void createThen(window.api.fs.createFile, 'Nouveau fichier.txt')
+    },
+    { type: 'sep' },
+    {
+      label: 'Coller',
+      icon: <ClipboardPaste size={14} />,
+      disabled: !clipboard,
+      onClick: () => void pasteInto(path)
+    },
+    { type: 'sep' },
+    { label: 'Actualiser', icon: <RefreshCw size={14} />, onClick: () => useNavStore.getState().refresh() },
+    {
+      label: "Ouvrir dans l'explorateur",
+      icon: <ExternalLink size={14} />,
+      onClick: () => void window.api.fs.reveal(path)
+    }
+  ]
+
   const buildMenu = (entry: DirEntry): MenuEntry[] => {
     const git = statusByPath[pathKey(entry.path)]
+    // Cible des opérations groupées : la sélection si l'élément en fait partie.
+    const targets = selectedSet.has(entry.path) && selected.length > 1 ? selected : [entry.path]
+    const n = targets.length
     const entries: MenuEntry[] = [
       { label: 'Ouvrir', icon: <FolderOpen size={14} />, onClick: () => onActivate(entry) },
       {
         label: "Ouvrir dans l'explorateur",
         icon: <ExternalLink size={14} />,
         onClick: () => void window.api.fs.reveal(entry.path)
+      },
+      {
+        label: 'Créer un raccourci',
+        icon: <Link2 size={14} />,
+        onClick: () => void window.api.fs.createShortcut(entry.path).then(refreshAfter)
       },
       { type: 'sep' },
       {
@@ -167,13 +259,33 @@ export default function FileList(props: { paneId: string }): JSX.Element {
         onClick: () => void navigator.clipboard.writeText(entry.name)
       },
       { type: 'sep' },
-      { label: 'Couper', icon: <Scissors size={14} />, onClick: () => clipFiles([entry.path], 'cut') },
-      { label: 'Copier', icon: <ClipboardCopy size={14} />, onClick: () => clipFiles([entry.path], 'copy') },
       {
-        label: entry.kind === 'directory' ? 'Coller dans le dossier' : 'Coller',
-        icon: <ClipboardPaste size={14} />,
-        disabled: !clipboard,
-        onClick: () => void pasteInto(entry.kind === 'directory' ? entry.path : path)
+        label: n > 1 ? `Couper (${n})` : 'Couper',
+        icon: <Scissors size={14} />,
+        onClick: () => clipFiles(targets, 'cut')
+      },
+      {
+        label: n > 1 ? `Copier (${n})` : 'Copier',
+        icon: <ClipboardCopy size={14} />,
+        onClick: () => clipFiles(targets, 'copy')
+      },
+      ...(entry.kind === 'directory'
+        ? [
+            {
+              label: 'Coller dans le dossier',
+              icon: <ClipboardPaste size={14} />,
+              disabled: !clipboard,
+              onClick: () => void pasteInto(entry.path)
+            } as MenuEntry
+          ]
+        : []),
+      {
+        label: 'Renommer',
+        icon: <Pencil size={14} />,
+        onClick: () => {
+          setSelected([entry.path])
+          setRenaming(entry.path)
+        }
       }
     ]
 
@@ -206,10 +318,10 @@ export default function FileList(props: { paneId: string }): JSX.Element {
 
     entries.push({ type: 'sep' })
     entries.push({
-      label: 'Supprimer (corbeille)',
+      label: n > 1 ? `Supprimer (${n}) → corbeille` : 'Supprimer (corbeille)',
       icon: <Trash2 size={14} />,
       danger: true,
-      onClick: () => void trash(entry)
+      onClick: () => void trashPaths(targets)
     })
     return entries
   }
@@ -238,6 +350,15 @@ export default function FileList(props: { paneId: string }): JSX.Element {
           if (e.target === e.currentTarget) setDragOver(null)
         }}
         onDrop={(e) => void doDrop(e, path)}
+        onClick={(e) => {
+          // Clic dans le vide (pas sur une ligne) → désélectionne.
+          if (e.target === e.currentTarget) setSelected([])
+        }}
+        onContextMenu={(e) => {
+          if (!path) return
+          e.preventDefault()
+          setMenu({ x: e.clientX, y: e.clientY, entry: null })
+        }}
       >
         {!loading && visible.length === 0 && !error && (
           <div className="p-8 text-center text-[13px] text-fg-muted">Dossier vide</div>
@@ -251,15 +372,22 @@ export default function FileList(props: { paneId: string }): JSX.Element {
               <Row
                 key={entry.path}
                 entry={entry}
+                index={vi.index}
                 height={rowHeight}
-                selected={selected === entry.path}
+                selected={selectedSet.has(entry.path)}
+                renaming={renaming === entry.path}
                 top={vi.start}
                 git={gitMap[key]}
                 gitDir={isDir && gitDirty.has(key)}
                 dropActive={dragOver === entry.path}
-                onSelect={() => setSelected(entry.path)}
+                onRowClick={(e) => onRowClick(e, entry, vi.index)}
                 onActivate={() => onActivate(entry)}
-                onDragStart={() => window.api.fs.startDrag([entry.path])}
+                onCommitRename={(name) => void commitRename(entry.path, name)}
+                onCancelRename={() => setRenaming(null)}
+                onDragStart={() => {
+                  const sel = selectedSet.has(entry.path) ? selected : [entry.path]
+                  window.api.fs.startDrag(sel)
+                }}
                 onDirOver={
                   isDir
                     ? (e) => {
@@ -272,7 +400,8 @@ export default function FileList(props: { paneId: string }): JSX.Element {
                 onDirDrop={isDir ? (e) => void doDrop(e, entry.path) : undefined}
                 onContext={(e) => {
                   e.preventDefault()
-                  setSelected(entry.path)
+                  e.stopPropagation()
+                  if (!selectedSet.has(entry.path)) setSelected([entry.path])
                   setMenu({ x: e.clientX, y: e.clientY, entry })
                 }}
               />
@@ -281,13 +410,18 @@ export default function FileList(props: { paneId: string }): JSX.Element {
         </div>
       </div>
 
-      <StatusBar count={visible.length} total={entries.length} selected={selected} showGit={isActive} />
+      <StatusBar
+        count={visible.length}
+        total={entries.length}
+        selectedCount={selected.length}
+        showGit={isActive}
+      />
 
       {menu && (
         <ContextMenu
           x={menu.x}
           y={menu.y}
-          entries={buildMenu(menu.entry)}
+          entries={menu.entry ? buildMenu(menu.entry) : backgroundMenu()}
           onClose={() => setMenu(null)}
         />
       )}
@@ -326,15 +460,19 @@ function ColumnHeader(props: {
 
 function Row(props: {
   entry: DirEntry
+  index: number
   height: number
   selected: boolean
+  renaming: boolean
   top: number
   git?: GitFileChange
   gitDir?: boolean
   dropActive?: boolean
-  onSelect: () => void
+  onRowClick: (e: React.MouseEvent) => void
   onActivate: () => void
   onContext: (e: React.MouseEvent) => void
+  onCommitRename: (name: string) => void
+  onCancelRename: () => void
   onDragStart: () => void
   onDirOver?: (e: React.DragEvent) => void
   onDirDrop?: (e: React.DragEvent) => void
@@ -358,7 +496,7 @@ function Row(props: {
             : 'hover:bg-bg-hover'
       } ${entry.hidden ? 'opacity-55' : ''}`}
       style={{ top: props.top, height: props.height }}
-      draggable
+      draggable={!props.renaming}
       onDragStart={(e) => {
         // Glisser natif (vrais fichiers) géré côté main → cross-instance/explorateur.
         e.preventDefault()
@@ -366,7 +504,7 @@ function Row(props: {
       }}
       onDragOver={props.onDirOver}
       onDrop={props.onDirDrop}
-      onClick={props.onSelect}
+      onClick={props.onRowClick}
       onDoubleClick={props.onActivate}
       onContextMenu={props.onContext}
       title={git ? `${entry.path} · ${git.category}${git.staged ? ' (indexé)' : ''}` : entry.path}
@@ -381,14 +519,24 @@ function Row(props: {
             />
           )}
         </span>
-        <span
-          className={`truncate ${nameColor}`}
-          style={badge && !props.selected ? { color: badge.color } : undefined}
-        >
-          {entry.name}
-        </span>
-        {entry.symlink && <span className="text-[11px] text-fg-muted">↗</span>}
-        {entry.hidden && <span className="ml-1 text-[11px] text-fg-muted">masqué</span>}
+        {props.renaming ? (
+          <RenameInput
+            initial={entry.name}
+            onCommit={props.onCommitRename}
+            onCancel={props.onCancelRename}
+          />
+        ) : (
+          <span
+            className={`truncate ${nameColor}`}
+            style={badge && !props.selected ? { color: badge.color } : undefined}
+          >
+            {entry.name}
+          </span>
+        )}
+        {!props.renaming && entry.symlink && <span className="text-[11px] text-fg-muted">↗</span>}
+        {!props.renaming && entry.hidden && (
+          <span className="ml-1 text-[11px] text-fg-muted">masqué</span>
+        )}
       </div>
       <div className="w-6 shrink-0 text-center text-[12px] font-semibold tabular-nums">
         {badge && (
@@ -413,7 +561,7 @@ function Row(props: {
 function StatusBar(props: {
   count: number
   total: number
-  selected: string | null
+  selectedCount: number
   showGit: boolean
 }): JSX.Element {
   const hiddenCount = props.total - props.count
@@ -426,9 +574,58 @@ function StatusBar(props: {
         </span>
         {props.showGit && <GitWidget />}
       </div>
-      {props.selected && (
-        <span className="truncate pl-3">{props.selected.split(/[\\/]/).pop()}</span>
+      {props.selectedCount > 0 && (
+        <span className="shrink-0 pl-3">
+          {props.selectedCount} sélectionné{props.selectedCount > 1 ? 's' : ''}
+        </span>
       )}
     </div>
+  )
+}
+
+function RenameInput(props: {
+  initial: string
+  onCommit: (name: string) => void
+  onCancel: () => void
+}): JSX.Element {
+  const ref = useRef<HTMLInputElement>(null)
+  const [val, setVal] = useState(props.initial)
+  const doneRef = useRef(false)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    el.focus()
+    // Sélectionne le nom sans l'extension (comme l'explorateur Windows).
+    const dot = props.initial.lastIndexOf('.')
+    if (dot > 0) el.setSelectionRange(0, dot)
+    else el.select()
+  }, [props.initial])
+
+  // Garantit une seule issue (valider OU annuler) malgré le blur au démontage.
+  const finish = (commit: boolean): void => {
+    if (doneRef.current) return
+    doneRef.current = true
+    if (commit) props.onCommit(val)
+    else props.onCancel()
+  }
+
+  return (
+    <input
+      ref={ref}
+      value={val}
+      onChange={(e) => setVal(e.target.value)}
+      onClick={(e) => e.stopPropagation()}
+      onDoubleClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+      onKeyDown={(e) => {
+        e.stopPropagation()
+        if (e.key === 'Enter') finish(true)
+        if (e.key === 'Escape') finish(false)
+      }}
+      onBlur={() => finish(true)}
+      spellCheck={false}
+      className="min-w-0 flex-1 rounded border border-accent bg-bg px-1 text-[13px] text-fg outline-none"
+    />
   )
 }

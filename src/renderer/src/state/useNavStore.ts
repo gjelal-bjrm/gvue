@@ -18,8 +18,10 @@ export interface Pane {
   sortDir: SortDir
   /** Ce volet affiche-t-il la page Accès rapide plutôt qu'un dossier ? */
   quickAccess: boolean
-  /** Entrée sélectionnée (pour l'aperçu). */
-  selectedPath: string | null
+  /** Chemins sélectionnés (multi-sélection). */
+  selected: string[]
+  /** Chemin en cours de renommage (édition en place), ou null. */
+  renaming: string | null
 }
 
 interface NavState {
@@ -48,7 +50,8 @@ interface NavState {
   refresh: () => void
   setSort: (key: SortKey) => void
   showQuickAccess: () => void
-  setSelectedPath: (p: string | null) => void
+  setSelected: (paths: string[]) => void
+  setRenaming: (p: string | null) => void
 
   // Préférences d'affichage (partagées par tous les volets)
   toggleHidden: () => void
@@ -71,7 +74,8 @@ function makePane(id: string, sortKey: SortKey = 'name', sortDir: SortDir = 'asc
     sortKey,
     sortDir,
     quickAccess: false,
-    selectedPath: null
+    selected: [],
+    renaming: null
   }
 }
 
@@ -115,7 +119,8 @@ export const useNavStore = create<NavState>((set, get) => {
         entries: sortEntries(result.entries, p.sortKey, p.sortDir),
         loading: false,
         quickAccess: false,
-        selectedPath: null,
+        selected: [],
+        renaming: null,
         back: record && current ? [...p.back, current] : p.back,
         forward: record ? [] : p.forward
       })
@@ -220,7 +225,9 @@ export const useNavStore = create<NavState>((set, get) => {
 
     showQuickAccess: () => patch(get().activeId, { quickAccess: true }),
 
-    setSelectedPath: (p) => patch(get().activeId, { selectedPath: p }),
+    setSelected: (paths) => patch(get().activeId, { selected: paths }),
+
+    setRenaming: (p) => patch(get().activeId, { renaming: p }),
 
     toggleHidden: () => set((s) => ({ showHidden: !s.showHidden })),
 
