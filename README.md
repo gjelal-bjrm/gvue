@@ -1,0 +1,234 @@
+# GVue
+
+**Explorateur de fichiers de bureau pensé pour les développeurs.**
+
+Un explorateur aussi familier que celui de Windows, mais qui *comprend* le code et
+s'adapte à son utilisateur : navigation classique, barre de commande shell intégrée,
+terminal réductible, conscience Git, recherche `ripgrep`, et interface entièrement
+personnalisable. 100 % local, aucun appel réseau sortant hors fonctions explicites.
+
+> Projet construit **par phases** : chaque phase est un livrable fonctionnel et
+> lançable. Plateforme cible principale : **Windows 10/11** (macOS / Linux suivront,
+> l'architecture Electron le permet).
+
+---
+
+## Sommaire
+
+- [Aperçu des fonctionnalités](#aperçu-des-fonctionnalités)
+- [Stack technique](#stack-technique)
+- [Architecture](#architecture)
+- [Structure du projet](#structure-du-projet)
+- [Prérequis & démarrage](#prérequis--démarrage)
+- [Terminal natif (node-pty)](#terminal-natif-node-pty)
+- [Feuille de route — ce qui est fait / ce qu'il reste](#feuille-de-route)
+- [Sécurité](#sécurité)
+- [Hors périmètre](#hors-périmètre)
+
+---
+
+## Aperçu des fonctionnalités
+
+**Navigation** — barre de titre custom (fenêtre sans cadre), fil d'Ariane cliquable
+et éditable, boutons précédent/suivant/parent/accueil, double-clic pour ouvrir
+(dossier ou application par défaut), liste **virtualisée** fluide même sur des
+milliers d'entrées, tri par colonne (nom, taille, date), dates relatives
+(« hier », « lun. »), bascule des éléments masqués.
+
+**Terminal intégré** — pseudo-terminal réel (`node-pty` + `xterm`), détection
+dynamique des shells (PowerShell, PowerShell 7, cmd, Git Bash, WSL), **plusieurs
+onglets**, panneau réductible qui **préserve l'historique**, barre de commande qui
+exécute une commande dans le terminal actif.
+
+**Personnalisation** — panneau Apparence pleinement fonctionnel : couleur d'accent
+(6 pastilles + sélecteur libre), thème clair / sombre / auto, densité (confort /
+compact), coins (arrondis / carrés), police et taille. Tout est peint via des
+**variables CSS** et **persisté** entre les sessions ; la taille et la position de
+la fenêtre sont également mémorisées.
+
+**Sidebar** — accès rapide (accueil, téléchargements), lecteurs détectés, favoris.
+
+---
+
+## Stack technique
+
+| Domaine | Choix |
+|---|---|
+| Runtime desktop | **Electron** |
+| Build / bundler | **electron-vite** (HMR renderer, build main/preload/renderer) |
+| UI | **React + TypeScript** (strict) |
+| Styles | **Tailwind CSS** + variables CSS |
+| Icônes | **lucide-react** |
+| État | **Zustand** |
+| Terminal | **node-pty** + **@xterm/xterm** (+ addons `fit`, `web-links`) |
+| Virtualisation liste | **@tanstack/react-virtual** |
+| Panneaux redimensionnables | **react-resizable-panels** |
+| Config persistée | **electron-store** |
+| Recompilation native | **@electron/rebuild** (pour `node-pty`) |
+
+*À venir selon les phases : `@vscode/ripgrep` (recherche), `simple-git` (Git),
+`chokidar` (surveillance fs), `ssh2` (SFTP), Ollama (barre IA).*
+
+---
+
+## Architecture
+
+Trois processus, séparation stricte. La logique métier vit dans des **services purs
+et testables** ; les handlers IPC sont de fins adaptateurs ; le renderer ne touche
+jamais à Node directement.
+
+```
+┌──────────────┐   invoke / on    ┌──────────────┐   appelle    ┌───────────────┐
+│   Renderer   │ ────────────────▶│   Preload    │─────────────▶│  Main (IPC →  │
+│  (React/UI)  │◀──────────────── │ contextBridge│◀─────────────│   services)   │
+└──────────────┘  résultat/event  └──────────────┘              └───────────────┘
+```
+
+- **`src/main`** — seul à toucher Node/OS. Services (`filesystem`, `pty-manager`,
+  `shell-detect`, `config-store`) + handlers IPC fins.
+- **`src/preload`** — expose `window.api`, typé et restreint, via `contextBridge`.
+  Aucune fuite de `require` / `ipcRenderer` brut.
+- **`src/renderer`** — React pur ; ne connaît que `window.api`.
+- **`src/shared`** — types et noms de canaux IPC partagés.
+
+---
+
+## Structure du projet
+
+```
+gvue/
+├─ electron.vite.config.ts
+├─ run.bat                     # lancement guidé (vérif Node, install, rebuild, dev)
+├─ src/
+│  ├─ main/
+│  │  ├─ index.ts              # bootstrap app + IPC
+│  │  ├─ window.ts             # fenêtre frameless + état persistant
+│  │  ├─ ipc/                  # fs, terminal, config, window
+│  │  └─ services/             # filesystem, pty-manager, shell-detect, config-store
+│  ├─ preload/
+│  │  └─ index.ts              # contextBridge → window.api
+│  ├─ renderer/
+│  │  └─ src/
+│  │     ├─ App.tsx
+│  │     ├─ components/        # TitleBar, Toolbar, CommandBar, Sidebar,
+│  │     │                     #   FileList, Terminal, TerminalPanel, AppearancePanel
+│  │     ├─ state/             # stores zustand (nav, terminal, appearance, ui)
+│  │     ├─ theme/             # variables CSS, presets, application du thème
+│  │     └─ lib/               # helpers (format, icônes, registre xterm)
+│  └─ shared/                  # types.ts, ipc.ts
+└─ resources/
+```
+
+---
+
+## Prérequis & démarrage
+
+- **Node.js ≥ 18 (20 LTS recommandé).** Node 16 n'est pas supporté.
+- Windows 10/11 (cible principale).
+
+```bash
+npm install      # dépendances + binaire Electron
+npm run dev      # lance l'app (HMR renderer)
+```
+
+Ou, sous Windows, un simple double-clic sur **`run.bat`** : il vérifie la version de
+Node, installe les dépendances si besoin, tente la recompilation native, puis lance
+l'app.
+
+Autres scripts :
+
+```bash
+npm run typecheck   # typage strict (main + renderer)
+npm run build       # build de production
+npm start           # prévisualise le build
+npm run rebuild     # recompile node-pty pour l'ABI d'Electron
+```
+
+---
+
+## Terminal natif (node-pty)
+
+Le terminal repose sur **node-pty**, un module natif recompilé pour l'ABI d'Electron
+via `@electron/rebuild`. Il est déclaré en **`optionalDependencies`** : si les
+**outils de build C++ Windows** sont absents, l'installation **n'échoue pas** —
+l'explorateur fonctionne et seul le terminal affiche un message d'aide.
+
+Pour l'activer (si la recompilation a échoué) : installer les *Build Tools* puis
+`npm run rebuild`. `run.bat` tente cette étape automatiquement.
+
+---
+
+## Feuille de route
+
+| Phase | État | Contenu |
+|---|---|---|
+| **1. Coquille** | ✅ **Fait** | Fenêtre frameless + barre de titre, navigation, liste virtualisée, sidebar |
+| **2. Terminal** | ✅ **Fait** | node-pty + xterm, détection des shells, onglets, barre de commande |
+| **3. Recherche** | ⏳ À faire | `@vscode/ripgrep`, recherche contenu, résultats cliquables |
+| **4. Git** | ⏳ À faire | Statuts + badges par fichier, commit/pull/push, masquage `.gitignore` |
+| **5. Personnalisation** | 🟡 **Partiel** | Panneau Apparence fonctionnel ; reste : presets nommés, dispositions par espace de travail |
+| **6. Pro** | ⏳ À faire | Projets, palette de commandes, barre IA, aperçu, espaces de travail, carte disque, double panneau, SSH/SFTP |
+
+### ✅ Ce qui est fait
+
+- **Phase 1 — Coquille**
+  - Fenêtre sans cadre, barre de titre custom (réduire / agrandir / fermer, zone de drag).
+  - Taille et position de la fenêtre mémorisées et restaurées.
+  - Navigation : fil d'Ariane cliquable + éditable, précédent / suivant / parent / accueil, rafraîchir.
+  - Liste virtualisée, tri par colonne, dates relatives, icônes par type, bascule des éléments masqués.
+  - Ouverture des fichiers avec l'application par défaut, mise en évidence dans l'explorateur OS.
+  - Sidebar : accès rapide, lecteurs détectés, favoris (lus de la config).
+- **Phase 2 — Terminal**
+  - Pseudo-terminaux réels (node-pty), chargement paresseux et tolérant aux pannes natives.
+  - Détection dynamique des shells disponibles.
+  - Onglets multiples, historique préservé à la réduction du panneau (registre xterm persistant).
+  - Barre de commande câblée au terminal actif.
+- **Phase 5 (anticipée) — Apparence**
+  - Accent, thème, densité, coins, police, taille ; appliqués via variables CSS et persistés.
+
+### ⏳ Ce qu'il reste à faire
+
+- **Phase 3 — Recherche** : intégrer `@vscode/ripgrep`, construire les requêtes,
+  afficher des résultats cliquables, champ de recherche de la barre d'outils (actuellement décoratif).
+- **Phase 4 — Git** : `simple-git`, branche + avance/retard par dépôt, badges de
+  statut par fichier (modifié / non suivi / en conflit), menu contextuel commit/pull/push,
+  masquage intelligent de ce qu'ignore `.gitignore`, détection des projets dans la sidebar.
+- **Phase 5 (compléments)** : presets d'apparence nommés, persistance des dispositions
+  de panneaux par espace de travail, effet d'opacité réel de la fenêtre.
+- **Phase 6 — Pro** : vue par projet + actions rapides, palette de commandes (Ctrl+P),
+  barre IA (Ollama, commande validée avant exécution), panneau d'aperçu (code coloré,
+  Markdown, images, JSON, PDF), espaces de travail, carte de l'espace disque, double
+  panneau + renommage en masse, accès SSH/SFTP.
+- **Transverse** : surveillance disque temps réel (`chokidar` → rafraîchissement
+  automatique de la vue), gestion des favoris/récents depuis l'UI, suppression vers la
+  corbeille (`shell.trashItem`), tests des services (parsing Git, construction des requêtes).
+
+---
+
+## Sécurité
+
+Garde-fous Electron non négociables, en place dès le départ :
+
+- `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`.
+- Toute l'API exposée via `preload` + `contextBridge`, jamais d'accès Node depuis le renderer.
+- Content-Security-Policy stricte côté renderer.
+- Validation des chemins côté services (chemins absolus contrôlés).
+- Liens externes ouverts dans le navigateur système, jamais dans la fenêtre app.
+
+---
+
+## Hors périmètre (pour l'instant)
+
+- Édition de fichiers complète (GVue *aperçoit*, un éditeur *édite*).
+- Synchronisation cloud.
+- Système de plugins tiers (à envisager si l'architecture services le permet proprement).
+
+---
+
+## Licence
+
+MIT.
+"# gvue" 
+"# gvue" 
+"# gvue" 
+"# gvue" 
