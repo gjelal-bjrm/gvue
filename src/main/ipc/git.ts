@@ -1,11 +1,19 @@
 import { ipcMain } from 'electron'
 import { IPC } from '@shared/ipc'
 import * as git from '../services/git'
+import { getConfig, pushProject } from '../services/config-store'
 
 /** Handler IPC Git : adaptateur fin au-dessus du service `git`. */
 export function registerGitHandlers(): void {
   ipcMain.handle(IPC.gitStatus, async (_e, dir: string) => {
-    return git.status(dir)
+    const s = await git.status(dir)
+    // Mémorise le dépôt visité pour la section Projets de la sidebar.
+    if (s.isRepo && s.root) pushProject(s.root)
+    return s
+  })
+
+  ipcMain.handle(IPC.gitProjects, async () => {
+    return git.projects(getConfig('projectRoots'))
   })
 
   ipcMain.handle(IPC.gitCommit, async (_e, dir: string, message: string) => {

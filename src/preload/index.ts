@@ -7,6 +7,7 @@ import type {
   QuickAccessData,
   GitStatus,
   GitActionResult,
+  GitProject,
   AppConfig,
   WindowAction,
   WindowStatus,
@@ -79,7 +80,8 @@ const api = {
     unstage: (dir: string, file: string): Promise<GitActionResult> =>
       ipcRenderer.invoke(IPC.gitUnstage, dir, file),
     discard: (dir: string, file: string): Promise<GitActionResult> =>
-      ipcRenderer.invoke(IPC.gitDiscard, dir, file)
+      ipcRenderer.invoke(IPC.gitDiscard, dir, file),
+    projects: (): Promise<GitProject[]> => ipcRenderer.invoke(IPC.gitProjects)
   },
   nav: {
     onCommand: (cb: (cmd: NavCommand) => void): (() => void) => {

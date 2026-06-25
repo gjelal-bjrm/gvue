@@ -29,6 +29,7 @@ export const IPC = {
   gitStage: 'git:stage',
   gitUnstage: 'git:unstage',
   gitDiscard: 'git:discard',
+  gitProjects: 'git:projects',
 
   // Navigation (commandes système : boutons souris précédent/suivant)
   navOnCommand: 'nav:onCommand',

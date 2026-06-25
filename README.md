@@ -46,6 +46,18 @@ regex, résultats **streamés en temps réel** et **groupés par fichier**, surl
 des correspondances, liste virtualisée. Clic sur un fichier → ouvre son dossier ;
 clic sur une ligne → ouvre le fichier. Annulable, plafonnée contre le flot.
 
+**Git** — conscience Git intégrée (pilotage du binaire `git` du système) :
+**badges de statut** par fichier (modifié / non suivi / indexé / supprimé /
+conflit), nom teinté, point sur les dossiers contenant des changements, **branche
++ avance/retard** dans la barre d'état. Panneau **commit / pull / push** (avec
+retour de git), **menu contextuel** par fichier (indexer / désindexer / annuler,
+ouvrir, révéler, copier le chemin, **corbeille**). **Masquage** des fichiers
+ignorés par `.gitignore` (bascule persistée) et **détection des dépôts** visités
+dans la sidebar (section Projets, branche + indicateur de modifications).
+
+**Accès rapide** — page d'accueil façon explorateur Windows : **dossiers
+fréquents** et **fichiers récents**, alimentés automatiquement au fil de l'usage.
+
 **Personnalisation** — panneau Apparence pleinement fonctionnel : couleur d'accent
 (6 pastilles + sélecteur libre), thème clair / sombre / auto, densité (confort /
 compact), coins (arrondis / carrés), police et taille. Tout est peint via des
@@ -68,13 +80,15 @@ la fenêtre sont également mémorisées.
 | État | **Zustand** |
 | Terminal | **node-pty** + **@xterm/xterm** (+ addons `fit`, `web-links`) |
 | Recherche | **@vscode/ripgrep** (binaire `rg` par plateforme) |
+| Git | binaire **`git`** du système (CLI, sans dépendance npm) |
 | Virtualisation liste | **@tanstack/react-virtual** |
 | Panneaux redimensionnables | **react-resizable-panels** |
 | Config persistée | **electron-store** |
 | Recompilation native | **@electron/rebuild** (pour `node-pty`) |
 
-*À venir selon les phases : `simple-git` (Git), `chokidar` (surveillance fs),
-`ssh2` (SFTP), Ollama (barre IA).*
+*Git utilise le binaire `git` du système plutôt que `simple-git` : zéro
+dépendance native, zéro téléchargement. À venir selon les phases : `chokidar`
+(surveillance fs), `ssh2` (SFTP), Ollama (barre IA).*
 
 ---
 
@@ -110,16 +124,16 @@ gvue/
 │  ├─ main/
 │  │  ├─ index.ts              # bootstrap app + IPC
 │  │  ├─ window.ts             # fenêtre frameless + état persistant
-│  │  ├─ ipc/                  # fs, terminal, search, config, window
-│  │  └─ services/             # filesystem, pty-manager, shell-detect, search, config-store
+│  │  ├─ ipc/                  # fs, terminal, search, git, config, window
+│  │  └─ services/             # filesystem, pty-manager, shell-detect, search, git, config-store
 │  ├─ preload/
 │  │  └─ index.ts              # contextBridge → window.api
 │  ├─ renderer/
 │  │  └─ src/
 │  │     ├─ App.tsx
-│  │     ├─ components/        # TitleBar, Toolbar, CommandBar, Sidebar, FileList,
-│  │     │                     #   SearchPanel, Terminal, TerminalPanel, AppearancePanel
-│  │     ├─ state/             # stores zustand (nav, terminal, search, appearance, ui)
+│  │     ├─ components/        # TitleBar, Toolbar, CommandBar, Sidebar, FileList, GitWidget,
+│  │     │                     #   ContextMenu, SearchPanel, QuickAccessPanel, Terminal, TerminalPanel, AppearancePanel
+│  │     ├─ state/             # stores zustand (nav, terminal, search, git, appearance, ui)
 │  │     ├─ theme/             # variables CSS, presets, application du thème
 │  │     └─ lib/               # helpers (format, icônes, registre xterm)
 │  └─ shared/                  # types.ts, ipc.ts
@@ -172,7 +186,7 @@ Pour l'activer (si la recompilation a échoué) : installer les *Build Tools* pu
 | **1. Coquille** | ✅ **Fait** | Fenêtre frameless + barre de titre, navigation, liste virtualisée, sidebar |
 | **2. Terminal** | ✅ **Fait** | node-pty + xterm, détection des shells, onglets, barre de commande |
 | **3. Recherche** | ✅ **Fait** | `@vscode/ripgrep`, recherche contenu streamée, résultats cliquables groupés par fichier |
-| **4. Git** | ⏳ À faire | Statuts + badges par fichier, commit/pull/push, masquage `.gitignore` |
+| **4. Git** | ✅ **Fait** | Badges par fichier, branche + avance/retard, commit/pull/push, menu contextuel, masquage `.gitignore`, détection des dépôts |
 | **5. Personnalisation** | 🟡 **Partiel** | Panneau Apparence fonctionnel ; reste : presets nommés, dispositions par espace de travail |
 | **6. Pro** | ⏳ À faire | Projets, palette de commandes, barre IA, aperçu, espaces de travail, carte disque, double panneau, SSH/SFTP |
 
@@ -195,14 +209,20 @@ Pour l'activer (si la recompilation a échoué) : installer les *Build Tools* pu
   - Construction de requêtes : casse, mot entier, regex / littéral, inclusion des fichiers ignorés.
   - Sortie `--json` parsée en flux, correspondances streamées par lots, plafonnées et annulables.
   - Champ de recherche de la barre d'outils câblé ; panneau de résultats virtualisé, groupés par fichier, surlignage des correspondances.
+- **Phase 4 — Git** (pilotage du binaire `git` du système)
+  - Service `git status --porcelain -z --branch --ignored` parsé (branche, avance/retard, fichiers, ignorés).
+  - Badges de statut par fichier + nom teinté, point sur les dossiers modifiés, branche + avance/retard dans la barre d'état.
+  - Panneau commit (add -A + commit) / pull / push avec retour de git ; menu contextuel par fichier (indexer / désindexer / annuler).
+  - Masquage des fichiers ignorés par `.gitignore` (bascule persistée) ; suppression vers la corbeille (`shell.trashItem`).
+  - Détection des dépôts visités dans la sidebar (section Projets, branche + indicateur de modifications).
+- **Accès rapide & navigation**
+  - Page « Accès rapide » (dossiers fréquents + fichiers récents) en vue par défaut, bouton dédié dans la sidebar.
+  - Barre d'adresse éditable façon Windows (validation par Entrée avec vérification d'existence), boutons souris précédent/suivant.
 - **Phase 5 (anticipée) — Apparence**
   - Accent, thème, densité, coins, police, taille ; appliqués via variables CSS et persistés.
 
 ### ⏳ Ce qu'il reste à faire
 
-- **Phase 4 — Git** : `simple-git`, branche + avance/retard par dépôt, badges de
-  statut par fichier (modifié / non suivi / en conflit), menu contextuel commit/pull/push,
-  masquage intelligent de ce qu'ignore `.gitignore`, détection des projets dans la sidebar.
 - **Phase 5 (compléments)** : presets d'apparence nommés, persistance des dispositions
   de panneaux par espace de travail, effet d'opacité réel de la fenêtre.
 - **Phase 6 — Pro** : vue par projet + actions rapides, palette de commandes (Ctrl+P),

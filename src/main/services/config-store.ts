@@ -29,6 +29,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   recents: [],
   recentFiles: [],
   folderFreq: {},
+  projectRoots: [],
   hideGitIgnored: true
 }
 
@@ -72,6 +73,13 @@ export function pushRecentFile(p: string, max = 30): void {
   const files = store.get('recentFiles').filter((r) => r !== p)
   files.unshift(p)
   store.set('recentFiles', files.slice(0, max))
+}
+
+/** Mémorise la racine d'un dépôt visité (en tête, FIFO borné). */
+export function pushProject(root: string, max = 15): void {
+  const roots = store.get('projectRoots').filter((r) => r !== root)
+  roots.unshift(root)
+  store.set('projectRoots', roots.slice(0, max))
 }
 
 /** Emplacement par défaut au lancement : le home de l'utilisateur. */

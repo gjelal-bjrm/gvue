@@ -1,7 +1,14 @@
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
+import { basename } from 'node:path'
 import { assertAbsolute } from './filesystem'
-import type { GitStatus, GitFileChange, GitCategory, GitActionResult } from '@shared/types'
+import type {
+  GitStatus,
+  GitFileChange,
+  GitCategory,
+  GitActionResult,
+  GitProject
+} from '@shared/types'
 
 /**
  * Service Git — pilote le binaire `git` du système (présent sur la machine de
@@ -165,6 +172,36 @@ export async function push(dir: string): Promise<GitActionResult> {
   } catch (e) {
     return { ok: false, output: e instanceof Error ? e.message : String(e) }
   }
+}
+
+/** Infos légères d'un dépôt (branche + présence de modifications suivies). */
+async function projectInfo(root: string): Promise<GitProject | null> {
+  let cwd: string
+  try {
+    cwd = assertAbsolute(root)
+  } catch {
+    return null
+  }
+  let branch: string
+  try {
+    // Échoue si le dossier a disparu ou n'est plus un dépôt → entrée filtrée.
+    branch = (await git(['rev-parse', '--abbrev-ref', 'HEAD'], cwd)).trim()
+  } catch {
+    return null
+  }
+  let dirty = false
+  try {
+    dirty = (await git(['status', '--porcelain', '--untracked-files=no'], cwd)).trim().length > 0
+  } catch {
+    /* dirty reste false */
+  }
+  return { root, name: basename(root) || root, branch, dirty }
+}
+
+/** Résout les infos des dépôts connus, en parallèle, en filtrant les disparus. */
+export async function projects(roots: string[]): Promise<GitProject[]> {
+  const infos = await Promise.all(roots.map(projectInfo))
+  return infos.filter((p): p is GitProject => p !== null)
 }
 
 /** Indexe un fichier (git add). */

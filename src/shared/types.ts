@@ -82,6 +82,8 @@ export interface AppConfig {
   recentFiles: string[]
   /** Nombre de visites par dossier, pour les « dossiers fréquents ». */
   folderFreq: Record<string, number>
+  /** Racines des dépôts Git visités (les plus récents en tête). */
+  projectRoots: string[]
   hideGitIgnored: boolean
 }
 
@@ -135,6 +137,17 @@ export interface GitFileChange {
   category: GitCategory
   /** Le changement est présent dans l'index (staged). */
   staged: boolean
+}
+
+/** Un dépôt Git connu, pour la section Projets de la sidebar. */
+export interface GitProject {
+  /** Racine du dépôt (séparateurs « / »). */
+  root: string
+  /** Nom affiché (basename de la racine). */
+  name: string
+  branch: string
+  /** Le dépôt a-t-il des modifications suivies non validées ? */
+  dirty: boolean
 }
 
 /** Résultat d'une action Git (commit/pull/push) : succès + sortie de git. */
