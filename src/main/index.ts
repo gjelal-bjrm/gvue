@@ -6,6 +6,7 @@ import { registerWindowHandlers } from './ipc/window'
 import { registerTerminalHandlers } from './ipc/terminal'
 import { registerSearchHandlers } from './ipc/search'
 import { registerGitHandlers } from './ipc/git'
+import { registerAppsHandlers } from './ipc/apps'
 import { killAll } from './services/pty-manager'
 import { killAllSearches } from './services/search'
 import { closeWatch } from './services/fs-watch'
@@ -21,6 +22,7 @@ function registerIpc(): void {
   registerTerminalHandlers()
   registerSearchHandlers()
   registerGitHandlers()
+  registerAppsHandlers()
 }
 
 app.whenReady().then(() => {

@@ -19,7 +19,11 @@ import {
   Link2,
   Pencil,
   Star,
-  StarOff
+  StarOff,
+  Code2,
+  PenLine,
+  FileArchive,
+  FileDown
 } from 'lucide-react'
 import { useNavStore, type SortKey } from '../state/useNavStore'
 import { useAppearanceStore } from '../state/useAppearanceStore'
@@ -30,6 +34,7 @@ import { formatSize, formatRelativeDate, formatDate, pathKey } from '../lib/form
 import { fileIconSpec } from '../lib/fileIcon'
 import { useOsIcon } from '../lib/osIcons'
 import { useFavoritesStore } from '../state/useFavoritesStore'
+import { useAppsStore } from '../state/useAppsStore'
 import { clipFiles, pasteInto } from '../lib/fileActions'
 import GitWidget from './GitWidget'
 import ContextMenu, { type MenuEntry } from './ContextMenu'
@@ -61,6 +66,14 @@ function gitBadge(category: GitCategory): { letter: string; color: string } {
 const EMPTY_MAP: Record<string, GitFileChange> = {}
 const EMPTY_SET = new Set<string>()
 const EMPTY_LIST: string[] = []
+
+const ARCHIVE_EXT = new Set([
+  'zip', '7z', 'rar', 'tar', 'gz', 'tgz', 'bz2', 'xz', 'cab', 'iso', 'wim', 'lzh', 'arj', 'zipx'
+])
+function extOf(name: string): string {
+  const d = name.lastIndexOf('.')
+  return d > 0 ? name.slice(d + 1).toLowerCase() : ''
+}
 
 export default function FileList(props: { paneId: string }): JSX.Element {
   const pane = useNavStore((s) => s.panes.find((p) => p.id === props.paneId))
@@ -208,6 +221,16 @@ export default function FileList(props: { paneId: string }): JSX.Element {
 
   // Menu de la zone vide (clic droit hors d'un élément) : créer / coller / actualiser.
   const backgroundMenu = (): MenuEntry[] => [
+    ...(useAppsStore.getState().apps.vscode
+      ? [
+          {
+            label: 'Ouvrir avec VS Code',
+            icon: <Code2 size={14} />,
+            onClick: () => window.api.apps.openWith('vscode', [path])
+          } as MenuEntry,
+          { type: 'sep' } as MenuEntry
+        ]
+      : []),
     {
       label: 'Nouveau dossier',
       icon: <FolderPlus size={14} />,
@@ -241,9 +264,39 @@ export default function FileList(props: { paneId: string }): JSX.Element {
 
   const buildMenu = (entry: DirEntry): MenuEntry[] => {
     const git = statusByPath[pathKey(entry.path)]
+    const apps = useAppsStore.getState().apps
     // Cible des opérations groupées : la sélection si l'élément en fait partie.
     const targets = selectedSet.has(entry.path) && selected.length > 1 ? selected : [entry.path]
     const n = targets.length
+
+    // Intégrations d'applications externes (affichées seulement si installées).
+    const appEntries: MenuEntry[] = []
+    if (apps.vscode)
+      appEntries.push({
+        label: 'Ouvrir avec VS Code',
+        icon: <Code2 size={14} />,
+        onClick: () => window.api.apps.openWith('vscode', targets)
+      })
+    if (apps.notepadpp && entry.kind === 'file')
+      appEntries.push({
+        label: 'Éditer avec Notepad++',
+        icon: <PenLine size={14} />,
+        onClick: () => window.api.apps.openWith('notepadpp', targets)
+      })
+    if (apps.sevenzip) {
+      appEntries.push({
+        label: n > 1 ? `Compresser (${n}) en .zip` : 'Compresser en .zip (7-Zip)',
+        icon: <FileArchive size={14} />,
+        onClick: () => void window.api.apps.archive(targets)
+      })
+      if (entry.kind === 'file' && ARCHIVE_EXT.has(extOf(entry.name)))
+        appEntries.push({
+          label: 'Extraire (7-Zip)',
+          icon: <FileDown size={14} />,
+          onClick: () => void window.api.apps.extract(entry.path)
+        })
+    }
+
     const entries: MenuEntry[] = [
       { label: 'Ouvrir', icon: <FolderOpen size={14} />, onClick: () => onActivate(entry) },
       {
@@ -256,6 +309,7 @@ export default function FileList(props: { paneId: string }): JSX.Element {
         icon: <Link2 size={14} />,
         onClick: () => void window.api.fs.createShortcut(entry.path).then(refreshAfter)
       },
+      ...(appEntries.length ? [{ type: 'sep' } as MenuEntry, ...appEntries] : []),
       { type: 'sep' },
       {
         label: 'Copier le chemin',

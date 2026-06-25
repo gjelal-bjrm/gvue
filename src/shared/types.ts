@@ -35,6 +35,15 @@ export interface CreateResult {
   error?: string
 }
 
+/** Applications externes détectées (chemin de l'exécutable si présent). */
+export interface DetectedApps {
+  vscode?: string
+  notepadpp?: string
+  sevenzip?: string
+}
+
+export type ExternalAppId = 'vscode' | 'notepadpp'
+
 // --- Aperçu de fichier (phase 6) ---
 
 export type PreviewKind = 'text' | 'code' | 'markdown' | 'json' | 'image' | 'binary'

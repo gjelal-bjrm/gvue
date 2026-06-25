@@ -30,6 +30,12 @@ export const IPC = {
   terminalOnData: 'terminal:onData',
   terminalOnExit: 'terminal:onExit',
 
+  // Applications externes
+  appsList: 'apps:list',
+  appsOpenWith: 'apps:openWith',
+  appsArchive: 'apps:archive',
+  appsExtract: 'apps:extract',
+
   // Git
   gitStatus: 'git:status',
   gitCommit: 'git:commit',

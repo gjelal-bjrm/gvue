@@ -201,7 +201,7 @@ Pour l'activer (si la recompilation a échoué) : installer les *Build Tools* pu
 | **3. Recherche** | ✅ **Fait** | `@vscode/ripgrep`, recherche contenu streamée, résultats cliquables groupés par fichier |
 | **4. Git** | ✅ **Fait** | Badges par fichier, branche + avance/retard, commit/pull/push, menu contextuel, masquage `.gitignore`, détection des dépôts |
 | **5. Personnalisation** | ✅ **Fait** | Apparence, presets nommés, opacité réelle ; reste : dispositions par espace de travail (avec phase 6) |
-| **6. Pro** | 🟡 **Partiel** | Palette, aperçu, multi-volets (jusqu'à 3) faits ; reste : espaces de travail, barre IA, carte disque, SSH/SFTP |
+| **6. Pro** | 🟡 **Partiel** | Palette, aperçu, multi-volets, intégrations apps faits ; reste : commandes perso, espaces de travail, barre IA, carte disque, SSH/SFTP |
 
 ### ✅ Ce qui est fait
 
@@ -244,6 +244,7 @@ Pour l'activer (si la recompilation a échoué) : installer les *Build Tools* pu
   - Multi-sélection (Ctrl/Maj+clic, Ctrl+A), renommer en place (F2), suppression (Suppr) ; menu contextuel sur la zone vide (nouveau fichier/dossier, coller, actualiser) ; menu qui se ferme au clic ailleurs.
   - Icônes système façon Windows (`app.getFileIcon` : logos exe/rdp/types associés, raccourcis `.lnk` résolus vers leur cible) + vignettes d'images (`nativeImage.createThumbnailFromPath`) dans la liste, mémoïsées par extension/chemin, repli sur l'icône lucide.
   - Favoris gérables depuis l'UI (ajout/retrait via le menu contextuel et la sidebar) ; masquage des fichiers système (`desktop.ini`, `Thumbs.db`…).
+  - Intégrations applications (détectées par chemin d'install) : ouvrir avec VS Code, éditer avec Notepad++, compresser/extraire avec 7-Zip (interface graphique `7zG.exe` → progression native).
 
 ### ⏳ Ce qu'il reste à faire
 

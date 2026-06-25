@@ -11,6 +11,8 @@ import type {
   GitStatus,
   GitActionResult,
   GitProject,
+  DetectedApps,
+  ExternalAppId,
   AppConfig,
   WindowAction,
   WindowStatus,
@@ -89,6 +91,15 @@ const api = {
       ipcRenderer.on(IPC.fsOnChange, listener)
       return () => ipcRenderer.removeListener(IPC.fsOnChange, listener)
     }
+  },
+  apps: {
+    list: (): Promise<DetectedApps> => ipcRenderer.invoke(IPC.appsList),
+    openWith: (appId: ExternalAppId, paths: string[]): void =>
+      ipcRenderer.send(IPC.appsOpenWith, appId, paths),
+    archive: (paths: string[]): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke(IPC.appsArchive, paths),
+    extract: (archivePath: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke(IPC.appsExtract, archivePath)
   },
   git: {
     status: (dir: string): Promise<GitStatus> => ipcRenderer.invoke(IPC.gitStatus, dir),
