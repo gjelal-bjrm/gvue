@@ -114,6 +114,21 @@ export interface WindowState {
   maximized: boolean
 }
 
+/** Un volet mémorisé dans un espace de travail. */
+export interface WorkspacePane {
+  path: string
+  quickAccess: boolean
+}
+
+/** Espace de travail : disposition des volets + état des panneaux. */
+export interface WorkspaceData {
+  panes: WorkspacePane[]
+  activeIndex: number
+  terminalOpen: boolean
+  previewOpen: boolean
+  appearanceOpen: boolean
+}
+
 export interface AppConfig {
   appearance: Appearance
   window: WindowState
@@ -128,6 +143,8 @@ export interface AppConfig {
   projectRoots: string[]
   /** Programmes mémorisés par extension pour « Ouvrir avec » (ext → exes). */
   openWith: Record<string, string[]>
+  /** Espaces de travail nommés. */
+  workspaces: Record<string, WorkspaceData>
   hideGitIgnored: boolean
 }
 

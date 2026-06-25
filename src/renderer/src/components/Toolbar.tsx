@@ -25,6 +25,7 @@ import { useNavStore, activePane } from '../state/useNavStore'
 import { useUiStore } from '../state/useUiStore'
 import { useSearchStore } from '../state/useSearchStore'
 import { breadcrumbSegments } from '../lib/format'
+import WorkspaceMenu from './WorkspaceMenu'
 
 /** Compare deux chemins en ignorant la casse et le séparateur final (Windows). */
 function samePath(a: string, b: string): boolean {
@@ -227,6 +228,7 @@ export default function Toolbar(): JSX.Element {
       {/* Recherche ripgrep */}
       <SearchBox />
 
+      <WorkspaceMenu />
       <NavBtn
         onClick={() => void addPane()}
         disabled={paneCount >= 3}

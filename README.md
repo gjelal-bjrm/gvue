@@ -201,7 +201,7 @@ Pour l'activer (si la recompilation a échoué) : installer les *Build Tools* pu
 | **3. Recherche** | ✅ **Fait** | `@vscode/ripgrep`, recherche contenu streamée, résultats cliquables groupés par fichier |
 | **4. Git** | ✅ **Fait** | Badges par fichier, branche + avance/retard, commit/pull/push, menu contextuel, masquage `.gitignore`, détection des dépôts |
 | **5. Personnalisation** | ✅ **Fait** | Apparence, presets nommés, opacité réelle ; reste : dispositions par espace de travail (avec phase 6) |
-| **6. Pro** | 🟡 **Partiel** | Palette, aperçu, multi-volets, intégrations apps faits ; reste : commandes perso, espaces de travail, barre IA, carte disque, SSH/SFTP |
+| **6. Pro** | 🟡 **Partiel** | Palette, aperçu, multi-volets, intégrations, espaces de travail faits ; reste : commandes perso, barre IA, carte disque, SSH/SFTP, packaging |
 
 ### ✅ Ce qui est fait
 
@@ -246,11 +246,13 @@ Pour l'activer (si la recompilation a échoué) : installer les *Build Tools* pu
   - Favoris gérables depuis l'UI (ajout/retrait via le menu contextuel et la sidebar) ; masquage des fichiers système (`desktop.ini`, `Thumbs.db`…).
   - Intégrations applications (détectées par chemin d'install) : ouvrir avec VS Code, éditer avec Notepad++, compresser/extraire avec 7-Zip (interface graphique `7zG.exe` → progression native).
   - « Ouvrir avec… » : sélecteur de programme (`.exe`), association **mémorisée par type de fichier** (proposée ensuite pour tous les fichiers du même type).
+  - Espaces de travail nommés : enregistrer/restaurer la disposition (dossiers ouverts par volet + Accès rapide + volet actif + panneaux terminal/aperçu/apparence) ; bouton dédié dans la barre d'outils + entrées dans la palette.
 
 ### ⏳ Ce qu'il reste à faire
 
-- **Phase 5 (reliquat)** : persistance des dispositions de panneaux par espace de
-  travail (dépend des espaces de travail, cf. phase 6).
+- **Phase 5 (reliquat)** : les espaces de travail mémorisent l'ouverture des
+  panneaux mais pas encore leurs **tailles** exactes (nécessite de lire les
+  dimensions des volets — à ajouter).
 - **Phase 6 — Pro** : vue par projet + actions rapides, palette de commandes (Ctrl+P),
   barre IA (Ollama, commande validée avant exécution), panneau d'aperçu (code coloré,
   Markdown, images, JSON, PDF), espaces de travail, carte de l'espace disque, double

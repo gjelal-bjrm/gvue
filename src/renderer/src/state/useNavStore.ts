@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { DirEntry, NavLocations } from '@shared/types'
+import type { DirEntry, NavLocations, WorkspacePane } from '@shared/types'
 
 export type SortKey = 'name' | 'size' | 'modifiedMs'
 export type SortDir = 'asc' | 'desc'
@@ -37,6 +37,8 @@ interface NavState {
   setActive: (id: string) => void
   addPane: () => Promise<void>
   closePane: (id: string) => void
+  /** Restaure une disposition de volets (espace de travail). */
+  applyWorkspace: (panes: WorkspacePane[], activeIndex: number) => Promise<void>
 
   // Actions sur le volet actif
   navigate: (path: string, record?: boolean) => Promise<void>
@@ -162,6 +164,21 @@ export const useNavStore = create<NavState>((set, get) => {
         const activeId = s.activeId === id ? panes[panes.length - 1].id : s.activeId
         return { panes, activeId }
       }),
+
+    applyWorkspace: async (confs, activeIndex) => {
+      if (confs.length === 0) return
+      const src = activePane(get())
+      const newPanes = confs.map(() => makePane(`pane-${++paneCounter}`, src.sortKey, src.sortDir))
+      const activeId = newPanes[Math.min(Math.max(activeIndex, 0), newPanes.length - 1)].id
+      set({ panes: newPanes, activeId })
+      await Promise.all(
+        confs.map(async (c, i) => {
+          const id = newPanes[i].id
+          if (c.path) await navigatePane(id, c.path, false)
+          if (c.quickAccess) patch(id, { quickAccess: true })
+        })
+      )
+    },
 
     navigate: (target, record = true) => navigatePane(get().activeId, target, record),
 

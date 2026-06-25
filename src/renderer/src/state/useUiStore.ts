@@ -29,9 +29,11 @@ interface UiState {
   /** Ouvre le terminal et l'affiche en grand (exécution d'une commande). */
   openTerminalLarge: () => void
   toggleAppearance: () => void
+  setAppearanceOpen: (v: boolean) => void
   togglePalette: () => void
   setPaletteOpen: (v: boolean) => void
   togglePreview: () => void
+  setPreviewOpen: (v: boolean) => void
   setClipboard: (c: FileClipboard | null) => void
 }
 
@@ -52,8 +54,10 @@ export const useUiStore = create<UiState>((set) => ({
       terminalGrow: s.terminalGrow + 1
     })),
   toggleAppearance: () => set((s) => ({ appearanceOpen: !s.appearanceOpen })),
+  setAppearanceOpen: (v) => set({ appearanceOpen: v }),
   togglePalette: () => set((s) => ({ paletteOpen: !s.paletteOpen })),
   setPaletteOpen: (v) => set({ paletteOpen: v }),
   togglePreview: () => set((s) => ({ previewOpen: !s.previewOpen })),
+  setPreviewOpen: (v) => set({ previewOpen: v }),
   setClipboard: (c) => set({ clipboard: c })
 }))

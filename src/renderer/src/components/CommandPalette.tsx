@@ -19,10 +19,12 @@ import {
   ArrowUpFromLine,
   FolderGit2,
   Columns2,
+  LayoutGrid,
   Search
 } from 'lucide-react'
 import { useUiStore } from '../state/useUiStore'
 import { useNavStore, activePane } from '../state/useNavStore'
+import { useWorkspaceStore } from '../state/useWorkspaceStore'
 import { useGitStore } from '../state/useGitStore'
 import { useSearchStore } from '../state/useSearchStore'
 import { useTerminalStore } from '../state/useTerminalStore'
@@ -65,6 +67,7 @@ export default function CommandPalette(): JSX.Element | null {
   const path = useNavStore((s) => activePane(s).path)
   const parent = useNavStore((s) => activePane(s).parent)
   const paneCount = useNavStore((s) => s.panes.length)
+  const workspaces = useWorkspaceStore((s) => s.workspaces)
   const showHidden = useNavStore((s) => s.showHidden)
   const hideGitIgnored = useNavStore((s) => s.hideGitIgnored)
   const terminalOpen = useUiStore((s) => s.terminalOpen)
@@ -176,6 +179,15 @@ export default function CommandPalette(): JSX.Element | null {
       })
     }
 
+    for (const name of Object.keys(workspaces)) {
+      list.push({
+        id: `ws-${name}`,
+        title: `Espace de travail : ${name}`,
+        icon: <LayoutGrid size={15} />,
+        run: () => void useWorkspaceStore.getState().load(name)
+      })
+    }
+
     for (const p of projects) {
       list.push({
         id: `proj-${p.root}`,
@@ -187,7 +199,7 @@ export default function CommandPalette(): JSX.Element | null {
     }
 
     return list
-  }, [path, parent, paneCount, showHidden, hideGitIgnored, terminalOpen, repo, projects])
+  }, [path, parent, paneCount, workspaces, showHidden, hideGitIgnored, terminalOpen, repo, projects])
 
   const filtered = useMemo(() => {
     return commands

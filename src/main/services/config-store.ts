@@ -31,6 +31,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   folderFreq: {},
   projectRoots: [],
   openWith: {},
+  workspaces: {},
   hideGitIgnored: true
 }
 
