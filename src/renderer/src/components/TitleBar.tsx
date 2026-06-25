@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Folders, Minus, Square, Copy, X } from 'lucide-react'
+import { Minus, Square, Copy, X } from 'lucide-react'
+import Logo from './Logo'
 
 /**
  * Barre de titre custom pour la fenêtre frameless.
@@ -16,7 +17,7 @@ export default function TitleBar(): JSX.Element {
   return (
     <header className="drag-region flex h-9 shrink-0 items-center justify-between border-b border-border bg-bg-secondary pl-3 select-none">
       <div className="flex items-center gap-2">
-        <Folders size={17} className="text-accent" />
+        <Logo size={18} />
         <span className="text-[13px] font-medium tracking-wide">GVue</span>
       </div>
 
