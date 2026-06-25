@@ -21,7 +21,7 @@ export function applyAppearance(a: Appearance): void {
   root.style.setProperty('--row-pad', a.density === 'comfortable' ? '8px' : '4px')
   root.style.setProperty('--font-ui', a.fontFamily)
   root.style.setProperty('--font-size', `${a.fontSize}px`)
-  root.style.setProperty('--window-opacity', String(a.windowOpacity))
+  // L'opacité de la fenêtre est appliquée au niveau OS (win.setOpacity), pas en CSS.
 }
 
 /** Construit la teinte douce de l'accent (~16 % d'opacité). */

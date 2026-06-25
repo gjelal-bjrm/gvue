@@ -1,4 +1,5 @@
-import { Palette, Check, X } from 'lucide-react'
+import { useState } from 'react'
+import { Palette, Check, X, Save, Trash2 } from 'lucide-react'
 import { useAppearanceStore } from '../state/useAppearanceStore'
 import { useUiStore } from '../state/useUiStore'
 import { ACCENT_SWATCHES, FONT_CHOICES } from '../theme/presets'
@@ -10,8 +11,17 @@ import type { Appearance } from '@shared/types'
  * electron-store. Aucun composant n'est repeint « à la main ».
  */
 export default function AppearancePanel(): JSX.Element {
-  const { appearance, update } = useAppearanceStore()
+  const { appearance, update, savePreset, applyPreset, deletePreset } = useAppearanceStore()
   const closePanel = useUiStore((s) => s.toggleAppearance)
+  const [presetName, setPresetName] = useState('')
+  const presetNames = Object.keys(appearance.presets)
+
+  const onSavePreset = (): void => {
+    const name = presetName.trim()
+    if (!name) return
+    savePreset(name)
+    setPresetName('')
+  }
 
   return (
     <aside className="flex h-full w-full flex-col gap-5 overflow-y-auto border-l border-border bg-bg-secondary p-3.5 text-[13px]">
@@ -130,6 +140,68 @@ export default function AppearancePanel(): JSX.Element {
           onChange={(e) => update({ fontSize: Number(e.target.value) })}
           className="w-full accent-[var(--accent)]"
         />
+      </Field>
+
+      {/* Opacité de la fenêtre (réelle, niveau OS) */}
+      <Field label={`Opacité de la fenêtre — ${Math.round(appearance.windowOpacity * 100)} %`}>
+        <input
+          type="range"
+          min={0.3}
+          max={1}
+          step={0.05}
+          value={appearance.windowOpacity}
+          onChange={(e) => update({ windowOpacity: Number(e.target.value) })}
+          className="w-full accent-[var(--accent)]"
+        />
+      </Field>
+
+      {/* Presets nommés */}
+      <Field label="Presets">
+        <div className="flex gap-2">
+          <input
+            value={presetName}
+            onChange={(e) => setPresetName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') onSavePreset()
+            }}
+            placeholder="Nom du preset…"
+            spellCheck={false}
+            className="min-w-0 flex-1 rounded-app border border-border bg-bg px-2 py-1.5 text-[12px] text-fg outline-none placeholder:text-fg-muted focus:border-accent"
+          />
+          <button
+            onClick={onSavePreset}
+            disabled={!presetName.trim()}
+            title="Enregistrer l'apparence courante"
+            className="flex shrink-0 items-center gap-1.5 rounded-app bg-accent px-2.5 text-[12px] font-medium text-white hover:opacity-90 disabled:opacity-40"
+          >
+            <Save size={14} />
+          </button>
+        </div>
+        {presetNames.length > 0 && (
+          <div className="mt-2 flex flex-col gap-1">
+            {presetNames.map((name) => (
+              <div
+                key={name}
+                className="flex items-center gap-1 rounded-app border border-border bg-bg pl-1"
+              >
+                <button
+                  onClick={() => applyPreset(name)}
+                  title="Appliquer ce preset"
+                  className="min-w-0 flex-1 truncate px-2 py-1.5 text-left text-[12px] text-fg-secondary hover:text-fg"
+                >
+                  {name}
+                </button>
+                <button
+                  onClick={() => deletePreset(name)}
+                  title="Supprimer ce preset"
+                  className="grid h-7 w-7 shrink-0 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-danger-fg"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </Field>
     </aside>
   )

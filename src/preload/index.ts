@@ -159,6 +159,7 @@ const api = {
     action: (action: WindowAction): Promise<void> =>
       ipcRenderer.invoke(IPC.windowAction, action),
     status: (): Promise<WindowStatus> => ipcRenderer.invoke(IPC.windowStatus),
+    setOpacity: (value: number): Promise<void> => ipcRenderer.invoke(IPC.windowSetOpacity, value),
     onStatus: (cb: (status: WindowStatus) => void): (() => void) => {
       const listener = (_e: unknown, status: WindowStatus): void => cb(status)
       ipcRenderer.on(IPC.windowOnStatus, listener)

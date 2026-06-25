@@ -187,7 +187,7 @@ Pour l'activer (si la recompilation a échoué) : installer les *Build Tools* pu
 | **2. Terminal** | ✅ **Fait** | node-pty + xterm, détection des shells, onglets, barre de commande |
 | **3. Recherche** | ✅ **Fait** | `@vscode/ripgrep`, recherche contenu streamée, résultats cliquables groupés par fichier |
 | **4. Git** | ✅ **Fait** | Badges par fichier, branche + avance/retard, commit/pull/push, menu contextuel, masquage `.gitignore`, détection des dépôts |
-| **5. Personnalisation** | 🟡 **Partiel** | Panneau Apparence fonctionnel ; reste : presets nommés, dispositions par espace de travail |
+| **5. Personnalisation** | ✅ **Fait** | Apparence, presets nommés, opacité réelle ; reste : dispositions par espace de travail (avec phase 6) |
 | **6. Pro** | ⏳ À faire | Projets, palette de commandes, barre IA, aperçu, espaces de travail, carte disque, double panneau, SSH/SFTP |
 
 ### ✅ Ce qui est fait
@@ -215,16 +215,19 @@ Pour l'activer (si la recompilation a échoué) : installer les *Build Tools* pu
   - Panneau commit (add -A + commit) / pull / push avec retour de git ; menu contextuel par fichier (indexer / désindexer / annuler).
   - Masquage des fichiers ignorés par `.gitignore` (bascule persistée) ; suppression vers la corbeille (`shell.trashItem`).
   - Détection des dépôts visités dans la sidebar (section Projets, branche + indicateur de modifications).
+  - Rafraîchissement automatique de la vue (surveillance disque `fs.watch`, débattue).
 - **Accès rapide & navigation**
   - Page « Accès rapide » (dossiers fréquents + fichiers récents) en vue par défaut, bouton dédié dans la sidebar.
   - Barre d'adresse éditable façon Windows (validation par Entrée avec vérification d'existence), boutons souris précédent/suivant.
-- **Phase 5 (anticipée) — Apparence**
+- **Phase 5 — Apparence**
   - Accent, thème, densité, coins, police, taille ; appliqués via variables CSS et persistés.
+  - Presets d'apparence nommés (enregistrer / appliquer / supprimer).
+  - Opacité réelle de la fenêtre (`win.setOpacity`, niveau OS) réglable au curseur.
 
 ### ⏳ Ce qu'il reste à faire
 
-- **Phase 5 (compléments)** : presets d'apparence nommés, persistance des dispositions
-  de panneaux par espace de travail, effet d'opacité réel de la fenêtre.
+- **Phase 5 (reliquat)** : persistance des dispositions de panneaux par espace de
+  travail (dépend des espaces de travail, cf. phase 6).
 - **Phase 6 — Pro** : vue par projet + actions rapides, palette de commandes (Ctrl+P),
   barre IA (Ollama, commande validée avant exécution), panneau d'aperçu (code coloré,
   Markdown, images, JSON, PDF), espaces de travail, carte de l'espace disque, double

@@ -20,6 +20,25 @@ interface AppearanceState {
   init: () => Promise<void>
   /** Met à jour une ou plusieurs clés, applique les variables CSS et persiste. */
   update: (patch: Partial<Appearance>) => void
+  /** Enregistre l'apparence courante comme preset nommé. */
+  savePreset: (name: string) => void
+  /** Applique un preset enregistré. */
+  applyPreset: (name: string) => void
+  /** Supprime un preset enregistré. */
+  deletePreset: (name: string) => void
+}
+
+/** Réglages visuels seuls (sans la table des presets), pour sauver un preset. */
+function visualOnly(a: Appearance): Partial<Appearance> {
+  return {
+    accent: a.accent,
+    theme: a.theme,
+    density: a.density,
+    corners: a.corners,
+    fontFamily: a.fontFamily,
+    fontSize: a.fontSize,
+    windowOpacity: a.windowOpacity
+  }
 }
 
 export const useAppearanceStore = create<AppearanceState>((set, get) => ({
@@ -31,6 +50,7 @@ export const useAppearanceStore = create<AppearanceState>((set, get) => ({
       const appearance = await window.api.config.get('appearance')
       const merged = { ...FALLBACK, ...appearance }
       applyAppearance(merged)
+      void window.api.window.setOpacity(merged.windowOpacity)
       set({ appearance: merged, loaded: true })
     } catch {
       applyAppearance(FALLBACK)
@@ -42,8 +62,27 @@ export const useAppearanceStore = create<AppearanceState>((set, get) => ({
     const next = { ...get().appearance, ...patch }
     applyAppearance(next)
     applyThemeAll() // répercute le thème sur les terminaux xterm vivants
+    if (patch.windowOpacity !== undefined) void window.api.window.setOpacity(next.windowOpacity)
     set({ appearance: next })
     // Persistance asynchrone, sans bloquer l'UI.
     void window.api.config.set('appearance', next)
+  },
+
+  savePreset: (name) => {
+    const key = name.trim()
+    if (!key) return
+    const presets = { ...get().appearance.presets, [key]: visualOnly(get().appearance) }
+    get().update({ presets })
+  },
+
+  applyPreset: (name) => {
+    const preset = get().appearance.presets[name]
+    if (preset) get().update(preset)
+  },
+
+  deletePreset: (name) => {
+    const presets = { ...get().appearance.presets }
+    delete presets[name]
+    get().update({ presets })
   }
 }))

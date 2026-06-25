@@ -48,6 +48,7 @@ export const IPC = {
   // Fenêtre
   windowAction: 'window:action',
   windowStatus: 'window:status',
+  windowSetOpacity: 'window:setOpacity',
   windowOnStatus: 'window:onStatus'
 } as const
 

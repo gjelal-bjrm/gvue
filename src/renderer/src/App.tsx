@@ -90,7 +90,7 @@ export default function App(): JSX.Element {
   const hKey = `h-${appearanceOpen ? 'a' : ''}`
 
   return (
-    <div className="flex h-full flex-col bg-bg text-fg" style={{ opacity: 'var(--window-opacity)' }}>
+    <div className="flex h-full flex-col bg-bg text-fg">
       <TitleBar />
       <Toolbar />
       <CommandBar />

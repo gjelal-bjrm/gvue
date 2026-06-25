@@ -25,4 +25,10 @@ export function registerWindowHandlers(): void {
     const win = BrowserWindow.fromWebContents(e.sender)
     return { maximized: win?.isMaximized() ?? false }
   })
+
+  ipcMain.handle(IPC.windowSetOpacity, async (e, value: number) => {
+    const win = BrowserWindow.fromWebContents(e.sender)
+    // Opacité OS réelle (on voit le bureau derrière) ; bornée pour rester visible.
+    win?.setOpacity(Math.min(1, Math.max(0.3, value)))
+  })
 }
