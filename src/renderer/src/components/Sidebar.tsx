@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Home, Monitor, Download, FileText, HardDrive, Star, FolderGit2 } from 'lucide-react'
+import { Home, Monitor, Download, FileText, HardDrive, Star, FolderGit2, X } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useNavStore, activePane } from '../state/useNavStore'
 import { useSearchStore } from '../state/useSearchStore'
+import { useFavoritesStore } from '../state/useFavoritesStore'
 import type { GitProject } from '@shared/types'
-import { pathKey } from '../lib/format'
+import { pathKey, baseName } from '../lib/format'
 
 /**
  * Sidebar : accès rapide, lecteurs, favoris et projets.
@@ -18,12 +19,9 @@ export default function Sidebar(): JSX.Element {
   const path = useNavStore((s) => activePane(s).path)
   const quickAccess = useNavStore((s) => activePane(s).quickAccess)
   const closeSearch = useSearchStore((s) => s.close)
-  const [favorites, setFavorites] = useState<string[]>([])
+  const favorites = useFavoritesStore((s) => s.favorites)
+  const removeFavorite = useFavoritesStore((s) => s.remove)
   const [projects, setProjects] = useState<GitProject[]>([])
-
-  useEffect(() => {
-    window.api.config.get('favorites').then(setFavorites).catch(() => setFavorites([]))
-  }, [])
 
   // Recharge la liste des dépôts à chaque navigation (un dépôt fraîchement
   // visité y apparaît). La mémorisation se fait côté main au git:status.
@@ -97,15 +95,17 @@ export default function Sidebar(): JSX.Element {
 
       <Section title="Favoris">
         {favorites.length === 0 ? (
-          <p className="px-2 text-[12px] text-fg-muted">Aucun favori</p>
+          <p className="px-2 text-[12px] text-fg-muted">
+            Aucun favori — clic droit sur un dossier → « Ajouter aux favoris ».
+          </p>
         ) : (
           favorites.map((f) => (
-            <Item
+            <FavoriteItem
               key={f}
-              icon={Star}
-              label={f.split(/[\\/]/).filter(Boolean).pop() ?? f}
+              path={f}
               active={isActive(f)}
-              onClick={() => navigate(f)}
+              onOpen={() => navigate(f)}
+              onRemove={() => removeFavorite(f)}
             />
           ))
         )}
@@ -136,6 +136,37 @@ function Section(props: { title: string; children: React.ReactNode }): JSX.Eleme
         {props.title}
       </div>
       {props.children}
+    </div>
+  )
+}
+
+function FavoriteItem(props: {
+  path: string
+  active?: boolean
+  onOpen: () => void
+  onRemove: () => void
+}): JSX.Element {
+  return (
+    <div
+      className={`group flex items-center gap-1 rounded-app pr-1 ${
+        props.active ? 'bg-accent-soft text-accent' : 'text-fg-secondary hover:bg-bg-hover hover:text-fg'
+      }`}
+    >
+      <button
+        onClick={props.onOpen}
+        title={props.path}
+        className="flex min-w-0 flex-1 items-center gap-2.5 px-2 py-[var(--row-pad)] text-left"
+      >
+        <Star size={16} className="shrink-0" />
+        <span className="truncate">{baseName(props.path)}</span>
+      </button>
+      <button
+        onClick={props.onRemove}
+        title="Retirer des favoris"
+        className="grid h-5 w-5 shrink-0 place-items-center rounded text-fg-muted opacity-0 hover:bg-bg-hover hover:text-fg group-hover:opacity-100"
+      >
+        <X size={12} />
+      </button>
     </div>
   )
 }

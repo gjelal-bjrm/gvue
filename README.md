@@ -242,7 +242,8 @@ Pour l'activer (si la recompilation a échoué) : installer les *Build Tools* pu
   - Multi-volets (1 à 3 dossiers côte à côte) : navigation indépendante par volet, volet actif piloté par la barre d'outils / Git / la palette ; bouton « diviser » et fermeture des volets.
   - Glisser-déposer natif (entre volets, entre instances, depuis/vers l'explorateur Windows) ; couper/copier/coller (Ctrl+X/C/V) ; copie/déplacement sans écrasement (« nom (copie) »), garde anti-cycle.
   - Multi-sélection (Ctrl/Maj+clic, Ctrl+A), renommer en place (F2), suppression (Suppr) ; menu contextuel sur la zone vide (nouveau fichier/dossier, coller, actualiser) ; menu qui se ferme au clic ailleurs.
-  - Icônes système façon Windows (`app.getFileIcon` : logos exe/rdp/types associés) + vignettes d'images (`nativeImage.createThumbnailFromPath`) dans la liste, mémoïsées par extension/chemin, repli sur l'icône lucide.
+  - Icônes système façon Windows (`app.getFileIcon` : logos exe/rdp/types associés, raccourcis `.lnk` résolus vers leur cible) + vignettes d'images (`nativeImage.createThumbnailFromPath`) dans la liste, mémoïsées par extension/chemin, repli sur l'icône lucide.
+  - Favoris gérables depuis l'UI (ajout/retrait via le menu contextuel et la sidebar) ; masquage des fichiers système (`desktop.ini`, `Thumbs.db`…).
 
 ### ⏳ Ce qu'il reste à faire
 

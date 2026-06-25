@@ -13,6 +13,7 @@ import TerminalPanel from './components/TerminalPanel'
 import CommandPalette from './components/CommandPalette'
 import { useNavStore, activePane } from './state/useNavStore'
 import { useGitStore } from './state/useGitStore'
+import { useFavoritesStore } from './state/useFavoritesStore'
 import { useAppearanceStore } from './state/useAppearanceStore'
 import { useUiStore } from './state/useUiStore'
 import { useSearchStore } from './state/useSearchStore'
@@ -23,6 +24,7 @@ export default function App(): JSX.Element {
   const initNav = useNavStore((s) => s.init)
   const initAppearance = useAppearanceStore((s) => s.init)
   const initSearch = useSearchStore((s) => s.init)
+  const initFavorites = useFavoritesStore((s) => s.init)
   const terminalOpen = useUiStore((s) => s.terminalOpen)
   const terminalSize = useUiStore((s) => s.terminalSize)
   const terminalGrow = useUiStore((s) => s.terminalGrow)
@@ -35,9 +37,10 @@ export default function App(): JSX.Element {
   useEffect(() => {
     void initAppearance()
     void initNav()
+    void initFavorites()
     // Abonne le store de recherche aux flux IPC (une seule fois).
     return initSearch()
-  }, [initAppearance, initNav, initSearch])
+  }, [initAppearance, initNav, initSearch, initFavorites])
 
   // Boutons souris précédent / suivant. Selon le pilote/OS, ils arrivent soit
   // comme événement « app-command » (relayé par le main), soit comme boutons

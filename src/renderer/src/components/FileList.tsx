@@ -17,7 +17,9 @@ import {
   FilePlus,
   RefreshCw,
   Link2,
-  Pencil
+  Pencil,
+  Star,
+  StarOff
 } from 'lucide-react'
 import { useNavStore, type SortKey } from '../state/useNavStore'
 import { useAppearanceStore } from '../state/useAppearanceStore'
@@ -27,6 +29,7 @@ import { useUiStore } from '../state/useUiStore'
 import { formatSize, formatRelativeDate, formatDate, pathKey } from '../lib/format'
 import { fileIconSpec } from '../lib/fileIcon'
 import { useOsIcon } from '../lib/osIcons'
+import { useFavoritesStore } from '../state/useFavoritesStore'
 import { clipFiles, pasteInto } from '../lib/fileActions'
 import GitWidget from './GitWidget'
 import ContextMenu, { type MenuEntry } from './ContextMenu'
@@ -223,6 +226,11 @@ export default function FileList(props: { paneId: string }): JSX.Element {
       onClick: () => void pasteInto(path)
     },
     { type: 'sep' },
+    {
+      label: useFavoritesStore.getState().has(path) ? 'Retirer des favoris' : 'Ajouter aux favoris',
+      icon: useFavoritesStore.getState().has(path) ? <StarOff size={14} /> : <Star size={14} />,
+      onClick: () => useFavoritesStore.getState().toggle(path)
+    },
     { label: 'Actualiser', icon: <RefreshCw size={14} />, onClick: () => useNavStore.getState().refresh() },
     {
       label: "Ouvrir dans l'explorateur",
@@ -287,7 +295,22 @@ export default function FileList(props: { paneId: string }): JSX.Element {
           setSelected([entry.path])
           setRenaming(entry.path)
         }
-      }
+      },
+      ...(entry.kind === 'directory'
+        ? [
+            {
+              label: useFavoritesStore.getState().has(entry.path)
+                ? 'Retirer des favoris'
+                : 'Ajouter aux favoris',
+              icon: useFavoritesStore.getState().has(entry.path) ? (
+                <StarOff size={14} />
+              ) : (
+                <Star size={14} />
+              ),
+              onClick: () => useFavoritesStore.getState().toggle(entry.path)
+            } as MenuEntry
+          ]
+        : [])
     ]
 
     if (repo && git && git.category !== 'ignored') {
