@@ -45,6 +45,12 @@ navigation, son historique et sa sélection. Le volet « actif » (cliqué) est 
 que pilotent la barre d'adresse, Git et la palette — idéal pour comparer ou
 déplacer entre dossiers. Bouton « diviser » et fermeture par volet.
 
+**Manipulation de fichiers** — **glisser-déposer natif** : entre volets, **entre
+instances de GVue** et **depuis/vers l'explorateur Windows** (drag de sortie via
+`webContents.startDrag`, drop entrant via `webUtils`). Maj = déplacer, sinon
+copier. **Couper / copier / coller** (Ctrl+X/C/V ou menu contextuel) entre volets.
+Jamais d'écrasement : collision → « nom (copie) ». Suppression vers la corbeille.
+
 **Recherche** — recherche de contenu via **ripgrep** (`@vscode/ripgrep`), lancée
 depuis la barre d'outils sur le dossier courant : bascules casse / mot entier /
 regex, résultats **streamés en temps réel** et **groupés par fichier**, surlignage
@@ -232,6 +238,7 @@ Pour l'activer (si la recompilation a échoué) : installer les *Build Tools* pu
   - Palette de commandes (Ctrl+Maj+P / Ctrl+P) : recherche floue d'actions (navigation, vue, panneaux, Git, thème) et de projets, navigation clavier.
   - Panneau d'aperçu (façon Quick Look) : image, JSON coloré, Markdown rendu, texte/code, carte d'infos pour les binaires — sans dépendance (coloration/markdown maison, sans HTML brut).
   - Multi-volets (1 à 3 dossiers côte à côte) : navigation indépendante par volet, volet actif piloté par la barre d'outils / Git / la palette ; bouton « diviser » et fermeture des volets.
+  - Glisser-déposer natif (entre volets, entre instances, depuis/vers l'explorateur Windows) ; couper/copier/coller (Ctrl+X/C/V) ; copie/déplacement sans écrasement (« nom (copie) »), garde anti-cycle.
 
 ### ⏳ Ce qu'il reste à faire
 

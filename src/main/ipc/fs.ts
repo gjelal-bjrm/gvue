@@ -1,10 +1,18 @@
-import { ipcMain, shell, app } from 'electron'
+import { ipcMain, shell, app, nativeImage } from 'electron'
 import { IPC } from '@shared/ipc'
 import type { NavLocations, DirEntry, QuickAccessData } from '@shared/types'
 import * as filesystem from '../services/filesystem'
+import * as fileops from '../services/fileops'
 import { readPreview } from '../services/preview'
 import { pushRecent, pushRecentFile, getConfig } from '../services/config-store'
 import { watchDir } from '../services/fs-watch'
+
+// Icône minimale pour le glisser-déposer natif (startDrag exige une icône non vide).
+const DRAG_ICON = nativeImage
+  .createFromDataURL(
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+  )
+  .resize({ width: 24, height: 24 })
 
 /**
  * Handlers IPC du système de fichiers : adaptateurs fins au-dessus du
@@ -60,6 +68,21 @@ export function registerFsHandlers(): void {
 
   ipcMain.handle(IPC.fsPreview, async (_e, targetPath: string) => {
     return readPreview(targetPath)
+  })
+
+  ipcMain.handle(IPC.fsCopy, async (_e, paths: string[], destDir: string) => {
+    return fileops.copy(paths, destDir)
+  })
+
+  ipcMain.handle(IPC.fsMove, async (_e, paths: string[], destDir: string) => {
+    return fileops.move(paths, destDir)
+  })
+
+  // Démarre un glisser natif (vrais fichiers) → fonctionne vers l'explorateur
+  // Windows ou une autre instance de GVue.
+  ipcMain.on(IPC.fsStartDrag, (e, paths: string[]) => {
+    if (!Array.isArray(paths) || paths.length === 0) return
+    e.sender.startDrag({ file: paths[0], files: paths, icon: DRAG_ICON })
   })
 
   ipcMain.handle(IPC.fsQuickAccess, async () => {

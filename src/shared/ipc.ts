@@ -10,6 +10,9 @@ export const IPC = {
   fsProbe: 'fs:probe',
   fsTrash: 'fs:trash',
   fsPreview: 'fs:preview',
+  fsCopy: 'fs:copy',
+  fsMove: 'fs:move',
+  fsStartDrag: 'fs:startDrag',
   fsQuickAccess: 'fs:quickAccess',
   fsOnChange: 'fs:onChange',
 

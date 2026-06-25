@@ -22,6 +22,12 @@ export interface DirEntry {
 /** Résultat d'une sonde de chemin : dossier, fichier, ou inexistant. */
 export type PathKind = 'directory' | 'file' | 'missing'
 
+/** Résultat d'une opération copier/déplacer : nombre traité + erreurs. */
+export interface FileOpResult {
+  ok: number
+  errors: string[]
+}
+
 // --- Aperçu de fichier (phase 6) ---
 
 export type PreviewKind = 'text' | 'code' | 'markdown' | 'json' | 'image' | 'binary'

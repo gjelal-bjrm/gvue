@@ -1,5 +1,11 @@
 import { create } from 'zustand'
 
+/** Presse-papiers de fichiers interne (entre volets d'une même fenêtre). */
+export interface FileClipboard {
+  paths: string[]
+  mode: 'copy' | 'cut'
+}
+
 /** Hauteur (en % de la zone) du panneau terminal à l'ouverture normale et en grand. */
 const TERMINAL_DEFAULT = 32
 const TERMINAL_LARGE = 60
@@ -16,6 +22,8 @@ interface UiState {
   terminalGrow: number
   /** Palette de commandes (Ctrl+Maj+P) ouverte ? */
   paletteOpen: boolean
+  /** Fichiers coupés/copiés en attente de collage. */
+  clipboard: FileClipboard | null
   toggleTerminal: () => void
   setTerminalOpen: (v: boolean) => void
   /** Ouvre le terminal et l'affiche en grand (exécution d'une commande). */
@@ -24,6 +32,7 @@ interface UiState {
   togglePalette: () => void
   setPaletteOpen: (v: boolean) => void
   togglePreview: () => void
+  setClipboard: (c: FileClipboard | null) => void
 }
 
 export const useUiStore = create<UiState>((set) => ({
@@ -33,6 +42,7 @@ export const useUiStore = create<UiState>((set) => ({
   terminalSize: TERMINAL_DEFAULT,
   terminalGrow: 0,
   paletteOpen: false,
+  clipboard: null,
   toggleTerminal: () => set((s) => ({ terminalOpen: !s.terminalOpen })),
   setTerminalOpen: (v) => set({ terminalOpen: v }),
   openTerminalLarge: () =>
@@ -44,5 +54,6 @@ export const useUiStore = create<UiState>((set) => ({
   toggleAppearance: () => set((s) => ({ appearanceOpen: !s.appearanceOpen })),
   togglePalette: () => set((s) => ({ paletteOpen: !s.paletteOpen })),
   setPaletteOpen: (v) => set({ paletteOpen: v }),
-  togglePreview: () => set((s) => ({ previewOpen: !s.previewOpen }))
+  togglePreview: () => set((s) => ({ previewOpen: !s.previewOpen })),
+  setClipboard: (c) => set({ clipboard: c })
 }))

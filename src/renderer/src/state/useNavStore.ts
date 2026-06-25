@@ -39,6 +39,8 @@ interface NavState {
   // Actions sur le volet actif
   navigate: (path: string, record?: boolean) => Promise<void>
   silentRefresh: (paneId?: string) => Promise<void>
+  /** Rafraîchit tous les volets affichant un dossier (après copie/déplacement). */
+  refreshAll: () => void
   goBack: () => void
   goForward: () => void
   goParent: () => void
@@ -173,6 +175,10 @@ export const useNavStore = create<NavState>((set, get) => {
       } catch {
         /* dossier devenu inaccessible : on garde l'état */
       }
+    },
+
+    refreshAll: () => {
+      for (const p of get().panes) if (!p.quickAccess && p.path) void get().silentRefresh(p.id)
     },
 
     goBack: () => {

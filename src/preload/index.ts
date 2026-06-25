@@ -1,10 +1,11 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import { IPC } from '@shared/ipc'
 import type {
   ListResult,
   NavLocations,
   PathKind,
   PreviewData,
+  FileOpResult,
   QuickAccessData,
   GitStatus,
   GitActionResult,
@@ -65,6 +66,13 @@ const api = {
     probe: (path: string): Promise<PathKind> => ipcRenderer.invoke(IPC.fsProbe, path),
     trash: (path: string): Promise<void> => ipcRenderer.invoke(IPC.fsTrash, path),
     preview: (path: string): Promise<PreviewData> => ipcRenderer.invoke(IPC.fsPreview, path),
+    copy: (paths: string[], destDir: string): Promise<FileOpResult> =>
+      ipcRenderer.invoke(IPC.fsCopy, paths, destDir),
+    move: (paths: string[], destDir: string): Promise<FileOpResult> =>
+      ipcRenderer.invoke(IPC.fsMove, paths, destDir),
+    startDrag: (paths: string[]): void => ipcRenderer.send(IPC.fsStartDrag, paths),
+    /** Chemin absolu d'un File déposé (drag depuis l'explorateur/une autre instance). */
+    pathForFile: (file: File): string => webUtils.getPathForFile(file),
     quickAccess: (): Promise<QuickAccessData> => ipcRenderer.invoke(IPC.fsQuickAccess),
     onChange: (cb: (path: string) => void): (() => void) => {
       const listener = (_e: unknown, path: string): void => cb(path)

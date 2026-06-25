@@ -9,14 +9,19 @@ import {
   Trash2,
   Plus,
   Minus,
-  Undo2
+  Undo2,
+  Scissors,
+  ClipboardCopy,
+  ClipboardPaste
 } from 'lucide-react'
 import { useNavStore, type SortKey } from '../state/useNavStore'
 import { useAppearanceStore } from '../state/useAppearanceStore'
 import { useGitStore } from '../state/useGitStore'
 import type { DirEntry, GitCategory, GitFileChange } from '@shared/types'
+import { useUiStore } from '../state/useUiStore'
 import { formatSize, formatRelativeDate, formatDate, pathKey } from '../lib/format'
 import { fileIconSpec } from '../lib/fileIcon'
+import { clipFiles, pasteInto } from '../lib/fileActions'
 import GitWidget from './GitWidget'
 import ContextMenu, { type MenuEntry } from './ContextMenu'
 
@@ -61,6 +66,8 @@ export default function FileList(props: { paneId: string }): JSX.Element {
   const dirtyDirs = useGitStore((s) => s.dirtyDirs)
   const ignoredAll = useGitStore((s) => s.ignored)
   const [menu, setMenu] = useState<{ x: number; y: number; entry: DirEntry } | null>(null)
+  const [dragOver, setDragOver] = useState<string | null>(null)
+  const clipboard = useUiStore((s) => s.clipboard)
   const parentRef = useRef<HTMLDivElement>(null)
 
   const isActive = activeId === props.paneId
@@ -123,6 +130,22 @@ export default function FileList(props: { paneId: string }): JSX.Element {
     }
   }
 
+  // Dépôt de fichiers (depuis un autre volet, une autre instance, ou l'explorateur).
+  // Maj enfoncée = déplacer, sinon copier.
+  const doDrop = async (e: React.DragEvent, destDir: string): Promise<void> => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragOver(null)
+    const paths = Array.from(e.dataTransfer.files)
+      .map((f) => window.api.fs.pathForFile(f))
+      .filter(Boolean)
+    if (paths.length === 0) return
+    const op = e.shiftKey ? window.api.fs.move : window.api.fs.copy
+    await op(paths, destDir)
+    useNavStore.getState().refreshAll()
+    if (isActive) void useGitStore.getState().refresh(path)
+  }
+
   const buildMenu = (entry: DirEntry): MenuEntry[] => {
     const git = statusByPath[pathKey(entry.path)]
     const entries: MenuEntry[] = [
@@ -142,6 +165,15 @@ export default function FileList(props: { paneId: string }): JSX.Element {
         label: 'Copier le nom',
         icon: <Copy size={14} />,
         onClick: () => void navigator.clipboard.writeText(entry.name)
+      },
+      { type: 'sep' },
+      { label: 'Couper', icon: <Scissors size={14} />, onClick: () => clipFiles([entry.path], 'cut') },
+      { label: 'Copier', icon: <ClipboardCopy size={14} />, onClick: () => clipFiles([entry.path], 'copy') },
+      {
+        label: entry.kind === 'directory' ? 'Coller dans le dossier' : 'Coller',
+        icon: <ClipboardPaste size={14} />,
+        disabled: !clipboard,
+        onClick: () => void pasteInto(entry.kind === 'directory' ? entry.path : path)
       }
     ]
 
@@ -192,7 +224,21 @@ export default function FileList(props: { paneId: string }): JSX.Element {
         </div>
       )}
 
-      <div ref={parentRef} className="relative flex-1 overflow-auto">
+      <div
+        ref={parentRef}
+        className={`relative flex-1 overflow-auto ${
+          dragOver === '__pane__' && path ? 'ring-2 ring-inset ring-accent' : ''
+        }`}
+        onDragOver={(e) => {
+          if (!path) return
+          e.preventDefault()
+          setDragOver('__pane__')
+        }}
+        onDragLeave={(e) => {
+          if (e.target === e.currentTarget) setDragOver(null)
+        }}
+        onDrop={(e) => void doDrop(e, path)}
+      >
         {!loading && visible.length === 0 && !error && (
           <div className="p-8 text-center text-[13px] text-fg-muted">Dossier vide</div>
         )}
@@ -200,6 +246,7 @@ export default function FileList(props: { paneId: string }): JSX.Element {
           {rowVirtualizer.getVirtualItems().map((vi) => {
             const entry = visible[vi.index]
             const key = pathKey(entry.path)
+            const isDir = entry.kind === 'directory'
             return (
               <Row
                 key={entry.path}
@@ -208,9 +255,21 @@ export default function FileList(props: { paneId: string }): JSX.Element {
                 selected={selected === entry.path}
                 top={vi.start}
                 git={gitMap[key]}
-                gitDir={entry.kind === 'directory' && gitDirty.has(key)}
+                gitDir={isDir && gitDirty.has(key)}
+                dropActive={dragOver === entry.path}
                 onSelect={() => setSelected(entry.path)}
                 onActivate={() => onActivate(entry)}
+                onDragStart={() => window.api.fs.startDrag([entry.path])}
+                onDirOver={
+                  isDir
+                    ? (e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        setDragOver(entry.path)
+                      }
+                    : undefined
+                }
+                onDirDrop={isDir ? (e) => void doDrop(e, entry.path) : undefined}
                 onContext={(e) => {
                   e.preventDefault()
                   setSelected(entry.path)
@@ -272,9 +331,13 @@ function Row(props: {
   top: number
   git?: GitFileChange
   gitDir?: boolean
+  dropActive?: boolean
   onSelect: () => void
   onActivate: () => void
   onContext: (e: React.MouseEvent) => void
+  onDragStart: () => void
+  onDirOver?: (e: React.DragEvent) => void
+  onDirDrop?: (e: React.DragEvent) => void
 }): JSX.Element {
   const { entry, git } = props
   const { Icon, color } = fileIconSpec(entry)
@@ -288,9 +351,21 @@ function Row(props: {
   return (
     <div
       className={`absolute left-0 flex w-full cursor-default items-center px-3 ${
-        props.selected ? 'bg-accent-soft' : 'hover:bg-bg-hover'
+        props.dropActive
+          ? 'bg-accent-soft ring-1 ring-inset ring-accent'
+          : props.selected
+            ? 'bg-accent-soft'
+            : 'hover:bg-bg-hover'
       } ${entry.hidden ? 'opacity-55' : ''}`}
       style={{ top: props.top, height: props.height }}
+      draggable
+      onDragStart={(e) => {
+        // Glisser natif (vrais fichiers) géré côté main → cross-instance/explorateur.
+        e.preventDefault()
+        props.onDragStart()
+      }}
+      onDragOver={props.onDirOver}
+      onDrop={props.onDirDrop}
       onClick={props.onSelect}
       onDoubleClick={props.onActivate}
       onContextMenu={props.onContext}

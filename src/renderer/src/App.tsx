@@ -11,11 +11,12 @@ import AppearancePanel from './components/AppearancePanel'
 import PreviewPanel from './components/PreviewPanel'
 import TerminalPanel from './components/TerminalPanel'
 import CommandPalette from './components/CommandPalette'
-import { useNavStore } from './state/useNavStore'
+import { useNavStore, activePane } from './state/useNavStore'
 import { useAppearanceStore } from './state/useAppearanceStore'
 import { useUiStore } from './state/useUiStore'
 import { useSearchStore } from './state/useSearchStore'
 import { pathKey } from './lib/format'
+import { clipFiles, pasteInto } from './lib/fileActions'
 
 export default function App(): JSX.Element {
   const initNav = useNavStore((s) => s.init)
@@ -80,6 +81,29 @@ export default function App(): JSX.Element {
       if ((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P')) {
         e.preventDefault()
         useUiStore.getState().togglePalette()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  // Presse-papiers de fichiers : Ctrl+X / Ctrl+C / Ctrl+V (hors champs de saisie).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey) return
+      const t = e.target as HTMLElement | null
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
+      const pane = activePane(useNavStore.getState())
+      const k = e.key.toLowerCase()
+      if (k === 'c' && pane.selectedPath) {
+        e.preventDefault()
+        clipFiles([pane.selectedPath], 'copy')
+      } else if (k === 'x' && pane.selectedPath) {
+        e.preventDefault()
+        clipFiles([pane.selectedPath], 'cut')
+      } else if (k === 'v' && pane.path && !pane.quickAccess) {
+        e.preventDefault()
+        void pasteInto(pane.path)
       }
     }
     window.addEventListener('keydown', onKey)
