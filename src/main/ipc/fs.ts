@@ -146,11 +146,12 @@ export function registerFsHandlers(): void {
     return fileops.createDir(dir, base)
   })
 
-  // Raccourci Windows (.lnk) vers l'élément, déposé dans son dossier.
-  ipcMain.handle(IPC.fsCreateShortcut, async (_e, targetPath: string) => {
+  // Raccourci Windows (.lnk) vers l'élément, dans son dossier (ou un dossier cible).
+  ipcMain.handle(IPC.fsCreateShortcut, async (_e, targetPath: string, destDir?: string) => {
     try {
       const target = filesystem.assertAbsolute(targetPath)
-      const link = await fileops.freeName(dirname(target), `${basename(target)} - Raccourci.lnk`)
+      const dir = destDir ? filesystem.assertAbsolute(destDir) : dirname(target)
+      const link = await fileops.freeName(dir, `${basename(target)} - Raccourci.lnk`)
       const ok = shell.writeShortcutLink(link, 'create', { target })
       return ok ? { ok: true, path: link } : { ok: false, error: 'Échec de création du raccourci.' }
     } catch (e) {

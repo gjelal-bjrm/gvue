@@ -65,28 +65,36 @@ function sevenZip(): string | null {
   return existsSync(gui) ? gui : apps.sevenzip
 }
 
-/** Compresse une sélection en .zip dans son dossier (nom libre). */
-export async function archive(paths: string[]): Promise<{ ok: boolean; error?: string }> {
+/** Compresse une sélection en .zip dans son dossier (ou un dossier cible). */
+export async function archive(
+  paths: string[],
+  destDir?: string
+): Promise<{ ok: boolean; error?: string }> {
   const exe = sevenZip()
   if (!exe) return { ok: false, error: '7-Zip introuvable.' }
   if (paths.length === 0) return { ok: false, error: 'Aucun élément.' }
   const safe = paths.map((p) => assertAbsolute(p))
   const parent = dirname(safe[0])
+  const outParent = destDir ? assertAbsolute(destDir) : parent
   const label = safe.length === 1 ? basename(safe[0]) : basename(parent)
-  const archivePath = await freeName(parent, `${label}.zip`)
+  const archivePath = await freeName(outParent, `${label}.zip`)
   const names = safe.map((p) => basename(p))
   spawn(exe, ['a', archivePath, ...names], { cwd: parent, detached: true, stdio: 'ignore' }).unref()
   return { ok: true }
 }
 
-/** Extrait une archive dans un sous-dossier (nom libre) du dossier courant. */
-export async function extract(archiveInput: string): Promise<{ ok: boolean; error?: string }> {
+/** Extrait une archive dans un sous-dossier (nom libre) du dossier d'origine ou cible. */
+export async function extract(
+  archiveInput: string,
+  destDir?: string
+): Promise<{ ok: boolean; error?: string }> {
   const exe = sevenZip()
   if (!exe) return { ok: false, error: '7-Zip introuvable.' }
   const archivePath = assertAbsolute(archiveInput)
   const parent = dirname(archivePath)
+  const outParent = destDir ? assertAbsolute(destDir) : parent
   const stem = basename(archivePath, extname(archivePath))
-  const outDir = await freeName(parent, stem)
+  const outDir = await freeName(outParent, stem)
   spawn(exe, ['x', basename(archivePath), `-o${outDir}`, '-y'], {
     cwd: parent,
     detached: true,

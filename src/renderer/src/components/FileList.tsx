@@ -289,10 +289,14 @@ export default function FileList(props: { paneId: string }): JSX.Element {
 
   const buildDropMenu = (paths: string[], destDir: string): MenuEntry[] => {
     const n = paths.length
+    const apps = useAppsStore.getState().apps
+    const refreshAll = (): void => useNavStore.getState().refreshAll()
     const run = (op: 'copy' | 'move'): void => {
-      void window.api.fs[op](paths, destDir).then(() => useNavStore.getState().refreshAll())
+      void window.api.fs[op](paths, destDir).then(refreshAll)
     }
-    return [
+    const archives = paths.filter((p) => ARCHIVE_EXT.has(extOf(p.split(/[\\/]/).pop() ?? p)))
+
+    const items: MenuEntry[] = [
       {
         label: n > 1 ? `Copier ici (${n})` : 'Copier ici',
         icon: <ClipboardCopy size={14} />,
@@ -303,9 +307,31 @@ export default function FileList(props: { paneId: string }): JSX.Element {
         icon: <FolderInput size={14} />,
         onClick: () => run('move')
       },
-      { type: 'sep' },
-      { label: 'Annuler', icon: <X size={14} />, onClick: () => {} }
+      {
+        label: n > 1 ? `Créer ${n} raccourcis ici` : 'Créer un raccourci ici',
+        icon: <Link2 size={14} />,
+        onClick: () =>
+          void Promise.all(paths.map((p) => window.api.fs.createShortcut(p, destDir))).then(refreshAll)
+      }
     ]
+
+    if (apps.sevenzip) {
+      items.push({
+        label: 'Compresser ici (.zip)',
+        icon: <FileArchive size={14} />,
+        onClick: () => void window.api.apps.archive(paths, destDir)
+      })
+      if (archives.length > 0) {
+        items.push({
+          label: archives.length > 1 ? `Extraire ici (${archives.length})` : 'Extraire ici',
+          icon: <FileDown size={14} />,
+          onClick: () => archives.forEach((a) => void window.api.apps.extract(a, destDir))
+        })
+      }
+    }
+
+    items.push({ type: 'sep' }, { label: 'Annuler', icon: <X size={14} />, onClick: () => {} })
+    return items
   }
 
   // Menu de la zone vide (clic droit hors d'un élément) : créer / coller / actualiser.

@@ -80,8 +80,8 @@ const api = {
       ipcRenderer.invoke(IPC.fsCreateFile, dir, base),
     createDir: (dir: string, base: string): Promise<CreateResult> =>
       ipcRenderer.invoke(IPC.fsCreateDir, dir, base),
-    createShortcut: (path: string): Promise<CreateResult> =>
-      ipcRenderer.invoke(IPC.fsCreateShortcut, path),
+    createShortcut: (path: string, destDir?: string): Promise<CreateResult> =>
+      ipcRenderer.invoke(IPC.fsCreateShortcut, path, destDir),
     startDrag: (paths: string[]): void => ipcRenderer.send(IPC.fsStartDrag, paths),
     /** Chemin absolu d'un File déposé (drag depuis l'explorateur/une autre instance). */
     pathForFile: (file: File): string => webUtils.getPathForFile(file),
@@ -99,10 +99,10 @@ const api = {
     openPathWith: (exe: string, paths: string[]): void =>
       ipcRenderer.send(IPC.appsOpenPathWith, exe, paths),
     pickProgram: (): Promise<string | null> => ipcRenderer.invoke(IPC.appsPickProgram),
-    archive: (paths: string[]): Promise<{ ok: boolean; error?: string }> =>
-      ipcRenderer.invoke(IPC.appsArchive, paths),
-    extract: (archivePath: string): Promise<{ ok: boolean; error?: string }> =>
-      ipcRenderer.invoke(IPC.appsExtract, archivePath)
+    archive: (paths: string[], destDir?: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke(IPC.appsArchive, paths, destDir),
+    extract: (archivePath: string, destDir?: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke(IPC.appsExtract, archivePath, destDir)
   },
   git: {
     status: (dir: string): Promise<GitStatus> => ipcRenderer.invoke(IPC.gitStatus, dir),

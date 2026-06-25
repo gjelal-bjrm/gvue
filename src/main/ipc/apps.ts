@@ -30,7 +30,11 @@ export function registerAppsHandlers(): void {
     return res.canceled || res.filePaths.length === 0 ? null : res.filePaths[0]
   })
 
-  ipcMain.handle(IPC.appsArchive, async (_e, paths: string[]) => apps.archive(paths))
+  ipcMain.handle(IPC.appsArchive, async (_e, paths: string[], destDir?: string) =>
+    apps.archive(paths, destDir)
+  )
 
-  ipcMain.handle(IPC.appsExtract, async (_e, archivePath: string) => apps.extract(archivePath))
+  ipcMain.handle(IPC.appsExtract, async (_e, archivePath: string, destDir?: string) =>
+    apps.extract(archivePath, destDir)
+  )
 }
