@@ -49,6 +49,14 @@ export function openWith(appId: ExternalAppId, paths: string[]): void {
   spawn(exe, safe, { detached: true, stdio: 'ignore' }).unref()
 }
 
+/** Ouvre des chemins avec un exécutable arbitraire (« Ouvrir avec… »). */
+export function openPathWith(exe: string, paths: string[]): void {
+  if (!exe || paths.length === 0) return
+  const safeExe = assertAbsolute(exe)
+  const safe = paths.map((p) => assertAbsolute(p))
+  spawn(safeExe, safe, { detached: true, stdio: 'ignore' }).unref()
+}
+
 /** Exécutable 7-Zip à utiliser : interface graphique si dispo, sinon CLI. */
 function sevenZip(): string | null {
   const apps = detect()

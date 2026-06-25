@@ -245,6 +245,7 @@ Pour l'activer (si la recompilation a échoué) : installer les *Build Tools* pu
   - Icônes système façon Windows (`app.getFileIcon` : logos exe/rdp/types associés, raccourcis `.lnk` résolus vers leur cible) + vignettes d'images (`nativeImage.createThumbnailFromPath`) dans la liste, mémoïsées par extension/chemin, repli sur l'icône lucide.
   - Favoris gérables depuis l'UI (ajout/retrait via le menu contextuel et la sidebar) ; masquage des fichiers système (`desktop.ini`, `Thumbs.db`…).
   - Intégrations applications (détectées par chemin d'install) : ouvrir avec VS Code, éditer avec Notepad++, compresser/extraire avec 7-Zip (interface graphique `7zG.exe` → progression native).
+  - « Ouvrir avec… » : sélecteur de programme (`.exe`), association **mémorisée par type de fichier** (proposée ensuite pour tous les fichiers du même type).
 
 ### ⏳ Ce qu'il reste à faire
 

@@ -33,6 +33,8 @@ export const IPC = {
   // Applications externes
   appsList: 'apps:list',
   appsOpenWith: 'apps:openWith',
+  appsOpenPathWith: 'apps:openPathWith',
+  appsPickProgram: 'apps:pickProgram',
   appsArchive: 'apps:archive',
   appsExtract: 'apps:extract',
 

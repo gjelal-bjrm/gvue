@@ -15,6 +15,7 @@ import { useNavStore, activePane } from './state/useNavStore'
 import { useGitStore } from './state/useGitStore'
 import { useFavoritesStore } from './state/useFavoritesStore'
 import { useAppsStore } from './state/useAppsStore'
+import { useOpenWithStore } from './state/useOpenWithStore'
 import { useAppearanceStore } from './state/useAppearanceStore'
 import { useUiStore } from './state/useUiStore'
 import { useSearchStore } from './state/useSearchStore'
@@ -27,6 +28,7 @@ export default function App(): JSX.Element {
   const initSearch = useSearchStore((s) => s.init)
   const initFavorites = useFavoritesStore((s) => s.init)
   const initApps = useAppsStore((s) => s.init)
+  const initOpenWith = useOpenWithStore((s) => s.init)
   const terminalOpen = useUiStore((s) => s.terminalOpen)
   const terminalSize = useUiStore((s) => s.terminalSize)
   const terminalGrow = useUiStore((s) => s.terminalGrow)
@@ -41,9 +43,10 @@ export default function App(): JSX.Element {
     void initNav()
     void initFavorites()
     void initApps()
+    void initOpenWith()
     // Abonne le store de recherche aux flux IPC (une seule fois).
     return initSearch()
-  }, [initAppearance, initNav, initSearch, initFavorites, initApps])
+  }, [initAppearance, initNav, initSearch, initFavorites, initApps, initOpenWith])
 
   // Boutons souris précédent / suivant. Selon le pilote/OS, ils arrivent soit
   // comme événement « app-command » (relayé par le main), soit comme boutons

@@ -23,7 +23,8 @@ import {
   Code2,
   PenLine,
   FileArchive,
-  FileDown
+  FileDown,
+  AppWindow
 } from 'lucide-react'
 import { useNavStore, type SortKey } from '../state/useNavStore'
 import { useAppearanceStore } from '../state/useAppearanceStore'
@@ -35,6 +36,7 @@ import { fileIconSpec } from '../lib/fileIcon'
 import { useOsIcon } from '../lib/osIcons'
 import { useFavoritesStore } from '../state/useFavoritesStore'
 import { useAppsStore } from '../state/useAppsStore'
+import { useOpenWithStore } from '../state/useOpenWithStore'
 import { clipFiles, pasteInto } from '../lib/fileActions'
 import GitWidget from './GitWidget'
 import ContextMenu, { type MenuEntry } from './ContextMenu'
@@ -73,6 +75,10 @@ const ARCHIVE_EXT = new Set([
 function extOf(name: string): string {
   const d = name.lastIndexOf('.')
   return d > 0 ? name.slice(d + 1).toLowerCase() : ''
+}
+/** Nom lisible d'un exécutable (basename sans « .exe »). */
+function programName(exe: string): string {
+  return (exe.split(/[\\/]/).pop() ?? exe).replace(/\.exe$/i, '')
 }
 
 export default function FileList(props: { paneId: string }): JSX.Element {
@@ -283,6 +289,27 @@ export default function FileList(props: { paneId: string }): JSX.Element {
         icon: <PenLine size={14} />,
         onClick: () => window.api.apps.openWith('notepadpp', targets)
       })
+    // « Ouvrir avec » : programmes mémorisés pour ce type + sélecteur.
+    if (entry.kind === 'file') {
+      const ext = extOf(entry.name)
+      for (const exe of useOpenWithStore.getState().get(ext)) {
+        appEntries.push({
+          label: `Ouvrir avec ${programName(exe)}`,
+          icon: <AppWindow size={14} />,
+          onClick: () => window.api.apps.openPathWith(exe, targets)
+        })
+      }
+      appEntries.push({
+        label: 'Ouvrir avec…',
+        icon: <AppWindow size={14} />,
+        onClick: async () => {
+          const exe = await window.api.apps.pickProgram()
+          if (!exe) return
+          window.api.apps.openPathWith(exe, targets)
+          if (ext) useOpenWithStore.getState().add(ext, exe)
+        }
+      })
+    }
     if (apps.sevenzip) {
       appEntries.push({
         label: n > 1 ? `Compresser (${n}) en .zip` : 'Compresser en .zip (7-Zip)',

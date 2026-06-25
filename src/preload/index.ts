@@ -96,6 +96,9 @@ const api = {
     list: (): Promise<DetectedApps> => ipcRenderer.invoke(IPC.appsList),
     openWith: (appId: ExternalAppId, paths: string[]): void =>
       ipcRenderer.send(IPC.appsOpenWith, appId, paths),
+    openPathWith: (exe: string, paths: string[]): void =>
+      ipcRenderer.send(IPC.appsOpenPathWith, exe, paths),
+    pickProgram: (): Promise<string | null> => ipcRenderer.invoke(IPC.appsPickProgram),
     archive: (paths: string[]): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke(IPC.appsArchive, paths),
     extract: (archivePath: string): Promise<{ ok: boolean; error?: string }> =>

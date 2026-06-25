@@ -126,6 +126,8 @@ export interface AppConfig {
   folderFreq: Record<string, number>
   /** Racines des dépôts Git visités (les plus récents en tête). */
   projectRoots: string[]
+  /** Programmes mémorisés par extension pour « Ouvrir avec » (ext → exes). */
+  openWith: Record<string, string[]>
   hideGitIgnored: boolean
 }
 

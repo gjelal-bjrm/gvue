@@ -30,6 +30,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   recentFiles: [],
   folderFreq: {},
   projectRoots: [],
+  openWith: {},
   hideGitIgnored: true
 }
 
