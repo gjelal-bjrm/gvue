@@ -1,0 +1,173 @@
+import { Palette, Check, X } from 'lucide-react'
+import { useAppearanceStore } from '../state/useAppearanceStore'
+import { useUiStore } from '../state/useUiStore'
+import { ACCENT_SWATCHES, FONT_CHOICES } from '../theme/presets'
+import type { Appearance } from '@shared/types'
+
+/**
+ * Panneau d'apparence — entièrement fonctionnel (cf. section 7 de la spec).
+ * Chaque réglage met à jour les variables CSS via le store et persiste dans
+ * electron-store. Aucun composant n'est repeint « à la main ».
+ */
+export default function AppearancePanel(): JSX.Element {
+  const { appearance, update } = useAppearanceStore()
+  const closePanel = useUiStore((s) => s.toggleAppearance)
+
+  return (
+    <aside className="flex h-full w-full flex-col gap-5 overflow-y-auto border-l border-border bg-bg-secondary p-3.5 text-[13px]">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 font-medium">
+          <Palette size={16} className="text-accent" />
+          Apparence
+        </div>
+        <button
+          onClick={closePanel}
+          title="Fermer le panneau"
+          className="grid h-6 w-6 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg"
+        >
+          <X size={15} />
+        </button>
+      </div>
+
+      {/* Couleur d'accent */}
+      <Field label="Couleur d'accent">
+        <div className="flex flex-wrap gap-2">
+          {ACCENT_SWATCHES.map((s) => {
+            const active = appearance.accent.toLowerCase() === s.value.toLowerCase()
+            return (
+              <button
+                key={s.value}
+                aria-label={s.label}
+                aria-pressed={active}
+                title={s.label}
+                onClick={() => update({ accent: s.value })}
+                className="grid h-[22px] w-[22px] place-items-center rounded-full border-2 transition-transform hover:scale-110"
+                style={{
+                  background: s.value,
+                  borderColor: active ? 'var(--fg)' : 'transparent'
+                }}
+              >
+                {active && <Check size={12} className="text-white" />}
+              </button>
+            )
+          })}
+          {/* Sélecteur libre */}
+          <label
+            title="Couleur personnalisée"
+            className="relative grid h-[22px] w-[22px] cursor-pointer place-items-center overflow-hidden rounded-full border-2 border-dashed border-border"
+          >
+            <input
+              type="color"
+              value={appearance.accent}
+              onChange={(e) => update({ accent: e.target.value })}
+              className="h-8 w-8 cursor-pointer opacity-0"
+            />
+            <span className="pointer-events-none absolute text-[11px] text-fg-muted">+</span>
+          </label>
+        </div>
+      </Field>
+
+      {/* Thème */}
+      <Field label="Thème">
+        <Segmented<Appearance['theme']>
+          value={appearance.theme}
+          options={[
+            { value: 'light', label: 'Clair' },
+            { value: 'dark', label: 'Sombre' },
+            { value: 'auto', label: 'Auto' }
+          ]}
+          onChange={(v) => update({ theme: v })}
+        />
+      </Field>
+
+      {/* Densité */}
+      <Field label="Densité">
+        <Segmented<Appearance['density']>
+          value={appearance.density}
+          options={[
+            { value: 'comfortable', label: 'Confort' },
+            { value: 'compact', label: 'Compact' }
+          ]}
+          onChange={(v) => update({ density: v })}
+        />
+      </Field>
+
+      {/* Coins */}
+      <Field label="Coins">
+        <Segmented<Appearance['corners']>
+          value={appearance.corners}
+          options={[
+            { value: 'rounded', label: 'Arrondis' },
+            { value: 'square', label: 'Carrés' }
+          ]}
+          onChange={(v) => update({ corners: v })}
+        />
+      </Field>
+
+      {/* Police */}
+      <Field label="Police">
+        <select
+          value={appearance.fontFamily}
+          onChange={(e) => update({ fontFamily: e.target.value })}
+          className="w-full rounded-app border border-border bg-bg px-2 py-1.5 text-[12px] text-fg outline-none focus:border-accent"
+        >
+          {FONT_CHOICES.map((f) => (
+            <option key={f.label} value={f.value}>
+              {f.label}
+            </option>
+          ))}
+        </select>
+      </Field>
+
+      {/* Taille de police */}
+      <Field label={`Taille de l'interface — ${appearance.fontSize}px`}>
+        <input
+          type="range"
+          min={11}
+          max={17}
+          step={1}
+          value={appearance.fontSize}
+          onChange={(e) => update({ fontSize: Number(e.target.value) })}
+          className="w-full accent-[var(--accent)]"
+        />
+      </Field>
+    </aside>
+  )
+}
+
+function Field(props: { label: string; children: React.ReactNode }): JSX.Element {
+  return (
+    <div className="flex flex-col">
+      <p className="mb-2 text-[12px] text-fg-muted">{props.label}</p>
+      {props.children}
+    </div>
+  )
+}
+
+function Segmented<T extends string>(props: {
+  value: T
+  options: { value: T; label: string }[]
+  onChange: (v: T) => void
+}): JSX.Element {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {props.options.map((o) => {
+        const active = o.value === props.value
+        return (
+          <button
+            key={o.value}
+            aria-pressed={active}
+            onClick={() => props.onChange(o.value)}
+            className={`rounded-app border px-3 py-1.5 text-[12px] transition-colors ${
+              active
+                ? 'border-accent bg-accent-soft text-accent'
+                : 'border-border bg-bg text-fg-secondary hover:bg-bg-hover'
+            }`}
+          >
+            {o.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}

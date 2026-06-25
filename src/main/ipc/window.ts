@@ -1,0 +1,28 @@
+import { ipcMain, BrowserWindow } from 'electron'
+import { IPC } from '@shared/ipc'
+import type { WindowAction, WindowStatus } from '@shared/types'
+
+/** Handlers IPC de contrôle de la fenêtre frameless (barre de titre custom). */
+export function registerWindowHandlers(): void {
+  ipcMain.handle(IPC.windowAction, async (e, action: WindowAction) => {
+    const win = BrowserWindow.fromWebContents(e.sender)
+    if (!win) return
+    switch (action) {
+      case 'minimize':
+        win.minimize()
+        break
+      case 'maximize-toggle':
+        if (win.isMaximized()) win.unmaximize()
+        else win.maximize()
+        break
+      case 'close':
+        win.close()
+        break
+    }
+  })
+
+  ipcMain.handle(IPC.windowStatus, async (e): Promise<WindowStatus> => {
+    const win = BrowserWindow.fromWebContents(e.sender)
+    return { maximized: win?.isMaximized() ?? false }
+  })
+}

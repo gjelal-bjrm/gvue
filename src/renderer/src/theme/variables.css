@@ -1,0 +1,64 @@
+/*
+ * Système de tokens = unique source de vérité visuelle (cf. section 7 de la spec).
+ * Un changement de préférence met à jour ces variables, jamais les composants.
+ * Accent / densité / coins / police / thème sont surchargés au runtime par le
+ * moteur de thème (applyTheme.ts) depuis electron-store.
+ */
+
+:root {
+  /* --- Personnalisables (surchargés au démarrage) --- */
+  --accent: #7f77dd;
+  --accent-soft: rgba(127, 119, 221, 0.16);
+  --radius: 8px;
+  --row-pad: 8px;
+  --font-ui: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'Cascadia Code', 'JetBrains Mono', 'Consolas', ui-monospace, monospace;
+  --font-size: 13px;
+  --window-opacity: 1;
+
+  /* --- Palette sombre (défaut) --- */
+  --bg: #17171c;
+  --bg-secondary: #1d1d23;
+  --bg-tertiary: #25252d;
+  --bg-hover: rgba(255, 255, 255, 0.05);
+  --border: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.12);
+  --fg: #e7e7ef;
+  --fg-secondary: #b0b0bd;
+  --fg-muted: #7e7e8c;
+
+  /* Statuts (badges Git, etc.) */
+  --warning-fg: #e0a93a;
+  --warning-bg: rgba(224, 169, 58, 0.16);
+  --info-fg: #5b9df9;
+  --info-bg: rgba(91, 157, 249, 0.16);
+  --success-fg: #2ea66f;
+  --success-bg: rgba(46, 166, 111, 0.16);
+  --danger-fg: #e5573f;
+  --danger-bg: rgba(229, 87, 63, 0.16);
+
+  color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  --bg: #ffffff;
+  --bg-secondary: #f5f5f7;
+  --bg-tertiary: #ececef;
+  --bg-hover: rgba(0, 0, 0, 0.04);
+  --border: rgba(0, 0, 0, 0.09);
+  --border-strong: rgba(0, 0, 0, 0.14);
+  --fg: #1c1c22;
+  --fg-secondary: #4a4a55;
+  --fg-muted: #6f6f7c;
+
+  --warning-fg: #b97e0d;
+  --warning-bg: rgba(224, 169, 58, 0.18);
+  --info-fg: #2563eb;
+  --info-bg: rgba(37, 99, 235, 0.12);
+  --success-fg: #1f8a5b;
+  --success-bg: rgba(31, 138, 91, 0.12);
+  --danger-fg: #d23b22;
+  --danger-bg: rgba(210, 59, 34, 0.12);
+
+  color-scheme: light;
+}
