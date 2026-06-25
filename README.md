@@ -176,7 +176,13 @@ npm run typecheck   # typage strict (main + renderer)
 npm run build       # build de production
 npm start           # prévisualise le build
 npm run rebuild     # recompile node-pty pour l'ABI d'Electron
+npm run dist        # construit l'installeur Windows (NSIS) dans dist/
 ```
+
+Ou, pour produire l'**installeur**, double-clic sur **`build.bat`** (vérif Node,
+install si besoin, `npm run dist`, puis ouverture du dossier `dist/`). Au premier
+build, electron-builder télécharge ses outils (NSIS) ; l'app n'étant pas signée,
+Windows SmartScreen peut afficher un avertissement au premier lancement.
 
 ---
 
