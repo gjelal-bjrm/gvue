@@ -11,6 +11,7 @@ const FALLBACK: Appearance = {
   fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
   fontSize: 13,
   windowOpacity: 1,
+  titleCursor: true,
   presets: {}
 }
 

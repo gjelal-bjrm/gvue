@@ -155,6 +155,18 @@ export default function AppearancePanel(): JSX.Element {
         />
       </Field>
 
+      {/* Curseur clignotant du titre */}
+      <Field label="Curseur clignotant du titre">
+        <Segmented<'on' | 'off'>
+          value={appearance.titleCursor ? 'on' : 'off'}
+          options={[
+            { value: 'on', label: 'Activé' },
+            { value: 'off', label: 'Désactivé' }
+          ]}
+          onChange={(v) => update({ titleCursor: v === 'on' })}
+        />
+      </Field>
+
       {/* Presets nommés */}
       <Field label="Presets">
         <div className="flex gap-2">

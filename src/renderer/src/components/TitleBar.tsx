@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Minus, Square, Copy, X } from 'lucide-react'
 import Logo from './Logo'
+import { useAppearanceStore } from '../state/useAppearanceStore'
 
 /**
  * Barre de titre custom pour la fenêtre frameless.
@@ -8,6 +9,7 @@ import Logo from './Logo'
  */
 export default function TitleBar(): JSX.Element {
   const [maximized, setMaximized] = useState(false)
+  const titleCursor = useAppearanceStore((s) => s.appearance.titleCursor)
 
   useEffect(() => {
     window.api.window.status().then((s) => setMaximized(s.maximized))
@@ -18,9 +20,13 @@ export default function TitleBar(): JSX.Element {
     <header className="drag-region flex h-9 shrink-0 items-center justify-between border-b border-border bg-bg-secondary pl-3 select-none">
       <div className="flex items-center gap-2">
         <Logo size={18} />
-        <span className="text-[14px] leading-none" style={{ fontFamily: 'var(--font-mono)' }}>
-          <span className="text-fg-muted">~/</span>
+        <span
+          className="inline-flex items-center text-[14px] leading-none"
+          style={{ fontFamily: 'var(--font-mono)' }}
+        >
+          <span className="text-accent">~/</span>
           <span className="font-bold text-fg">gvue</span>
+          {titleCursor && <span className="title-cursor" />}
         </span>
       </div>
 

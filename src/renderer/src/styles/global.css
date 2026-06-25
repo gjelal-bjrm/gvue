@@ -44,6 +44,27 @@ body {
   background: transparent;
 }
 
+/* Curseur clignotant du mot-symbole « ~/gvue » (terminal). */
+@keyframes gvue-blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  50.01%,
+  100% {
+    opacity: 0;
+  }
+}
+.title-cursor {
+  display: inline-block;
+  width: 6px;
+  height: 13px;
+  margin-left: 3px;
+  background: var(--accent);
+  border-radius: 1px;
+  animation: gvue-blink 1.1s steps(1) infinite;
+}
+
 /* Régions de drag de la fenêtre frameless. */
 .drag-region {
   -webkit-app-region: drag;

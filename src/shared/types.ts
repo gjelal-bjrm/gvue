@@ -103,6 +103,8 @@ export interface Appearance {
   fontFamily: string
   fontSize: number
   windowOpacity: number
+  /** Curseur clignotant après « ~/gvue » dans la barre de titre. */
+  titleCursor: boolean
   presets: Record<string, Partial<Appearance>>
 }
 
