@@ -1,0 +1,41 @@
+appId: com.gvue.app
+productName: GVue
+
+directories:
+  output: dist
+  buildResources: build
+
+# node-pty est fourni en prebuilds N-API (compatibles toutes versions Electron) :
+# inutile — et impossible sans outils C++ — de le recompiler depuis les sources.
+npmRebuild: false
+
+# Inclut tout par défaut (out/ + node_modules de prod), sauf les fichiers de dev.
+files:
+  - '!**/.vscode/*'
+  - '!src/*'
+  - '!electron.vite.config.{js,ts,mjs,cjs}'
+  - '!**/{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+  - '!**/{.eslintrc*,.prettier*,.editorconfig,.gitignore,.gitattributes}'
+  - '!**/{README.md,CHANGELOG.md}'
+  - '!**/{.env,.env.*,.npmrc}'
+  - '!build/**'
+
+# Modules natifs : doivent vivre hors de l'asar pour être exécutés/chargés.
+asarUnpack:
+  - '**/node_modules/node-pty/**'
+  - '**/node_modules/@vscode/ripgrep-win32-*/**'
+
+win:
+  target:
+    - nsis
+  icon: build/icon.png
+  artifactName: ${productName}-Setup-${version}.${ext}
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: GVue
+  uninstallDisplayName: GVue

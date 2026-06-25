@@ -31,7 +31,9 @@ function resolveRgPath(): string {
   // Nom calculé au runtime → non analysé par le bundler, require.resolve réel.
   const pkg = `@vscode/ripgrep-${process.platform}-${process.arch}`
   try {
-    rgPath = require.resolve(`${pkg}/bin/${binaryName}`)
+    // En production le binaire est hors de l'asar (asarUnpack) : on remappe le
+    // chemin résolu vers app.asar.unpacked pour pouvoir l'exécuter.
+    rgPath = require.resolve(`${pkg}/bin/${binaryName}`).replace('app.asar', 'app.asar.unpacked')
     return rgPath
   } catch {
     loadError =
