@@ -23,8 +23,23 @@ export function assertAbsolute(input: string): string {
   return normalized
 }
 
-function isHidden(name: string, winHidden: boolean): boolean {
-  return name.startsWith('.') || winHidden
+// Fichiers système masqués par défaut par l'explorateur Windows. Node n'expose
+// pas l'attribut « caché/système » ; on couvre au moins les noms connus.
+const HIDDEN_NAMES = new Set([
+  'desktop.ini',
+  'thumbs.db',
+  'ehthumbs.db',
+  'thumbs.db:encryptable',
+  '$recycle.bin',
+  'system volume information',
+  'pagefile.sys',
+  'hiberfil.sys',
+  'swapfile.sys'
+])
+
+function isHidden(name: string): boolean {
+  const lower = name.toLowerCase()
+  return name.startsWith('.') || HIDDEN_NAMES.has(lower) || lower.startsWith('ntuser.')
 }
 
 /**
@@ -59,7 +74,7 @@ async function toEntry(dirPath: string, name: string, symlink: boolean): Promise
     kind,
     size,
     modifiedMs,
-    hidden: isHidden(name, false),
+    hidden: isHidden(name),
     symlink
   }
 }

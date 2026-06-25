@@ -43,7 +43,14 @@ async function getFileIconUrl(input: string): Promise<string> {
 
   let img = null
   try {
-    if (isThumb) img = await nativeImage.createThumbnailFromPath(file, { width: 48, height: 48 })
+    if (isThumb) {
+      img = await nativeImage.createThumbnailFromPath(file, { width: 48, height: 48 })
+    } else if (ext === 'lnk' && process.platform === 'win32') {
+      // Un raccourci affiche l'icône de sa cible : on la résout explicitement.
+      const link = shell.readShortcutLink(file)
+      const src = link.icon && link.icon.trim() ? link.icon : link.target
+      if (src) img = await app.getFileIcon(src, { size: 'normal' })
+    }
   } catch {
     img = null
   }
