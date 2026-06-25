@@ -28,9 +28,14 @@ export default function CommandBar(): JSX.Element {
   const runCommand = async (): Promise<void> => {
     if (!command.trim()) return
     openTerminalLarge()
-    const { tabs, openTab, writeActive } = useTerminalStore.getState()
-    if (tabs.length === 0) await openTab(shellId)
-    writeActive(command + '\r')
+    const term = useTerminalStore.getState()
+    // Cible le shell sélectionné : réutilise un onglet de ce shell s'il existe,
+    // sinon en ouvre un. (Sans ça, la commande partait dans l'onglet actif,
+    // souvent PowerShell, même après avoir choisi Git Bash.)
+    const existing = term.tabs.find((t) => t.shell.id === shellId && !t.exited)
+    if (existing) term.setActive(existing.id)
+    else await term.openTab(shellId)
+    useTerminalStore.getState().writeActive(command + '\r')
     setCommand('')
   }
 
