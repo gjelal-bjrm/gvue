@@ -3,10 +3,10 @@ import { Panel, PanelGroup, PanelResizeHandle, type ImperativePanelHandle } from
 import TitleBar from './components/TitleBar'
 import Toolbar from './components/Toolbar'
 import CommandBar from './components/CommandBar'
+import { Fragment } from 'react'
 import Sidebar from './components/Sidebar'
-import FileList from './components/FileList'
+import Pane from './components/Pane'
 import SearchPanel from './components/SearchPanel'
-import QuickAccessPanel from './components/QuickAccessPanel'
 import AppearancePanel from './components/AppearancePanel'
 import PreviewPanel from './components/PreviewPanel'
 import TerminalPanel from './components/TerminalPanel'
@@ -27,7 +27,7 @@ export default function App(): JSX.Element {
   const appearanceOpen = useUiStore((s) => s.appearanceOpen)
   const previewOpen = useUiStore((s) => s.previewOpen)
   const searchActive = useSearchStore((s) => s.active)
-  const quickAccess = useNavStore((s) => s.quickAccess)
+  const panes = useNavStore((s) => s.panes)
   const terminalPanelRef = useRef<ImperativePanelHandle>(null)
 
   useEffect(() => {
@@ -86,11 +86,14 @@ export default function App(): JSX.Element {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  // Surveillance disque : rafraîchit la vue si le dossier affiché change.
+  // Surveillance disque : rafraîchit chaque volet affichant le dossier changé.
   useEffect(() => {
     return window.api.fs.onChange((changedDir) => {
-      const { path, silentRefresh } = useNavStore.getState()
-      if (pathKey(changedDir) === pathKey(path)) void silentRefresh()
+      const { panes: ps, silentRefresh } = useNavStore.getState()
+      const key = pathKey(changedDir)
+      ps.forEach((p) => {
+        if (!p.quickAccess && pathKey(p.path) === key) void silentRefresh(p.id)
+      })
     })
   }, [])
 
@@ -123,10 +126,19 @@ export default function App(): JSX.Element {
               <Panel minSize={30}>
                 {searchActive ? (
                   <SearchPanel />
-                ) : quickAccess ? (
-                  <QuickAccessPanel />
                 ) : (
-                  <FileList />
+                  <PanelGroup key={`panes-${panes.length}`} direction="horizontal">
+                    {panes.map((p, i) => (
+                      <Fragment key={p.id}>
+                        {i > 0 && (
+                          <PanelResizeHandle className="w-px bg-border transition-colors hover:bg-accent" />
+                        )}
+                        <Panel minSize={20}>
+                          <Pane paneId={p.id} />
+                        </Panel>
+                      </Fragment>
+                    ))}
+                  </PanelGroup>
                 )}
               </Panel>
 

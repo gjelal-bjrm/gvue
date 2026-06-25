@@ -40,6 +40,11 @@ dynamique des shells (PowerShell, PowerShell 7, cmd, Git Bash, WSL), **plusieurs
 onglets**, panneau réductible qui **préserve l'historique**, barre de commande qui
 exécute une commande dans le terminal actif.
 
+**Multi-volets** — ouvre **jusqu'à 3 dossiers côte à côte**, chacun avec sa
+navigation, son historique et sa sélection. Le volet « actif » (cliqué) est celui
+que pilotent la barre d'adresse, Git et la palette — idéal pour comparer ou
+déplacer entre dossiers. Bouton « diviser » et fermeture par volet.
+
 **Recherche** — recherche de contenu via **ripgrep** (`@vscode/ripgrep`), lancée
 depuis la barre d'outils sur le dossier courant : bascules casse / mot entier /
 regex, résultats **streamés en temps réel** et **groupés par fichier**, surlignage
@@ -188,7 +193,7 @@ Pour l'activer (si la recompilation a échoué) : installer les *Build Tools* pu
 | **3. Recherche** | ✅ **Fait** | `@vscode/ripgrep`, recherche contenu streamée, résultats cliquables groupés par fichier |
 | **4. Git** | ✅ **Fait** | Badges par fichier, branche + avance/retard, commit/pull/push, menu contextuel, masquage `.gitignore`, détection des dépôts |
 | **5. Personnalisation** | ✅ **Fait** | Apparence, presets nommés, opacité réelle ; reste : dispositions par espace de travail (avec phase 6) |
-| **6. Pro** | 🟡 **Partiel** | Palette de commandes + panneau d'aperçu faits ; reste : double panneau, espaces de travail, barre IA, carte disque, SSH/SFTP |
+| **6. Pro** | 🟡 **Partiel** | Palette, aperçu, multi-volets (jusqu'à 3) faits ; reste : espaces de travail, barre IA, carte disque, SSH/SFTP |
 
 ### ✅ Ce qui est fait
 
@@ -226,6 +231,7 @@ Pour l'activer (si la recompilation a échoué) : installer les *Build Tools* pu
 - **Phase 6 (début) — Pro**
   - Palette de commandes (Ctrl+Maj+P / Ctrl+P) : recherche floue d'actions (navigation, vue, panneaux, Git, thème) et de projets, navigation clavier.
   - Panneau d'aperçu (façon Quick Look) : image, JSON coloré, Markdown rendu, texte/code, carte d'infos pour les binaires — sans dépendance (coloration/markdown maison, sans HTML brut).
+  - Multi-volets (1 à 3 dossiers côte à côte) : navigation indépendante par volet, volet actif piloté par la barre d'outils / Git / la palette ; bouton « diviser » et fermeture des volets.
 
 ### ⏳ Ce qu'il reste à faire
 

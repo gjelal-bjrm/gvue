@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Eye, X, ExternalLink, FolderOpen, FileQuestion, Loader2 } from 'lucide-react'
-import { useNavStore } from '../state/useNavStore'
+import { useNavStore, activePane } from '../state/useNavStore'
 import { useUiStore } from '../state/useUiStore'
 import type { PreviewData } from '@shared/types'
 import { formatSize, formatDate } from '../lib/format'
@@ -12,7 +12,7 @@ import { formatSize, formatDate } from '../lib/format'
  * Markdown faits maison, sans injection de HTML brut).
  */
 export default function PreviewPanel(): JSX.Element {
-  const selectedPath = useNavStore((s) => s.selectedPath)
+  const selectedPath = useNavStore((s) => activePane(s).selectedPath)
   const closePanel = useUiStore((s) => s.togglePreview)
   const [data, setData] = useState<PreviewData | null>(null)
   const [loading, setLoading] = useState(false)

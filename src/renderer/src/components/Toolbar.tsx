@@ -18,9 +18,10 @@ import {
   Check,
   Filter,
   FilterX,
-  PanelRight
+  PanelRight,
+  Columns2
 } from 'lucide-react'
-import { useNavStore } from '../state/useNavStore'
+import { useNavStore, activePane } from '../state/useNavStore'
 import { useUiStore } from '../state/useUiStore'
 import { useSearchStore } from '../state/useSearchStore'
 import { breadcrumbSegments } from '../lib/format'
@@ -37,12 +38,20 @@ function samePath(a: string, b: string): boolean {
  * vérification d'existence) et champ de recherche ripgrep.
  */
 export default function Toolbar(): JSX.Element {
-  const { path, back, forward, parent, goBack, goForward, goParent, goHome, navigate, refresh } =
-    useNavStore()
+  const active = useNavStore(activePane)
+  const { path, back, forward, parent } = active
+  const goBack = useNavStore((s) => s.goBack)
+  const goForward = useNavStore((s) => s.goForward)
+  const goParent = useNavStore((s) => s.goParent)
+  const goHome = useNavStore((s) => s.goHome)
+  const navigate = useNavStore((s) => s.navigate)
+  const refresh = useNavStore((s) => s.refresh)
   const showHidden = useNavStore((s) => s.showHidden)
   const toggleHidden = useNavStore((s) => s.toggleHidden)
   const hideGitIgnored = useNavStore((s) => s.hideGitIgnored)
   const toggleGitIgnored = useNavStore((s) => s.toggleGitIgnored)
+  const paneCount = useNavStore((s) => s.panes.length)
+  const addPane = useNavStore((s) => s.addPane)
   const appearanceOpen = useUiStore((s) => s.appearanceOpen)
   const toggleAppearance = useUiStore((s) => s.toggleAppearance)
   const previewOpen = useUiStore((s) => s.previewOpen)
@@ -218,6 +227,13 @@ export default function Toolbar(): JSX.Element {
       {/* Recherche ripgrep */}
       <SearchBox />
 
+      <NavBtn
+        onClick={() => void addPane()}
+        disabled={paneCount >= 3}
+        title="Diviser — nouveau volet"
+      >
+        <Columns2 size={17} />
+      </NavBtn>
       <NavBtn onClick={togglePreview} title="Panneau d'aperçu" active={previewOpen}>
         <PanelRight size={17} />
       </NavBtn>
@@ -237,7 +253,7 @@ export default function Toolbar(): JSX.Element {
  * Entrée lance la recherche sur le dossier courant ; Échap ferme le panneau.
  */
 function SearchBox(): JSX.Element {
-  const dir = useNavStore((s) => s.path)
+  const dir = useNavStore((s) => activePane(s).path)
   const query = useSearchStore((s) => s.query)
   const caseSensitive = useSearchStore((s) => s.caseSensitive)
   const wholeWord = useSearchStore((s) => s.wholeWord)

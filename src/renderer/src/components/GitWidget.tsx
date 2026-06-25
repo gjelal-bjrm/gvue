@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { GitBranch, GitCommit, ArrowUp, ArrowDown, Loader2 } from 'lucide-react'
 import { useGitStore } from '../state/useGitStore'
-import { useNavStore } from '../state/useNavStore'
+import { useNavStore, activePane } from '../state/useNavStore'
 import type { GitActionResult } from '@shared/types'
 
 /**
@@ -12,7 +12,7 @@ import type { GitActionResult } from '@shared/types'
 export default function GitWidget(): JSX.Element | null {
   const repo = useGitStore((s) => s.repo)
   const statusByPath = useGitStore((s) => s.statusByPath)
-  const path = useNavStore((s) => s.path)
+  const path = useNavStore((s) => activePane(s).path)
 
   const [open, setOpen] = useState(false)
   const [message, setMessage] = useState('')

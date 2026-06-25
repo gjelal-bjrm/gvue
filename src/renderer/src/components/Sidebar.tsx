@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Home, Monitor, Download, FileText, HardDrive, Star, FolderGit2 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { useNavStore } from '../state/useNavStore'
+import { useNavStore, activePane } from '../state/useNavStore'
 import { useSearchStore } from '../state/useSearchStore'
 import type { GitProject } from '@shared/types'
 import { pathKey } from '../lib/format'
@@ -12,7 +12,11 @@ import { pathKey } from '../lib/format'
  * (icônes branche) arrive en phase 6 — section affichée en aperçu d'ici là.
  */
 export default function Sidebar(): JSX.Element {
-  const { locations, path, navigate, quickAccess, showQuickAccess } = useNavStore()
+  const locations = useNavStore((s) => s.locations)
+  const navigate = useNavStore((s) => s.navigate)
+  const showQuickAccess = useNavStore((s) => s.showQuickAccess)
+  const path = useNavStore((s) => activePane(s).path)
+  const quickAccess = useNavStore((s) => activePane(s).quickAccess)
   const closeSearch = useSearchStore((s) => s.close)
   const [favorites, setFavorites] = useState<string[]>([])
   const [projects, setProjects] = useState<GitProject[]>([])

@@ -44,25 +44,43 @@ function gitBadge(category: GitCategory): { letter: string; color: string } {
  * Liste de fichiers virtualisée (@tanstack/react-virtual) : seules les lignes
  * visibles sont montées → fluide sur des dossiers de milliers d'entrées.
  */
-export default function FileList(): JSX.Element {
-  const { entries, loading, error, sortKey, sortDir, setSort, showHidden, navigate } =
-    useNavStore()
-  const path = useNavStore((s) => s.path)
+const EMPTY_MAP: Record<string, GitFileChange> = {}
+const EMPTY_SET = new Set<string>()
+
+export default function FileList(props: { paneId: string }): JSX.Element {
+  const pane = useNavStore((s) => s.panes.find((p) => p.id === props.paneId))
+  const activeId = useNavStore((s) => s.activeId)
+  const setSort = useNavStore((s) => s.setSort)
+  const navigate = useNavStore((s) => s.navigate)
+  const setSelected = useNavStore((s) => s.setSelectedPath)
+  const showHidden = useNavStore((s) => s.showHidden)
   const hideGitIgnored = useNavStore((s) => s.hideGitIgnored)
   const density = useAppearanceStore((s) => s.appearance.density)
   const repo = useGitStore((s) => s.repo)
   const statusByPath = useGitStore((s) => s.statusByPath)
   const dirtyDirs = useGitStore((s) => s.dirtyDirs)
-  const ignored = useGitStore((s) => s.ignored)
-  const selected = useNavStore((s) => s.selectedPath)
-  const setSelected = useNavStore((s) => s.setSelectedPath)
+  const ignoredAll = useGitStore((s) => s.ignored)
   const [menu, setMenu] = useState<{ x: number; y: number; entry: DirEntry } | null>(null)
   const parentRef = useRef<HTMLDivElement>(null)
 
-  // Rafraîchit le statut Git du dépôt contenant le dossier affiché.
+  const isActive = activeId === props.paneId
+  const entries = pane?.entries ?? []
+  const loading = pane?.loading ?? false
+  const error = pane?.error ?? null
+  const sortKey = pane?.sortKey ?? 'name'
+  const sortDir = pane?.sortDir ?? 'asc'
+  const path = pane?.path ?? ''
+  const selected = pane?.selectedPath ?? null
+
+  // Le store Git est global → on n'affiche les badges que dans le volet actif.
+  const gitMap = isActive ? statusByPath : EMPTY_MAP
+  const gitDirty = isActive ? dirtyDirs : EMPTY_SET
+  const ignored = isActive ? ignoredAll : EMPTY_SET
+
+  // Rafraîchit le statut Git du volet actif quand son dossier/contenu change.
   useEffect(() => {
-    if (path) void useGitStore.getState().refresh(path)
-  }, [path, entries])
+    if (isActive && path) void useGitStore.getState().refresh(path)
+  }, [isActive, path, entries])
 
   const rowHeight = density === 'compact' ? 26 : 34
 
@@ -189,8 +207,8 @@ export default function FileList(): JSX.Element {
                 height={rowHeight}
                 selected={selected === entry.path}
                 top={vi.start}
-                git={statusByPath[key]}
-                gitDir={entry.kind === 'directory' && dirtyDirs.has(key)}
+                git={gitMap[key]}
+                gitDir={entry.kind === 'directory' && gitDirty.has(key)}
                 onSelect={() => setSelected(entry.path)}
                 onActivate={() => onActivate(entry)}
                 onContext={(e) => {
@@ -204,7 +222,7 @@ export default function FileList(): JSX.Element {
         </div>
       </div>
 
-      <StatusBar count={visible.length} total={entries.length} selected={selected} />
+      <StatusBar count={visible.length} total={entries.length} selected={selected} showGit={isActive} />
 
       {menu && (
         <ContextMenu
@@ -321,6 +339,7 @@ function StatusBar(props: {
   count: number
   total: number
   selected: string | null
+  showGit: boolean
 }): JSX.Element {
   const hiddenCount = props.total - props.count
   return (
@@ -330,7 +349,7 @@ function StatusBar(props: {
           {props.count} élément{props.count > 1 ? 's' : ''}
           {hiddenCount > 0 && ` · ${hiddenCount} masqué${hiddenCount > 1 ? 's' : ''}`}
         </span>
-        <GitWidget />
+        {props.showGit && <GitWidget />}
       </div>
       {props.selected && (
         <span className="truncate pl-3">{props.selected.split(/[\\/]/).pop()}</span>

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { ShellInfo } from '@shared/types'
-import { useNavStore } from './useNavStore'
+import { useNavStore, activePane } from './useNavStore'
 import { disposeTerminal } from '../lib/terminalRegistry'
 
 export interface TermTab {
@@ -57,7 +57,7 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
       set({ error: 'Aucun shell disponible.' })
       return
     }
-    const cwd = useNavStore.getState().path || shell.path
+    const cwd = activePane(useNavStore.getState()).path || shell.path
     try {
       const ptyId = await window.api.terminal.create({
         shellPath: shell.path,

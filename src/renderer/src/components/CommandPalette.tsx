@@ -18,10 +18,11 @@ import {
   ArrowDownToLine,
   ArrowUpFromLine,
   FolderGit2,
+  Columns2,
   Search
 } from 'lucide-react'
 import { useUiStore } from '../state/useUiStore'
-import { useNavStore } from '../state/useNavStore'
+import { useNavStore, activePane } from '../state/useNavStore'
 import { useGitStore } from '../state/useGitStore'
 import { useSearchStore } from '../state/useSearchStore'
 import { useTerminalStore } from '../state/useTerminalStore'
@@ -61,8 +62,9 @@ export default function CommandPalette(): JSX.Element | null {
   const setPaletteOpen = useUiStore((s) => s.setPaletteOpen)
 
   // Valeurs réactives utilisées pour les libellés (états basculables).
-  const path = useNavStore((s) => s.path)
-  const parent = useNavStore((s) => s.parent)
+  const path = useNavStore((s) => activePane(s).path)
+  const parent = useNavStore((s) => activePane(s).parent)
+  const paneCount = useNavStore((s) => s.panes.length)
   const showHidden = useNavStore((s) => s.showHidden)
   const hideGitIgnored = useNavStore((s) => s.hideGitIgnored)
   const terminalOpen = useUiStore((s) => s.terminalOpen)
@@ -136,12 +138,22 @@ export default function CommandPalette(): JSX.Element | null {
           void useTerminalStore.getState().openTab()
         }
       },
+      { id: 'split', title: 'Diviser — nouveau volet', icon: <Columns2 size={15} />, run: () => void nav().addPane() },
       { id: 'preview', title: "Panneau d'aperçu", icon: <PanelRight size={15} />, run: () => ui().togglePreview() },
       { id: 'appearance', title: "Panneau d'apparence", icon: <Palette size={15} />, run: () => ui().toggleAppearance() },
       { id: 'theme-light', title: 'Thème : clair', icon: <Sun size={15} />, run: () => useAppearanceStore.getState().update({ theme: 'light' }) },
       { id: 'theme-dark', title: 'Thème : sombre', icon: <Moon size={15} />, run: () => useAppearanceStore.getState().update({ theme: 'dark' }) },
       { id: 'theme-auto', title: 'Thème : auto', icon: <SunMoon size={15} />, run: () => useAppearanceStore.getState().update({ theme: 'auto' }) }
     ]
+
+    if (paneCount > 1) {
+      list.push({
+        id: 'close-pane',
+        title: 'Fermer le volet actif',
+        icon: <Columns2 size={15} />,
+        run: () => nav().closePane(useNavStore.getState().activeId)
+      })
+    }
 
     if (repo) {
       const refreshGit = async (): Promise<void> => {
@@ -175,7 +187,7 @@ export default function CommandPalette(): JSX.Element | null {
     }
 
     return list
-  }, [path, parent, showHidden, hideGitIgnored, terminalOpen, repo, projects])
+  }, [path, parent, paneCount, showHidden, hideGitIgnored, terminalOpen, repo, projects])
 
   const filtered = useMemo(() => {
     return commands
