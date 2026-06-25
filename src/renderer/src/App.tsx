@@ -13,6 +13,7 @@ import { useNavStore } from './state/useNavStore'
 import { useAppearanceStore } from './state/useAppearanceStore'
 import { useUiStore } from './state/useUiStore'
 import { useSearchStore } from './state/useSearchStore'
+import { pathKey } from './lib/format'
 
 export default function App(): JSX.Element {
   const initNav = useNavStore((s) => s.init)
@@ -68,6 +69,14 @@ export default function App(): JSX.Element {
       window.removeEventListener('mouseup', onMouseUp, true)
       window.removeEventListener('mousedown', onMouseDown, true)
     }
+  }, [])
+
+  // Surveillance disque : rafraîchit la vue si le dossier affiché change.
+  useEffect(() => {
+    return window.api.fs.onChange((changedDir) => {
+      const { path, silentRefresh } = useNavStore.getState()
+      if (pathKey(changedDir) === pathKey(path)) void silentRefresh()
+    })
   }, [])
 
   // Agrandit le panneau terminal à l'exécution d'une commande, y compris quand

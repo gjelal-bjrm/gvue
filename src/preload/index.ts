@@ -56,7 +56,8 @@ ipcRenderer.on(IPC.terminalOnExit, (_e, ev: TerminalExitEvent) => {
  */
 const api = {
   fs: {
-    list: (path: string): Promise<ListResult> => ipcRenderer.invoke(IPC.fsList, path),
+    list: (path: string, track = true): Promise<ListResult> =>
+      ipcRenderer.invoke(IPC.fsList, path, track),
     locations: (): Promise<NavLocations> => ipcRenderer.invoke(IPC.fsLocations),
     reveal: (path: string): Promise<void> => ipcRenderer.invoke(IPC.fsReveal, path),
     open: (path: string): Promise<string> => ipcRenderer.invoke(IPC.fsOpen, path),

@@ -3,6 +3,7 @@ import { IPC } from '@shared/ipc'
 import type { NavLocations, DirEntry, QuickAccessData } from '@shared/types'
 import * as filesystem from '../services/filesystem'
 import { pushRecent, pushRecentFile, getConfig } from '../services/config-store'
+import { watchDir } from '../services/fs-watch'
 
 /**
  * Handlers IPC du système de fichiers : adaptateurs fins au-dessus du
@@ -10,9 +11,15 @@ import { pushRecent, pushRecentFile, getConfig } from '../services/config-store'
  * au service ; ici on se contente d'aiguiller.
  */
 export function registerFsHandlers(): void {
-  ipcMain.handle(IPC.fsList, async (_e, dirPath: string) => {
+  ipcMain.handle(IPC.fsList, async (e, dirPath: string, track = true) => {
     const result = await filesystem.list(dirPath)
-    pushRecent(result.path)
+    // `track` distingue une vraie navigation (compte la visite) d'un simple
+    // rafraîchissement auto déclenché par la surveillance disque.
+    if (track) pushRecent(result.path)
+    const wc = e.sender
+    watchDir(result.path, (dir) => {
+      if (!wc.isDestroyed()) wc.send(IPC.fsOnChange, dir)
+    })
     return result
   })
 

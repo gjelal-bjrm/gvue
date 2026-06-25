@@ -32,6 +32,8 @@ interface NavState {
   goParent: () => void
   goHome: () => void
   refresh: () => void
+  /** Re-liste le dossier courant sans historique ni comptage (surveillance disque). */
+  silentRefresh: () => Promise<void>
   setSort: (key: SortKey) => void
   toggleHidden: () => void
 }
@@ -125,6 +127,21 @@ export const useNavStore = create<NavState>((set, get) => ({
   refresh: () => {
     const { path } = get()
     if (path) get().navigate(path, false)
+  },
+
+  silentRefresh: async () => {
+    const { path } = get()
+    if (!path) return
+    try {
+      // track=false : un rafraîchissement disque ne compte pas comme une visite.
+      const result = await window.api.fs.list(path, false)
+      set((s) => ({
+        parent: result.parent,
+        entries: sortEntries(result.entries, s.sortKey, s.sortDir)
+      }))
+    } catch {
+      /* dossier devenu inaccessible : on garde l'état courant */
+    }
   },
 
   setSort: (key) => {

@@ -8,6 +8,7 @@ import { registerSearchHandlers } from './ipc/search'
 import { registerGitHandlers } from './ipc/git'
 import { killAll } from './services/pty-manager'
 import { killAllSearches } from './services/search'
+import { closeWatch } from './services/fs-watch'
 
 /**
  * Bootstrap de l'application.
@@ -36,6 +37,7 @@ app.on('before-quit', () => {
   // Termine proprement tous les pseudo-terminaux et recherches encore vivants.
   killAll()
   killAllSearches()
+  closeWatch()
 })
 
 app.on('window-all-closed', () => {
