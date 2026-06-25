@@ -24,7 +24,9 @@ import {
   PenLine,
   FileArchive,
   FileDown,
-  AppWindow
+  AppWindow,
+  FolderInput,
+  X
 } from 'lucide-react'
 import { useNavStore, type SortKey } from '../state/useNavStore'
 import { useAppearanceStore } from '../state/useAppearanceStore'
@@ -97,6 +99,9 @@ export default function FileList(props: { paneId: string }): JSX.Element {
   const ignoredAll = useGitStore((s) => s.ignored)
   const [menu, setMenu] = useState<{ x: number; y: number; entry: DirEntry | null } | null>(null)
   const [dragOver, setDragOver] = useState<string | null>(null)
+  const [dropMenu, setDropMenu] = useState<{ x: number; y: number; paths: string[]; destDir: string } | null>(
+    null
+  )
   const clipboard = useUiStore((s) => s.clipboard)
   const parentRef = useRef<HTMLDivElement>(null)
   const anchorRef = useRef<number | null>(null)
@@ -227,20 +232,80 @@ export default function FileList(props: { paneId: string }): JSX.Element {
     }
   }
 
-  // Dépôt de fichiers (depuis un autre volet, une autre instance, ou l'explorateur).
-  // Maj enfoncée = déplacer, sinon copier.
+  // Dépôt : drag interne (entre volets, chemins en données) ou externe (fichiers
+  // de l'explorateur). Interne → déplacer par défaut ; externe → copier. Ctrl
+  // force la copie, Maj force le déplacement.
   const doDrop = async (e: React.DragEvent, destDir: string): Promise<void> => {
     e.preventDefault()
     e.stopPropagation()
     setDragOver(null)
-    const paths = Array.from(e.dataTransfer.files)
-      .map((f) => window.api.fs.pathForFile(f))
-      .filter(Boolean)
+    const internal = e.dataTransfer.getData('application/x-gvue-paths')
+    let paths: string[]
+    let defaultMove: boolean
+    if (internal) {
+      paths = JSON.parse(internal) as string[]
+      defaultMove = true
+    } else {
+      paths = Array.from(e.dataTransfer.files)
+        .map((f) => window.api.fs.pathForFile(f))
+        .filter(Boolean)
+      defaultMove = false
+    }
     if (paths.length === 0) return
-    const op = e.shiftKey ? window.api.fs.move : window.api.fs.copy
-    await op(paths, destDir)
+    const move = e.ctrlKey ? false : e.shiftKey ? true : defaultMove
+    await (move ? window.api.fs.move : window.api.fs.copy)(paths, destDir)
     useNavStore.getState().refreshAll()
     if (isActive) void useGitStore.getState().refresh(path)
+  }
+
+  // Glisser au clic droit : à la fin, on propose un menu (copier/déplacer ici).
+  // Fonctionne entre volets via le dossier marqué « data-gvue-dir » sous le curseur.
+  const onRowMouseDown = (e: React.MouseEvent, entry: DirEntry): void => {
+    if (e.button !== 2) return
+    const paths = selectedSet.has(entry.path) ? selected : [entry.path]
+    const start = { x: e.clientX, y: e.clientY, moved: false }
+    const move = (ev: MouseEvent): void => {
+      if (Math.abs(ev.clientX - start.x) + Math.abs(ev.clientY - start.y) > 6) start.moved = true
+    }
+    const up = (ev: MouseEvent): void => {
+      window.removeEventListener('mousemove', move, true)
+      window.removeEventListener('mouseup', up, true)
+      if (!start.moved) return // simple clic droit → menu contextuel normal
+      // Bloque le menu contextuel qui suivrait ce relâchement.
+      const blockCtx = (ce: Event): void => {
+        ce.preventDefault()
+        ce.stopPropagation()
+      }
+      window.addEventListener('contextmenu', blockCtx, { capture: true, once: true })
+      setTimeout(() => window.removeEventListener('contextmenu', blockCtx, true), 300)
+      const el = document.elementFromPoint(ev.clientX, ev.clientY) as HTMLElement | null
+      const target = el?.closest('[data-gvue-dir]') as HTMLElement | null
+      const destDir = target?.dataset.gvueDir
+      if (destDir) setDropMenu({ x: ev.clientX, y: ev.clientY, paths, destDir })
+    }
+    window.addEventListener('mousemove', move, true)
+    window.addEventListener('mouseup', up, true)
+  }
+
+  const buildDropMenu = (paths: string[], destDir: string): MenuEntry[] => {
+    const n = paths.length
+    const run = (op: 'copy' | 'move'): void => {
+      void window.api.fs[op](paths, destDir).then(() => useNavStore.getState().refreshAll())
+    }
+    return [
+      {
+        label: n > 1 ? `Copier ici (${n})` : 'Copier ici',
+        icon: <ClipboardCopy size={14} />,
+        onClick: () => run('copy')
+      },
+      {
+        label: n > 1 ? `Déplacer ici (${n})` : 'Déplacer ici',
+        icon: <FolderInput size={14} />,
+        onClick: () => run('move')
+      },
+      { type: 'sep' },
+      { label: 'Annuler', icon: <X size={14} />, onClick: () => {} }
+    ]
   }
 
   // Menu de la zone vide (clic droit hors d'un élément) : créer / coller / actualiser.
@@ -461,6 +526,7 @@ export default function FileList(props: { paneId: string }): JSX.Element {
 
       <div
         ref={parentRef}
+        data-gvue-dir={path || undefined}
         className={`relative flex-1 overflow-auto ${
           dragOver === '__pane__' && path ? 'ring-2 ring-inset ring-accent' : ''
         }`}
@@ -507,10 +573,13 @@ export default function FileList(props: { paneId: string }): JSX.Element {
                 onActivate={() => onActivate(entry)}
                 onCommitRename={(name) => void commitRename(entry.path, name)}
                 onCancelRename={() => setRenaming(null)}
-                onDragStart={() => {
+                dropDir={isDir ? entry.path : undefined}
+                onDragStart={(e) => {
                   const sel = selectedSet.has(entry.path) ? selected : [entry.path]
-                  window.api.fs.startDrag(sel)
+                  e.dataTransfer.setData('application/x-gvue-paths', JSON.stringify(sel))
+                  e.dataTransfer.effectAllowed = 'copyMove'
                 }}
+                onRightDragStart={(e) => onRowMouseDown(e, entry)}
                 onDirOver={
                   isDir
                     ? (e) => {
@@ -546,6 +615,15 @@ export default function FileList(props: { paneId: string }): JSX.Element {
           y={menu.y}
           entries={menu.entry ? buildMenu(menu.entry) : backgroundMenu()}
           onClose={() => setMenu(null)}
+        />
+      )}
+
+      {dropMenu && (
+        <ContextMenu
+          x={dropMenu.x}
+          y={dropMenu.y}
+          entries={buildDropMenu(dropMenu.paths, dropMenu.destDir)}
+          onClose={() => setDropMenu(null)}
         />
       )}
     </div>
@@ -596,7 +674,9 @@ function Row(props: {
   onContext: (e: React.MouseEvent) => void
   onCommitRename: (name: string) => void
   onCancelRename: () => void
-  onDragStart: () => void
+  dropDir?: string
+  onDragStart: (e: React.DragEvent) => void
+  onRightDragStart: (e: React.MouseEvent) => void
   onDirOver?: (e: React.DragEvent) => void
   onDirDrop?: (e: React.DragEvent) => void
 }): JSX.Element {
@@ -620,12 +700,10 @@ function Row(props: {
             : 'hover:bg-bg-hover'
       } ${entry.hidden ? 'opacity-55' : ''}`}
       style={{ top: props.top, height: props.height }}
+      data-gvue-dir={props.dropDir}
       draggable={!props.renaming}
-      onDragStart={(e) => {
-        // Glisser natif (vrais fichiers) géré côté main → cross-instance/explorateur.
-        e.preventDefault()
-        props.onDragStart()
-      }}
+      onDragStart={props.onDragStart}
+      onMouseDown={props.onRightDragStart}
       onDragOver={props.onDirOver}
       onDrop={props.onDirDrop}
       onClick={props.onRowClick}
