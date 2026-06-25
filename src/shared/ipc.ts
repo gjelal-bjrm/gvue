@@ -9,6 +9,7 @@ export const IPC = {
   fsOpen: 'fs:open',
   fsProbe: 'fs:probe',
   fsTrash: 'fs:trash',
+  fsPreview: 'fs:preview',
   fsQuickAccess: 'fs:quickAccess',
   fsOnChange: 'fs:onChange',
 

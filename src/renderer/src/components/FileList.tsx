@@ -54,7 +54,8 @@ export default function FileList(): JSX.Element {
   const statusByPath = useGitStore((s) => s.statusByPath)
   const dirtyDirs = useGitStore((s) => s.dirtyDirs)
   const ignored = useGitStore((s) => s.ignored)
-  const [selected, setSelected] = useState<string | null>(null)
+  const selected = useNavStore((s) => s.selectedPath)
+  const setSelected = useNavStore((s) => s.setSelectedPath)
   const [menu, setMenu] = useState<{ x: number; y: number; entry: DirEntry } | null>(null)
   const parentRef = useRef<HTMLDivElement>(null)
 

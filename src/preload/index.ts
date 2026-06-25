@@ -4,6 +4,7 @@ import type {
   ListResult,
   NavLocations,
   PathKind,
+  PreviewData,
   QuickAccessData,
   GitStatus,
   GitActionResult,
@@ -63,6 +64,7 @@ const api = {
     open: (path: string): Promise<string> => ipcRenderer.invoke(IPC.fsOpen, path),
     probe: (path: string): Promise<PathKind> => ipcRenderer.invoke(IPC.fsProbe, path),
     trash: (path: string): Promise<void> => ipcRenderer.invoke(IPC.fsTrash, path),
+    preview: (path: string): Promise<PreviewData> => ipcRenderer.invoke(IPC.fsPreview, path),
     quickAccess: (): Promise<QuickAccessData> => ipcRenderer.invoke(IPC.fsQuickAccess),
     onChange: (cb: (path: string) => void): (() => void) => {
       const listener = (_e: unknown, path: string): void => cb(path)

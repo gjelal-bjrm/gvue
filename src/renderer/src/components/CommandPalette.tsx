@@ -11,6 +11,7 @@ import {
   TerminalSquare,
   Plus,
   Palette,
+  PanelRight,
   Sun,
   Moon,
   SunMoon,
@@ -135,6 +136,7 @@ export default function CommandPalette(): JSX.Element | null {
           void useTerminalStore.getState().openTab()
         }
       },
+      { id: 'preview', title: "Panneau d'aperçu", icon: <PanelRight size={15} />, run: () => ui().togglePreview() },
       { id: 'appearance', title: "Panneau d'apparence", icon: <Palette size={15} />, run: () => ui().toggleAppearance() },
       { id: 'theme-light', title: 'Thème : clair', icon: <Sun size={15} />, run: () => useAppearanceStore.getState().update({ theme: 'light' }) },
       { id: 'theme-dark', title: 'Thème : sombre', icon: <Moon size={15} />, run: () => useAppearanceStore.getState().update({ theme: 'dark' }) },

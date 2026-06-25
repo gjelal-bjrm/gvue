@@ -8,6 +8,7 @@ import FileList from './components/FileList'
 import SearchPanel from './components/SearchPanel'
 import QuickAccessPanel from './components/QuickAccessPanel'
 import AppearancePanel from './components/AppearancePanel'
+import PreviewPanel from './components/PreviewPanel'
 import TerminalPanel from './components/TerminalPanel'
 import CommandPalette from './components/CommandPalette'
 import { useNavStore } from './state/useNavStore'
@@ -24,6 +25,7 @@ export default function App(): JSX.Element {
   const terminalSize = useUiStore((s) => s.terminalSize)
   const terminalGrow = useUiStore((s) => s.terminalGrow)
   const appearanceOpen = useUiStore((s) => s.appearanceOpen)
+  const previewOpen = useUiStore((s) => s.previewOpen)
   const searchActive = useSearchStore((s) => s.active)
   const quickAccess = useNavStore((s) => s.quickAccess)
   const terminalPanelRef = useRef<ImperativePanelHandle>(null)
@@ -100,7 +102,7 @@ export default function App(): JSX.Element {
 
   // Clé de remontage : garde une disposition propre quand un panneau apparaît/disparaît.
   const vKey = `v-${terminalOpen ? 't' : ''}`
-  const hKey = `h-${appearanceOpen ? 'a' : ''}`
+  const hKey = `h-${appearanceOpen ? 'a' : ''}-${previewOpen ? 'p' : ''}`
 
   return (
     <div className="flex h-full flex-col bg-bg text-fg">
@@ -127,6 +129,15 @@ export default function App(): JSX.Element {
                   <FileList />
                 )}
               </Panel>
+
+              {previewOpen && (
+                <>
+                  <PanelResizeHandle className="w-px bg-border transition-colors hover:bg-accent" />
+                  <Panel defaultSize={26} minSize={18} maxSize={45}>
+                    <PreviewPanel />
+                  </Panel>
+                </>
+              )}
 
               {appearanceOpen && (
                 <>

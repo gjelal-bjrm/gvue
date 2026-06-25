@@ -8,6 +8,8 @@ const TERMINAL_LARGE = 60
 interface UiState {
   terminalOpen: boolean
   appearanceOpen: boolean
+  /** Panneau d'aperçu du fichier sélectionné ouvert ? */
+  previewOpen: boolean
   /** Hauteur cible du panneau terminal (% de la zone verticale). */
   terminalSize: number
   /** Compteur incrémenté pour redéclencher l'agrandissement quand déjà ouvert. */
@@ -21,11 +23,13 @@ interface UiState {
   toggleAppearance: () => void
   togglePalette: () => void
   setPaletteOpen: (v: boolean) => void
+  togglePreview: () => void
 }
 
 export const useUiStore = create<UiState>((set) => ({
   terminalOpen: false,
   appearanceOpen: false,
+  previewOpen: false,
   terminalSize: TERMINAL_DEFAULT,
   terminalGrow: 0,
   paletteOpen: false,
@@ -39,5 +43,6 @@ export const useUiStore = create<UiState>((set) => ({
     })),
   toggleAppearance: () => set((s) => ({ appearanceOpen: !s.appearanceOpen })),
   togglePalette: () => set((s) => ({ paletteOpen: !s.paletteOpen })),
-  setPaletteOpen: (v) => set({ paletteOpen: v })
+  setPaletteOpen: (v) => set({ paletteOpen: v }),
+  togglePreview: () => set((s) => ({ previewOpen: !s.previewOpen }))
 }))

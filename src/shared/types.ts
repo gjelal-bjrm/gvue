@@ -22,6 +22,26 @@ export interface DirEntry {
 /** Résultat d'une sonde de chemin : dossier, fichier, ou inexistant. */
 export type PathKind = 'directory' | 'file' | 'missing'
 
+// --- Aperçu de fichier (phase 6) ---
+
+export type PreviewKind = 'text' | 'code' | 'markdown' | 'json' | 'image' | 'binary'
+
+export interface PreviewData {
+  kind: PreviewKind
+  name: string
+  path: string
+  size: number
+  modifiedMs: number
+  /** Contenu texte (text/code/markdown/json) ou data URL (image). */
+  content?: string
+  /** Langage/extension deviné (info d'affichage). */
+  lang?: string
+  /** Message explicatif (binaire, trop volumineux…). */
+  note?: string
+  /** Contenu tronqué (fichier texte trop gros) ? */
+  truncated?: boolean
+}
+
 export interface ListResult {
   /** Chemin demandé, normalisé et absolu. */
   path: string

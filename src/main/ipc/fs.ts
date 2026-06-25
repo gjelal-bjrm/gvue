@@ -2,6 +2,7 @@ import { ipcMain, shell, app } from 'electron'
 import { IPC } from '@shared/ipc'
 import type { NavLocations, DirEntry, QuickAccessData } from '@shared/types'
 import * as filesystem from '../services/filesystem'
+import { readPreview } from '../services/preview'
 import { pushRecent, pushRecentFile, getConfig } from '../services/config-store'
 import { watchDir } from '../services/fs-watch'
 
@@ -55,6 +56,10 @@ export function registerFsHandlers(): void {
     const safe = filesystem.assertAbsolute(targetPath)
     // Corbeille de l'OS (réversible), jamais de suppression définitive.
     await shell.trashItem(safe)
+  })
+
+  ipcMain.handle(IPC.fsPreview, async (_e, targetPath: string) => {
+    return readPreview(targetPath)
   })
 
   ipcMain.handle(IPC.fsQuickAccess, async () => {

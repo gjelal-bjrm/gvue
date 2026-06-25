@@ -22,11 +22,14 @@ interface NavState {
   hideGitIgnored: boolean
   /** La page « Accès rapide » remplace-t-elle la liste de fichiers ? */
   quickAccess: boolean
+  /** Chemin de l'entrée sélectionnée (pour l'aperçu). */
+  selectedPath: string | null
 
   init: () => Promise<void>
   navigate: (path: string, record?: boolean) => Promise<void>
   showQuickAccess: () => void
   toggleGitIgnored: () => void
+  setSelectedPath: (p: string | null) => void
   goBack: () => void
   goForward: () => void
   goParent: () => void
@@ -65,6 +68,7 @@ export const useNavStore = create<NavState>((set, get) => ({
   showHidden: false,
   hideGitIgnored: true,
   quickAccess: true,
+  selectedPath: null,
 
   init: async () => {
     const locations = await window.api.fs.locations()
@@ -86,8 +90,9 @@ export const useNavStore = create<NavState>((set, get) => ({
         parent: result.parent,
         entries: sortEntries(result.entries, s.sortKey, s.sortDir),
         loading: false,
-        // Toute navigation quitte la page Accès rapide.
+        // Toute navigation quitte la page Accès rapide et réinitialise la sélection.
         quickAccess: false,
+        selectedPath: null,
         back: record && current ? [...s.back, current] : s.back,
         forward: record ? [] : s.forward
       }))
@@ -97,6 +102,8 @@ export const useNavStore = create<NavState>((set, get) => ({
   },
 
   showQuickAccess: () => set({ quickAccess: true }),
+
+  setSelectedPath: (p) => set({ selectedPath: p }),
 
   goBack: () => {
     const { back, path } = get()

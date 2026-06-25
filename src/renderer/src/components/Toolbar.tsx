@@ -17,7 +17,8 @@ import {
   Copy,
   Check,
   Filter,
-  FilterX
+  FilterX,
+  PanelRight
 } from 'lucide-react'
 import { useNavStore } from '../state/useNavStore'
 import { useUiStore } from '../state/useUiStore'
@@ -44,6 +45,8 @@ export default function Toolbar(): JSX.Element {
   const toggleGitIgnored = useNavStore((s) => s.toggleGitIgnored)
   const appearanceOpen = useUiStore((s) => s.appearanceOpen)
   const toggleAppearance = useUiStore((s) => s.toggleAppearance)
+  const previewOpen = useUiStore((s) => s.previewOpen)
+  const togglePreview = useUiStore((s) => s.togglePreview)
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(path)
   const [pathError, setPathError] = useState<string | null>(null)
@@ -215,6 +218,9 @@ export default function Toolbar(): JSX.Element {
       {/* Recherche ripgrep */}
       <SearchBox />
 
+      <NavBtn onClick={togglePreview} title="Panneau d'aperçu" active={previewOpen}>
+        <PanelRight size={17} />
+      </NavBtn>
       <NavBtn
         onClick={toggleAppearance}
         title="Panneau d'apparence"
