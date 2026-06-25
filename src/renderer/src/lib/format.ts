@@ -6,6 +6,25 @@ export function childPath(parent: string, name: string): string {
   return parent.endsWith(sep) ? `${parent}${name}` : `${parent}${sep}${name}`
 }
 
+/** Dossier parent d'un chemin absolu (sépare sur « \ » ou « / »). */
+export function parentPath(p: string): string {
+  const idx = Math.max(p.lastIndexOf('\\'), p.lastIndexOf('/'))
+  return idx <= 0 ? p : p.slice(0, idx)
+}
+
+/** Dernier segment (nom) d'un chemin. */
+export function baseName(p: string): string {
+  return p.split(/[\\/]/).pop() ?? p
+}
+
+/** Chemin affiché relativement à un dossier racine, séparateurs « / ». */
+export function relativeTo(base: string, full: string): string {
+  const norm = (s: string): string => s.replace(/[\\/]+/g, '/').replace(/\/$/, '')
+  const b = norm(base)
+  const f = norm(full)
+  return f.startsWith(b + '/') ? f.slice(b.length + 1) : f
+}
+
 /** Formate une taille en octets de façon lisible. */
 export function formatSize(bytes: number, kind: DirEntry['kind']): string {
   if (kind === 'directory') return ''

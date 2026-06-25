@@ -9,7 +9,10 @@ import type {
   ShellInfo,
   TerminalCreateOptions,
   TerminalDataEvent,
-  TerminalExitEvent
+  TerminalExitEvent,
+  SearchOptions,
+  SearchResultEvent,
+  SearchDoneEvent
 } from '@shared/types'
 
 /**
@@ -55,6 +58,21 @@ const api = {
       const listener = (_e: unknown, path: string): void => cb(path)
       ipcRenderer.on(IPC.fsOnChange, listener)
       return () => ipcRenderer.removeListener(IPC.fsOnChange, listener)
+    }
+  },
+  search: {
+    start: (searchId: string, opts: SearchOptions): Promise<void> =>
+      ipcRenderer.invoke(IPC.searchStart, searchId, opts),
+    cancel: (searchId: string): void => ipcRenderer.send(IPC.searchCancel, searchId),
+    onResult: (cb: (ev: SearchResultEvent) => void): (() => void) => {
+      const listener = (_e: unknown, ev: SearchResultEvent): void => cb(ev)
+      ipcRenderer.on(IPC.searchOnResult, listener)
+      return () => ipcRenderer.removeListener(IPC.searchOnResult, listener)
+    },
+    onDone: (cb: (ev: SearchDoneEvent) => void): (() => void) => {
+      const listener = (_e: unknown, ev: SearchDoneEvent): void => cb(ev)
+      ipcRenderer.on(IPC.searchOnDone, listener)
+      return () => ipcRenderer.removeListener(IPC.searchOnDone, listener)
     }
   },
   config: {

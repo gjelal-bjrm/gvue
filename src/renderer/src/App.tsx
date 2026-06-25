@@ -5,22 +5,28 @@ import Toolbar from './components/Toolbar'
 import CommandBar from './components/CommandBar'
 import Sidebar from './components/Sidebar'
 import FileList from './components/FileList'
+import SearchPanel from './components/SearchPanel'
 import AppearancePanel from './components/AppearancePanel'
 import TerminalPanel from './components/TerminalPanel'
 import { useNavStore } from './state/useNavStore'
 import { useAppearanceStore } from './state/useAppearanceStore'
 import { useUiStore } from './state/useUiStore'
+import { useSearchStore } from './state/useSearchStore'
 
 export default function App(): JSX.Element {
   const initNav = useNavStore((s) => s.init)
   const initAppearance = useAppearanceStore((s) => s.init)
+  const initSearch = useSearchStore((s) => s.init)
   const terminalOpen = useUiStore((s) => s.terminalOpen)
   const appearanceOpen = useUiStore((s) => s.appearanceOpen)
+  const searchActive = useSearchStore((s) => s.active)
 
   useEffect(() => {
     void initAppearance()
     void initNav()
-  }, [initAppearance, initNav])
+    // Abonne le store de recherche aux flux IPC (une seule fois).
+    return initSearch()
+  }, [initAppearance, initNav, initSearch])
 
   // Clé de remontage : garde une disposition propre quand un panneau apparaît/disparaît.
   const vKey = `v-${terminalOpen ? 't' : ''}`
@@ -42,7 +48,7 @@ export default function App(): JSX.Element {
               <PanelResizeHandle className="w-px bg-border transition-colors hover:bg-accent" />
 
               <Panel minSize={30}>
-                <FileList />
+                {searchActive ? <SearchPanel /> : <FileList />}
               </Panel>
 
               {appearanceOpen && (

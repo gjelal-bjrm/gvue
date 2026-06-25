@@ -4,7 +4,9 @@ import { registerFsHandlers } from './ipc/fs'
 import { registerConfigHandlers } from './ipc/config'
 import { registerWindowHandlers } from './ipc/window'
 import { registerTerminalHandlers } from './ipc/terminal'
+import { registerSearchHandlers } from './ipc/search'
 import { killAll } from './services/pty-manager'
+import { killAllSearches } from './services/search'
 
 /**
  * Bootstrap de l'application.
@@ -15,6 +17,7 @@ function registerIpc(): void {
   registerConfigHandlers()
   registerWindowHandlers()
   registerTerminalHandlers()
+  registerSearchHandlers()
 }
 
 app.whenReady().then(() => {
@@ -28,8 +31,9 @@ app.whenReady().then(() => {
 })
 
 app.on('before-quit', () => {
-  // Termine proprement tous les pseudo-terminaux encore vivants.
+  // Termine proprement tous les pseudo-terminaux et recherches encore vivants.
   killAll()
+  killAllSearches()
 })
 
 app.on('window-all-closed', () => {

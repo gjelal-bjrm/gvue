@@ -104,3 +104,61 @@ export type WindowAction = 'minimize' | 'maximize-toggle' | 'close'
 export interface WindowStatus {
   maximized: boolean
 }
+
+// --- Recherche (phase 3) ---
+
+export interface SearchOptions {
+  /** Motif recherché (littéral ou expression régulière selon `regex`). */
+  query: string
+  /** Dossier racine de la recherche (chemin absolu). */
+  dir: string
+  caseSensitive: boolean
+  /** Borne les correspondances aux mots entiers. */
+  wholeWord: boolean
+  /** Interprète `query` comme une regex (sinon recherche littérale). */
+  regex: boolean
+  /** Inclut les fichiers ignorés par `.gitignore` et les fichiers cachés. */
+  includeIgnored: boolean
+  /** Plafond de correspondances — garde-fou anti-flot. */
+  maxResults: number
+}
+
+/** Plage de caractères d'une sous-correspondance dans la ligne (surlignage). */
+export interface SearchSubmatch {
+  start: number
+  end: number
+}
+
+export interface SearchMatch {
+  /** Chemin absolu du fichier. */
+  file: string
+  /** Numéro de ligne (1-based). */
+  line: number
+  /** Texte de la ligne (saut final retiré, éventuellement tronqué). */
+  text: string
+  /** Plages à surligner dans `text` (indices de caractères). */
+  submatches: SearchSubmatch[]
+}
+
+export interface SearchDone {
+  /** Nombre total de correspondances émises. */
+  matchCount: number
+  /** Nombre de fichiers comportant au moins une correspondance. */
+  fileCount: number
+  /** Vrai si la recherche a été coupée au plafond `maxResults`. */
+  hitLimit: boolean
+  /** Vrai si annulée par l'utilisateur. */
+  canceled: boolean
+  /** Message d'erreur (rg absent, regex invalide…), sinon null. */
+  error: string | null
+}
+
+export interface SearchResultEvent {
+  searchId: string
+  matches: SearchMatch[]
+}
+
+export interface SearchDoneEvent {
+  searchId: string
+  done: SearchDone
+}

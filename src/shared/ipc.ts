@@ -18,6 +18,12 @@ export const IPC = {
   terminalOnData: 'terminal:onData',
   terminalOnExit: 'terminal:onExit',
 
+  // Recherche (ripgrep)
+  searchStart: 'search:start',
+  searchCancel: 'search:cancel',
+  searchOnResult: 'search:onResult',
+  searchOnDone: 'search:onDone',
+
   // Configuration
   configGet: 'config:get',
   configSet: 'config:set',

@@ -9,10 +9,15 @@ import {
   ChevronRight,
   Eye,
   EyeOff,
-  Palette
+  Palette,
+  CaseSensitive,
+  WholeWord,
+  Regex,
+  X
 } from 'lucide-react'
 import { useNavStore } from '../state/useNavStore'
 import { useUiStore } from '../state/useUiStore'
+import { useSearchStore } from '../state/useSearchStore'
 import { breadcrumbSegments } from '../lib/format'
 
 /**
@@ -110,14 +115,8 @@ export default function Toolbar(): JSX.Element {
         )}
       </div>
 
-      {/* Recherche ripgrep (phase 3) */}
-      <div
-        className="flex h-8 w-44 items-center gap-2 rounded-app border border-border bg-bg-tertiary px-2.5 text-fg-muted"
-        title="Recherche ripgrep — arrive en phase 3"
-      >
-        <Search size={15} />
-        <span className="text-[12px]">Rechercher (rg)</span>
-      </div>
+      {/* Recherche ripgrep */}
+      <SearchBox />
 
       <NavBtn
         onClick={toggleAppearance}
@@ -127,6 +126,76 @@ export default function Toolbar(): JSX.Element {
         <Palette size={17} />
       </NavBtn>
     </div>
+  )
+}
+
+/**
+ * Champ de recherche ripgrep : saisie + bascules (casse, mot entier, regex).
+ * Entrée lance la recherche sur le dossier courant ; Échap ferme le panneau.
+ */
+function SearchBox(): JSX.Element {
+  const dir = useNavStore((s) => s.path)
+  const query = useSearchStore((s) => s.query)
+  const caseSensitive = useSearchStore((s) => s.caseSensitive)
+  const wholeWord = useSearchStore((s) => s.wholeWord)
+  const regex = useSearchStore((s) => s.regex)
+  const active = useSearchStore((s) => s.active)
+  const { setQuery, toggleCase, toggleWord, toggleRegex, run, close } = useSearchStore()
+
+  return (
+    <div className="flex h-8 w-72 items-center gap-1.5 rounded-app border border-border bg-bg-tertiary pl-2.5 pr-1">
+      <Search size={15} className="shrink-0 text-fg-muted" />
+      <input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') void run(dir)
+          if (e.key === 'Escape') close()
+        }}
+        placeholder="Rechercher (rg)…"
+        spellCheck={false}
+        className="min-w-0 flex-1 bg-transparent text-[12px] text-fg outline-none placeholder:text-fg-muted"
+      />
+      {active && (
+        <button
+          onClick={close}
+          title="Fermer la recherche"
+          className="grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg"
+        >
+          <X size={14} />
+        </button>
+      )}
+      <div className="flex shrink-0 items-center">
+        <SearchToggle on={caseSensitive} onClick={toggleCase} title="Respecter la casse">
+          <CaseSensitive size={14} />
+        </SearchToggle>
+        <SearchToggle on={wholeWord} onClick={toggleWord} title="Mot entier">
+          <WholeWord size={14} />
+        </SearchToggle>
+        <SearchToggle on={regex} onClick={toggleRegex} title="Expression régulière">
+          <Regex size={14} />
+        </SearchToggle>
+      </div>
+    </div>
+  )
+}
+
+function SearchToggle(props: {
+  on: boolean
+  onClick: () => void
+  title: string
+  children: React.ReactNode
+}): JSX.Element {
+  return (
+    <button
+      onClick={props.onClick}
+      title={props.title}
+      className={`grid h-6 w-6 place-items-center rounded transition-colors ${
+        props.on ? 'bg-accent-soft text-accent' : 'text-fg-muted hover:bg-bg-hover hover:text-fg'
+      }`}
+    >
+      {props.children}
+    </button>
   )
 }
 

@@ -18,6 +18,7 @@
     "rebuild": "electron-rebuild -f -o node-pty"
   },
   "dependencies": {
+    "@vscode/ripgrep": "^1.18.0",
     "electron-store": "^8.2.0",
     "lucide-react": "^0.460.0"
   },
@@ -28,12 +29,12 @@
     "@electron/rebuild": "^3.7.0",
     "@tanstack/react-virtual": "^3.10.8",
     "@types/node": "^20.16.0",
-    "@xterm/addon-fit": "^0.10.0",
-    "@xterm/addon-web-links": "^0.11.0",
-    "@xterm/xterm": "^5.5.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/addon-web-links": "^0.11.0",
+    "@xterm/xterm": "^5.5.0",
     "electron": "^33.0.0",
     "electron-vite": "^2.3.0",
     "postcss": "^8.4.47",
