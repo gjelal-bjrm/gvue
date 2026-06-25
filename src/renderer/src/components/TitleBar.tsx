@@ -18,7 +18,16 @@ export default function TitleBar(): JSX.Element {
     <header className="drag-region flex h-9 shrink-0 items-center justify-between border-b border-border bg-bg-secondary pl-3 select-none">
       <div className="flex items-center gap-2">
         <Logo size={18} />
-        <span className="text-[13px] font-medium tracking-wide">GVue</span>
+        <span
+          className="inline-flex items-baseline text-[14px] leading-none tracking-wide text-fg"
+          style={{ fontFamily: "'Space Grotesk', var(--font-ui)", fontWeight: 600 }}
+        >
+          G
+          <span className="text-accent" style={{ fontSize: '1.4em', fontWeight: 700, lineHeight: 0.7 }}>
+            V
+          </span>
+          ue
+        </span>
       </div>
 
       <div className="no-drag flex h-full">
