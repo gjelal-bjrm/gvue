@@ -100,6 +100,7 @@ export default function FileList(props: { paneId: string }): JSX.Element {
   const clipboard = useUiStore((s) => s.clipboard)
   const parentRef = useRef<HTMLDivElement>(null)
   const anchorRef = useRef<number | null>(null)
+  const renameTimer = useRef<number | null>(null)
 
   const isActive = activeId === props.paneId
   const entries = pane?.entries ?? []
@@ -142,7 +143,16 @@ export default function FileList(props: { paneId: string }): JSX.Element {
   // Recalcule les positions quand la densité (donc la hauteur de ligne) change.
   useEffect(() => rowVirtualizer.measure(), [rowHeight, rowVirtualizer])
 
+  const clearRenameTimer = (): void => {
+    if (renameTimer.current) {
+      clearTimeout(renameTimer.current)
+      renameTimer.current = null
+    }
+  }
+  useEffect(() => clearRenameTimer, [])
+
   const onActivate = (entry: DirEntry): void => {
+    clearRenameTimer() // un double-clic ouvre, il n'arme pas le renommage
     if (entry.kind === 'directory') navigate(entry.path)
     else void window.api.fs.open(entry.path)
   }
@@ -150,6 +160,7 @@ export default function FileList(props: { paneId: string }): JSX.Element {
   // Sélection façon explorateur : clic simple = remplace ; Ctrl = bascule ;
   // Maj = plage depuis l'ancre. L'index est celui dans la liste visible.
   const onRowClick = (e: React.MouseEvent, entry: DirEntry, index: number): void => {
+    clearRenameTimer()
     if (e.shiftKey && anchorRef.current !== null) {
       const [a, b] = [anchorRef.current, index].sort((x, y) => x - y)
       setSelected(visible.slice(a, b + 1).map((en) => en.path))
@@ -160,8 +171,14 @@ export default function FileList(props: { paneId: string }): JSX.Element {
       setSelected(next)
       anchorRef.current = index
     } else {
+      // Reclic sur l'unique élément déjà sélectionné → renommage différé
+      // (comme l'explorateur Windows ; le double-clic l'annule via onActivate).
+      const wasSole = selected.length === 1 && selected[0] === entry.path
       setSelected([entry.path])
       anchorRef.current = index
+      if (wasSole) {
+        renameTimer.current = window.setTimeout(() => setRenaming(entry.path), 500)
+      }
     }
   }
 
@@ -202,10 +219,11 @@ export default function FileList(props: { paneId: string }): JSX.Element {
   ): Promise<void> => {
     const res = await fn(path, base)
     if (res.ok && res.path) {
-      const created = res.path
-      await refreshAfter()
-      setSelected([created])
-      setRenaming(created)
+      // silentRefresh (et non refresh) pour ne pas réinitialiser le renommage
+      // qu'on vient d'armer : le nouvel élément entre directement en édition.
+      await useNavStore.getState().silentRefresh(props.paneId)
+      setSelected([res.path])
+      setRenaming(res.path)
     }
   }
 

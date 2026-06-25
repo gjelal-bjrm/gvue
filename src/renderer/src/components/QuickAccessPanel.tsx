@@ -1,39 +1,146 @@
-import { useEffect, useState } from 'react'
-import { Star, FolderOpen } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import {
+  Star,
+  StarOff,
+  FolderOpen,
+  ExternalLink,
+  Copy,
+  Trash2,
+  Code2,
+  PenLine,
+  AppWindow,
+  FileArchive
+} from 'lucide-react'
 import { useNavStore } from '../state/useNavStore'
+import { useFavoritesStore } from '../state/useFavoritesStore'
+import { useAppsStore } from '../state/useAppsStore'
+import { useOpenWithStore } from '../state/useOpenWithStore'
 import type { DirEntry, QuickAccessData } from '@shared/types'
 import { formatRelativeDate, formatDate, parentPath } from '../lib/format'
 import { fileIconSpec } from '../lib/fileIcon'
+import ContextMenu, { type MenuEntry } from './ContextMenu'
 
 /**
  * Page « Accès rapide » (façon explorateur Windows) : dossiers fréquents et
- * fichiers récents. Remplace la liste de fichiers quand on clique sur le bouton
- * Accès rapide de la sidebar. Clic = sélection, double-clic = ouvrir.
+ * fichiers récents. Clic = sélection, double-clic = ouvrir, clic droit = menu.
  */
 export default function QuickAccessPanel(): JSX.Element {
   const navigate = useNavStore((s) => s.navigate)
   const [data, setData] = useState<QuickAccessData | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
+  const [menu, setMenu] = useState<{ x: number; y: number; entry: DirEntry } | null>(null)
 
-  // Rechargé à chaque ouverture de la page (le composant est monté à la demande).
-  useEffect(() => {
-    let alive = true
+  const load = useCallback((): void => {
     window.api.fs
       .quickAccess()
-      .then((d) => {
-        if (alive) setData(d)
-      })
-      .catch(() => {
-        if (alive) setData({ frequent: [], recentFiles: [] })
-      })
-    return () => {
-      alive = false
-    }
+      .then(setData)
+      .catch(() => setData({ frequent: [], recentFiles: [] }))
   }, [])
+
+  useEffect(() => load(), [load])
 
   const activate = (entry: DirEntry): void => {
     if (entry.kind === 'directory') navigate(entry.path)
     else void window.api.fs.open(entry.path)
+  }
+
+  const extOf = (name: string): string => {
+    const d = name.lastIndexOf('.')
+    return d > 0 ? name.slice(d + 1).toLowerCase() : ''
+  }
+
+  const buildMenu = (entry: DirEntry): MenuEntry[] => {
+    const apps = useAppsStore.getState().apps
+    const isDir = entry.kind === 'directory'
+    const items: MenuEntry[] = [
+      { label: 'Ouvrir', icon: <FolderOpen size={14} />, onClick: () => activate(entry) },
+      {
+        label: "Ouvrir dans l'explorateur",
+        icon: <ExternalLink size={14} />,
+        onClick: () => void window.api.fs.reveal(entry.path)
+      }
+    ]
+
+    const appItems: MenuEntry[] = []
+    if (apps.vscode)
+      appItems.push({
+        label: 'Ouvrir avec VS Code',
+        icon: <Code2 size={14} />,
+        onClick: () => window.api.apps.openWith('vscode', [entry.path])
+      })
+    if (!isDir && apps.notepadpp)
+      appItems.push({
+        label: 'Éditer avec Notepad++',
+        icon: <PenLine size={14} />,
+        onClick: () => window.api.apps.openWith('notepadpp', [entry.path])
+      })
+    if (!isDir) {
+      const ext = extOf(entry.name)
+      for (const exe of useOpenWithStore.getState().get(ext)) {
+        appItems.push({
+          label: `Ouvrir avec ${(exe.split(/[\\/]/).pop() ?? exe).replace(/\.exe$/i, '')}`,
+          icon: <AppWindow size={14} />,
+          onClick: () => window.api.apps.openPathWith(exe, [entry.path])
+        })
+      }
+      appItems.push({
+        label: 'Ouvrir avec…',
+        icon: <AppWindow size={14} />,
+        onClick: async () => {
+          const exe = await window.api.apps.pickProgram()
+          if (!exe) return
+          window.api.apps.openPathWith(exe, [entry.path])
+          if (ext) useOpenWithStore.getState().add(ext, exe)
+        }
+      })
+    }
+    if (apps.sevenzip)
+      appItems.push({
+        label: 'Compresser en .zip (7-Zip)',
+        icon: <FileArchive size={14} />,
+        onClick: () => void window.api.apps.archive([entry.path])
+      })
+    if (appItems.length) items.push({ type: 'sep' }, ...appItems)
+
+    items.push(
+      { type: 'sep' },
+      {
+        label: 'Copier le chemin',
+        icon: <Copy size={14} />,
+        onClick: () => void navigator.clipboard.writeText(entry.path)
+      },
+      {
+        label: 'Copier le nom',
+        icon: <Copy size={14} />,
+        onClick: () => void navigator.clipboard.writeText(entry.name)
+      }
+    )
+
+    if (isDir) {
+      const fav = useFavoritesStore.getState()
+      items.push({
+        label: fav.has(entry.path) ? 'Retirer des favoris' : 'Ajouter aux favoris',
+        icon: fav.has(entry.path) ? <StarOff size={14} /> : <Star size={14} />,
+        onClick: () => useFavoritesStore.getState().toggle(entry.path)
+      })
+    }
+
+    items.push(
+      { type: 'sep' },
+      {
+        label: 'Supprimer (corbeille)',
+        icon: <Trash2 size={14} />,
+        danger: true,
+        onClick: () => void window.api.fs.trash(entry.path).then(load)
+      }
+    )
+    return items
+  }
+
+  const onContext = (e: React.MouseEvent, entry: DirEntry): void => {
+    e.preventDefault()
+    setSelected(entry.path)
+    setMenu({ x: e.clientX, y: e.clientY, entry })
   }
 
   const frequent = data?.frequent ?? []
@@ -65,6 +172,7 @@ export default function QuickAccessPanel(): JSX.Element {
                   selected={selected === e.path}
                   onSelect={() => setSelected(e.path)}
                   onActivate={() => activate(e)}
+                  onContext={(ev) => onContext(ev, e)}
                 />
               ))}
             </div>
@@ -82,12 +190,17 @@ export default function QuickAccessPanel(): JSX.Element {
                   selected={selected === e.path}
                   onSelect={() => setSelected(e.path)}
                   onActivate={() => activate(e)}
+                  onContext={(ev) => onContext(ev, e)}
                 />
               ))}
             </div>
           </section>
         )}
       </div>
+
+      {menu && (
+        <ContextMenu x={menu.x} y={menu.y} entries={buildMenu(menu.entry)} onClose={() => setMenu(null)} />
+      )}
     </div>
   )
 }
@@ -105,6 +218,7 @@ function FolderCard(props: {
   selected: boolean
   onSelect: () => void
   onActivate: () => void
+  onContext: (e: React.MouseEvent) => void
 }): JSX.Element {
   const { entry } = props
   return (
@@ -114,6 +228,7 @@ function FolderCard(props: {
       }`}
       onClick={props.onSelect}
       onDoubleClick={props.onActivate}
+      onContextMenu={props.onContext}
       title={entry.path}
     >
       <FolderOpen size={18} className="shrink-0 text-accent" />
@@ -132,6 +247,7 @@ function FileRow(props: {
   selected: boolean
   onSelect: () => void
   onActivate: () => void
+  onContext: (e: React.MouseEvent) => void
 }): JSX.Element {
   const { entry } = props
   const { Icon, color } = fileIconSpec(entry)
@@ -142,6 +258,7 @@ function FileRow(props: {
       }`}
       onClick={props.onSelect}
       onDoubleClick={props.onActivate}
+      onContextMenu={props.onContext}
       title={entry.path}
     >
       <Icon size={16} style={{ color }} className="shrink-0" />
