@@ -5,6 +5,7 @@ import { registerConfigHandlers } from './ipc/config'
 import { registerWindowHandlers } from './ipc/window'
 import { registerTerminalHandlers } from './ipc/terminal'
 import { registerSearchHandlers } from './ipc/search'
+import { registerGitHandlers } from './ipc/git'
 import { killAll } from './services/pty-manager'
 import { killAllSearches } from './services/search'
 
@@ -18,6 +19,7 @@ function registerIpc(): void {
   registerWindowHandlers()
   registerTerminalHandlers()
   registerSearchHandlers()
+  registerGitHandlers()
 }
 
 app.whenReady().then(() => {

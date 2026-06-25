@@ -6,6 +6,14 @@ export function childPath(parent: string, name: string): string {
   return parent.endsWith(sep) ? `${parent}${name}` : `${parent}${sep}${name}`
 }
 
+/**
+ * Clé canonique d'un chemin pour comparaison insensible au séparateur et à la
+ * casse (Windows). Sert à apparier les chemins Git (slashes) et l'OS (backslash).
+ */
+export function pathKey(p: string): string {
+  return p.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase()
+}
+
 /** Dossier parent d'un chemin absolu (sépare sur « \ » ou « / »). */
 export function parentPath(p: string): string {
   const idx = Math.max(p.lastIndexOf('\\'), p.lastIndexOf('/'))

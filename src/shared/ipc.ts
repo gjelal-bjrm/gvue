@@ -7,6 +7,9 @@ export const IPC = {
   fsLocations: 'fs:locations',
   fsReveal: 'fs:reveal',
   fsOpen: 'fs:open',
+  fsProbe: 'fs:probe',
+  fsTrash: 'fs:trash',
+  fsQuickAccess: 'fs:quickAccess',
   fsOnChange: 'fs:onChange',
 
   // Terminal
@@ -17,6 +20,18 @@ export const IPC = {
   terminalKill: 'terminal:kill',
   terminalOnData: 'terminal:onData',
   terminalOnExit: 'terminal:onExit',
+
+  // Git
+  gitStatus: 'git:status',
+  gitCommit: 'git:commit',
+  gitPull: 'git:pull',
+  gitPush: 'git:push',
+  gitStage: 'git:stage',
+  gitUnstage: 'git:unstage',
+  gitDiscard: 'git:discard',
+
+  // Navigation (commandes système : boutons souris précédent/suivant)
+  navOnCommand: 'nav:onCommand',
 
   // Recherche (ripgrep)
   searchStart: 'search:start',

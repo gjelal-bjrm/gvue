@@ -27,6 +27,8 @@ export const DEFAULT_CONFIG: AppConfig = {
   favorites: [],
   shortcuts: [],
   recents: [],
+  recentFiles: [],
+  folderFreq: {},
   hideGitIgnored: true
 }
 
@@ -47,11 +49,29 @@ export function getAllConfig(): AppConfig {
   return store.store
 }
 
-/** Ajoute un chemin en tête des récents (FIFO borné). */
+/** Ajoute un dossier en tête des récents et incrémente sa fréquence de visite. */
 export function pushRecent(p: string, max = 20): void {
   const recents = store.get('recents').filter((r) => r !== p)
   recents.unshift(p)
   store.set('recents', recents.slice(0, max))
+
+  const freq = { ...store.get('folderFreq') }
+  freq[p] = (freq[p] ?? 0) + 1
+  // Borne la table : au-delà, on ne garde que les 200 plus fréquents.
+  const entries = Object.entries(freq)
+  if (entries.length > 200) {
+    const kept = entries.sort((a, b) => b[1] - a[1]).slice(0, 200)
+    store.set('folderFreq', Object.fromEntries(kept))
+  } else {
+    store.set('folderFreq', freq)
+  }
+}
+
+/** Ajoute un fichier en tête des fichiers récents (FIFO borné). */
+export function pushRecentFile(p: string, max = 30): void {
+  const files = store.get('recentFiles').filter((r) => r !== p)
+  files.unshift(p)
+  store.set('recentFiles', files.slice(0, max))
 }
 
 /** Emplacement par défaut au lancement : le home de l'utilisateur. */

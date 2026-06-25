@@ -8,7 +8,7 @@ import { useTerminalStore } from '../state/useTerminalStore'
  * lance la commande dans le terminal actif (en l'ouvrant si nécessaire).
  */
 export default function CommandBar(): JSX.Element {
-  const { terminalOpen, toggleTerminal, setTerminalOpen } = useUiStore()
+  const { terminalOpen, toggleTerminal, openTerminalLarge } = useUiStore()
   const { shells, loadShells } = useTerminalStore()
   const [shellId, setShellId] = useState<string>('')
   const [menuOpen, setMenuOpen] = useState(false)
@@ -27,7 +27,7 @@ export default function CommandBar(): JSX.Element {
 
   const runCommand = async (): Promise<void> => {
     if (!command.trim()) return
-    setTerminalOpen(true)
+    openTerminalLarge()
     const { tabs, openTab, writeActive } = useTerminalStore.getState()
     if (tabs.length === 0) await openTab(shellId)
     writeActive(command + '\r')

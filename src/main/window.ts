@@ -66,6 +66,19 @@ export function createWindow(): BrowserWindow {
   win.on('maximize', emitStatus)
   win.on('unmaximize', emitStatus)
 
+  // Boutons latéraux de la souris (précédent / suivant) : sous Windows ils
+  // émettent l'événement « app-command ». On les relaie au renderer, qui pilote
+  // l'historique de navigation interne.
+  win.on('app-command', (e, command) => {
+    if (command === 'browser-backward') {
+      win.webContents.send(IPC.navOnCommand, 'back')
+      e.preventDefault()
+    } else if (command === 'browser-forward') {
+      win.webContents.send(IPC.navOnCommand, 'forward')
+      e.preventDefault()
+    }
+  })
+
   // Chargement : dev server en HMR, fichier statique en production.
   const devUrl = process.env['ELECTRON_RENDERER_URL']
   if (devUrl) {

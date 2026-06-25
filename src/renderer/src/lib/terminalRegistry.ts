@@ -79,6 +79,26 @@ export function disposeTerminal(ptyId: string): void {
   registry.get(ptyId)?.dispose()
 }
 
+/** Efface le contenu affiché du terminal (conserve la ligne courante). */
+export function clearTerminal(ptyId: string): void {
+  registry.get(ptyId)?.term.clear()
+}
+
+/** Renvoie tout le contenu textuel du terminal (scrollback + écran). */
+export function getTerminalText(ptyId: string): string {
+  const entry = registry.get(ptyId)
+  if (!entry) return ''
+  const buf = entry.term.buffer.active
+  const lines: string[] = []
+  for (let i = 0; i < buf.length; i++) {
+    const line = buf.getLine(i)
+    lines.push(line ? line.translateToString(true) : '')
+  }
+  // Retire les lignes vides en fin de tampon.
+  while (lines.length > 0 && lines[lines.length - 1] === '') lines.pop()
+  return lines.join('\n')
+}
+
 /** Applique le thème courant à toutes les instances vivantes. */
 export function applyThemeAll(): void {
   const theme = buildTheme()

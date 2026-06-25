@@ -13,26 +13,41 @@ import {
   CaseSensitive,
   WholeWord,
   Regex,
-  X
+  X,
+  Copy,
+  Check,
+  Filter,
+  FilterX
 } from 'lucide-react'
 import { useNavStore } from '../state/useNavStore'
 import { useUiStore } from '../state/useUiStore'
 import { useSearchStore } from '../state/useSearchStore'
 import { breadcrumbSegments } from '../lib/format'
 
+/** Compare deux chemins en ignorant la casse et le séparateur final (Windows). */
+function samePath(a: string, b: string): boolean {
+  const norm = (s: string): string => s.replace(/[\\/]+$/, '').toLowerCase()
+  return norm(a) === norm(b)
+}
+
 /**
- * Barre d'outils : navigation, fil d'Ariane cliquable (édition manuelle au
- * double-clic) et champ de recherche ripgrep (câblé en phase 3).
+ * Barre d'outils : navigation, barre d'adresse façon explorateur Windows
+ * (fil d'Ariane cliquable + édition texte, copie, validation par Entrée avec
+ * vérification d'existence) et champ de recherche ripgrep.
  */
 export default function Toolbar(): JSX.Element {
   const { path, back, forward, parent, goBack, goForward, goParent, goHome, navigate, refresh } =
     useNavStore()
   const showHidden = useNavStore((s) => s.showHidden)
   const toggleHidden = useNavStore((s) => s.toggleHidden)
+  const hideGitIgnored = useNavStore((s) => s.hideGitIgnored)
+  const toggleGitIgnored = useNavStore((s) => s.toggleGitIgnored)
   const appearanceOpen = useUiStore((s) => s.appearanceOpen)
   const toggleAppearance = useUiStore((s) => s.toggleAppearance)
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(path)
+  const [pathError, setPathError] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -45,9 +60,53 @@ export default function Toolbar(): JSX.Element {
 
   const segments = breadcrumbSegments(path)
 
-  const submit = (): void => {
+  const startEdit = (): void => {
+    setPathError(null)
+    setEditing(true)
+  }
+
+  const cancelEdit = (): void => {
     setEditing(false)
-    if (draft.trim() && draft !== path) navigate(draft.trim())
+    setPathError(null)
+  }
+
+  // Validation façon Windows : on ne navigue que si le chemin existe.
+  // Dossier → navigation ; fichier → ouverture ; inexistant → message, on
+  // garde le champ ouvert pour correction.
+  const submit = async (): Promise<void> => {
+    const target = draft.trim()
+    if (!target || samePath(target, path)) {
+      cancelEdit()
+      return
+    }
+    let kind: Awaited<ReturnType<typeof window.api.fs.probe>>
+    try {
+      kind = await window.api.fs.probe(target)
+    } catch {
+      kind = 'missing'
+    }
+    if (kind === 'directory') {
+      setEditing(false)
+      setPathError(null)
+      navigate(target)
+    } else if (kind === 'file') {
+      setEditing(false)
+      setPathError(null)
+      void window.api.fs.open(target)
+    } else {
+      setPathError(`Ce chemin n'existe pas : ${target}`)
+      inputRef.current?.focus()
+    }
+  }
+
+  const copyPath = async (): Promise<void> => {
+    try {
+      await navigator.clipboard.writeText(path)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1200)
+    } catch {
+      /* presse-papiers indisponible */
+    }
   }
 
   return (
@@ -75,42 +134,80 @@ export default function Toolbar(): JSX.Element {
         >
           {showHidden ? <Eye size={16} /> : <EyeOff size={16} />}
         </NavBtn>
+        <NavBtn
+          onClick={toggleGitIgnored}
+          title={
+            hideGitIgnored
+              ? 'Afficher les fichiers ignorés par .gitignore'
+              : 'Masquer les fichiers ignorés par .gitignore'
+          }
+          active={!hideGitIgnored}
+        >
+          {hideGitIgnored ? <FilterX size={16} /> : <Filter size={16} />}
+        </NavBtn>
       </div>
 
-      {/* Fil d'Ariane */}
-      <div
-        className="flex h-8 min-w-0 flex-1 items-center rounded-app border border-border bg-bg-tertiary px-2.5"
-        onDoubleClick={() => setEditing(true)}
-        title="Double-cliquez pour éditer le chemin"
-      >
-        {editing ? (
-          <input
-            ref={inputRef}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={submit}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') submit()
-              if (e.key === 'Escape') setEditing(false)
-            }}
-            className="w-full bg-transparent text-[13px] text-fg outline-none"
-            spellCheck={false}
-          />
-        ) : (
-          <div className="flex min-w-0 items-center overflow-hidden text-[13px]">
-            {segments.map((seg, i) => (
-              <span key={seg.path} className="flex shrink-0 items-center">
-                {i > 0 && <ChevronRight size={14} className="mx-0.5 text-fg-muted" />}
-                <button
-                  className={`rounded px-1 py-0.5 hover:bg-bg-hover ${
-                    i === segments.length - 1 ? 'text-fg' : 'text-fg-secondary'
-                  }`}
-                  onClick={() => navigate(seg.path)}
-                >
-                  {seg.label}
-                </button>
-              </span>
-            ))}
+      {/* Barre d'adresse */}
+      <div className="relative min-w-0 flex-1">
+        <div
+          className={`flex h-8 items-center rounded-app border bg-bg-tertiary px-2.5 ${
+            pathError ? 'border-danger-fg' : 'border-border'
+          }`}
+          onClick={() => {
+            if (!editing) startEdit()
+          }}
+          title={editing ? undefined : 'Cliquez pour éditer le chemin'}
+        >
+          {editing ? (
+            <input
+              ref={inputRef}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onBlur={cancelEdit}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void submit()
+                if (e.key === 'Escape') cancelEdit()
+              }}
+              className="w-full bg-transparent text-[13px] text-fg outline-none"
+              spellCheck={false}
+              autoComplete="off"
+            />
+          ) : (
+            <>
+              <div className="flex min-w-0 flex-1 items-center overflow-hidden text-[13px]">
+                {segments.map((seg, i) => (
+                  <span key={seg.path} className="flex shrink-0 items-center">
+                    {i > 0 && <ChevronRight size={14} className="mx-0.5 text-fg-muted" />}
+                    <button
+                      className={`rounded px-1 py-0.5 hover:bg-bg-hover ${
+                        i === segments.length - 1 ? 'text-fg' : 'text-fg-secondary'
+                      }`}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        navigate(seg.path)
+                      }}
+                    >
+                      {seg.label}
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  void copyPath()
+                }}
+                title="Copier le chemin"
+                className="ml-1 grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg"
+              >
+                {copied ? <Check size={14} className="text-accent" /> : <Copy size={14} />}
+              </button>
+            </>
+          )}
+        </div>
+        {pathError && (
+          <div className="absolute left-0 top-full z-30 mt-1 max-w-full truncate rounded-app border border-danger-fg bg-danger-bg px-2.5 py-1 text-[12px] text-danger-fg shadow-lg">
+            {pathError}
           </div>
         )}
       </div>

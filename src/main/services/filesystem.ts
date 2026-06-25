@@ -1,7 +1,7 @@
 import { promises as fs, constants as fsConstants } from 'node:fs'
 import * as path from 'node:path'
 import * as os from 'node:os'
-import type { DirEntry, ListResult, DriveInfo, NavLocations } from '@shared/types'
+import type { DirEntry, ListResult, DriveInfo, PathKind } from '@shared/types'
 
 /**
  * Service système de fichiers — logique pure, sans Electron.
@@ -64,6 +64,34 @@ async function toEntry(dirPath: string, name: string, symlink: boolean): Promise
   }
 }
 
+/**
+ * Construit une DirEntry pour un chemin unique (stat). Renvoie null si le
+ * chemin est invalide ou inaccessible — utilisé par l'accès rapide pour filtrer
+ * les entrées disparues.
+ */
+export async function entryFor(input: string): Promise<DirEntry | null> {
+  let full: string
+  try {
+    full = assertAbsolute(input)
+  } catch {
+    return null
+  }
+  try {
+    const st = await fs.stat(full)
+    return {
+      name: path.basename(full) || full,
+      path: full,
+      kind: st.isDirectory() ? 'directory' : 'file',
+      size: st.isDirectory() ? 0 : st.size,
+      modifiedMs: st.mtimeMs,
+      hidden: false,
+      symlink: false
+    }
+  } catch {
+    return null
+  }
+}
+
 /** Liste le contenu d'un dossier. Lecture paresseuse, jamais bloquante. */
 export async function list(input: string): Promise<ListResult> {
   const dir = assertAbsolute(input)
@@ -76,6 +104,25 @@ export async function list(input: string): Promise<ListResult> {
     path: dir,
     parent: parent === dir ? null : parent,
     entries
+  }
+}
+
+/**
+ * Sonde un chemin saisi à la main : renvoie « directory », « file » ou
+ * « missing ». Sert à valider la barre d'adresse avant de naviguer.
+ */
+export async function probe(input: string): Promise<PathKind> {
+  let target: string
+  try {
+    target = assertAbsolute(input)
+  } catch {
+    return 'missing'
+  }
+  try {
+    const st = await fs.stat(target)
+    return st.isDirectory() ? 'directory' : 'file'
+  } catch {
+    return 'missing'
   }
 }
 
@@ -99,8 +146,12 @@ export async function getDrives(): Promise<DriveInfo[]> {
   return checks.filter((d): d is DriveInfo => d !== null)
 }
 
-/** Emplacements de navigation initiaux pour la sidebar. */
-export async function getLocations(): Promise<NavLocations> {
+/**
+ * Socle des emplacements de navigation (home + lecteurs). Les dossiers connus
+ * (Bureau, Téléchargements…) sont ajoutés par le handler IPC, qui seul a accès
+ * à `app.getPath` d'Electron — ce service reste pur.
+ */
+export async function getLocations(): Promise<{ home: string; drives: DriveInfo[] }> {
   return {
     home: os.homedir(),
     drives: await getDrives()

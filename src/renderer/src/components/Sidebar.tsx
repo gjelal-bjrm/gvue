@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Home, Download, HardDrive, Star } from 'lucide-react'
+import { Home, Monitor, Download, FileText, HardDrive, Star } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useNavStore } from '../state/useNavStore'
-import { childPath } from '../lib/format'
+import { useSearchStore } from '../state/useSearchStore'
 
 /**
  * Sidebar : accès rapide, lecteurs, favoris et projets.
@@ -10,7 +10,8 @@ import { childPath } from '../lib/format'
  * (icônes branche) arrive en phase 6 — section affichée en aperçu d'ici là.
  */
 export default function Sidebar(): JSX.Element {
-  const { locations, path, navigate } = useNavStore()
+  const { locations, path, navigate, quickAccess, showQuickAccess } = useNavStore()
+  const closeSearch = useSearchStore((s) => s.close)
   const [favorites, setFavorites] = useState<string[]>([])
 
   useEffect(() => {
@@ -18,26 +19,47 @@ export default function Sidebar(): JSX.Element {
   }, [])
 
   const home = locations?.home ?? ''
-  const isActive = (p: string): boolean => path === p
+  // Un dossier n'est « actif » que lorsqu'on l'affiche (pas sur la page Accès rapide).
+  const isActive = (p: string): boolean => !quickAccess && path === p
+
+  const openQuickAccess = (): void => {
+    closeSearch()
+    showQuickAccess()
+  }
 
   return (
     <nav className="flex h-full w-full flex-col gap-5 overflow-y-auto bg-bg-secondary p-2.5 text-[13px]">
-      <Section title="Accès rapide">
+      <div className="flex flex-col gap-0.5">
+        <Item icon={Star} label="Accès rapide" active={quickAccess} onClick={openQuickAccess} />
+      </div>
+
+      <Section title="Ce PC">
         {home && (
-          <>
-            <Item
-              icon={Home}
-              label="Accueil"
-              active={isActive(home)}
-              onClick={() => navigate(home)}
-            />
-            <Item
-              icon={Download}
-              label="Téléchargements"
-              active={isActive(childPath(home, 'Downloads'))}
-              onClick={() => navigate(childPath(home, 'Downloads'))}
-            />
-          </>
+          <Item icon={Home} label="Accueil" active={isActive(home)} onClick={() => navigate(home)} />
+        )}
+        {locations?.desktop && (
+          <Item
+            icon={Monitor}
+            label="Bureau"
+            active={isActive(locations.desktop)}
+            onClick={() => navigate(locations.desktop)}
+          />
+        )}
+        {locations?.downloads && (
+          <Item
+            icon={Download}
+            label="Téléchargements"
+            active={isActive(locations.downloads)}
+            onClick={() => navigate(locations.downloads)}
+          />
+        )}
+        {locations?.documents && (
+          <Item
+            icon={FileText}
+            label="Documents"
+            active={isActive(locations.documents)}
+            onClick={() => navigate(locations.documents)}
+          />
         )}
       </Section>
 

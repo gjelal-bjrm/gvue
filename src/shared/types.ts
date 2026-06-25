@@ -19,6 +19,9 @@ export interface DirEntry {
   symlink: boolean
 }
 
+/** Résultat d'une sonde de chemin : dossier, fichier, ou inexistant. */
+export type PathKind = 'directory' | 'file' | 'missing'
+
 export interface ListResult {
   /** Chemin demandé, normalisé et absolu. */
   path: string
@@ -35,8 +38,14 @@ export interface DriveInfo {
 
 export interface NavLocations {
   home: string
+  desktop: string
+  downloads: string
+  documents: string
   drives: DriveInfo[]
 }
+
+/** Commande de navigation émise par l'OS (boutons souris précédent/suivant). */
+export type NavCommand = 'back' | 'forward'
 
 // --- Configuration persistée (cf. section 8 de la spec) ---
 
@@ -69,7 +78,17 @@ export interface AppConfig {
   favorites: string[]
   shortcuts: { label: string; path: string; icon?: string }[]
   recents: string[]
+  /** Fichiers récemment ouverts (les plus récents en tête). */
+  recentFiles: string[]
+  /** Nombre de visites par dossier, pour les « dossiers fréquents ». */
+  folderFreq: Record<string, number>
   hideGitIgnored: boolean
+}
+
+/** Données de la page « Accès rapide » (dossiers fréquents + fichiers récents). */
+export interface QuickAccessData {
+  frequent: DirEntry[]
+  recentFiles: DirEntry[]
 }
 
 // --- Terminal (phase 2) ---
@@ -97,6 +116,44 @@ export interface TerminalDataEvent {
 export interface TerminalExitEvent {
   ptyId: string
   exitCode: number
+}
+
+// --- Git (phase 4) ---
+
+export type GitCategory =
+  | 'modified'
+  | 'added'
+  | 'deleted'
+  | 'untracked'
+  | 'renamed'
+  | 'conflict'
+  | 'ignored'
+
+export interface GitFileChange {
+  /** Chemin absolu du fichier (séparateurs « / »). */
+  path: string
+  category: GitCategory
+  /** Le changement est présent dans l'index (staged). */
+  staged: boolean
+}
+
+/** Résultat d'une action Git (commit/pull/push) : succès + sortie de git. */
+export interface GitActionResult {
+  ok: boolean
+  /** Sortie combinée stdout+stderr de git (message d'erreur si échec). */
+  output: string
+}
+
+export interface GitStatus {
+  /** Le dossier interrogé est-il dans un dépôt Git ? */
+  isRepo: boolean
+  /** Racine du dépôt (séparateurs « / »), ou « » hors dépôt. */
+  root: string
+  branch: string
+  /** Commits d'avance / de retard sur la branche amont. */
+  ahead: number
+  behind: number
+  files: GitFileChange[]
 }
 
 export type WindowAction = 'minimize' | 'maximize-toggle' | 'close'

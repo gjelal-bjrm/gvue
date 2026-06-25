@@ -18,9 +18,15 @@ interface NavState {
   sortKey: SortKey
   sortDir: SortDir
   showHidden: boolean
+  /** Masquer les fichiers ignorés par .gitignore (persisté). */
+  hideGitIgnored: boolean
+  /** La page « Accès rapide » remplace-t-elle la liste de fichiers ? */
+  quickAccess: boolean
 
   init: () => Promise<void>
   navigate: (path: string, record?: boolean) => Promise<void>
+  showQuickAccess: () => void
+  toggleGitIgnored: () => void
   goBack: () => void
   goForward: () => void
   goParent: () => void
@@ -55,11 +61,17 @@ export const useNavStore = create<NavState>((set, get) => ({
   sortKey: 'name',
   sortDir: 'asc',
   showHidden: false,
+  hideGitIgnored: true,
+  quickAccess: true,
 
   init: async () => {
     const locations = await window.api.fs.locations()
-    set({ locations })
+    const hideGitIgnored = await window.api.config.get('hideGitIgnored').catch(() => true)
+    set({ locations, hideGitIgnored })
+    // Charge le dossier home en arrière-plan (chemin courant pour le terminal/
+    // la recherche), mais on démarre sur la page Accès rapide.
     await get().navigate(locations.home, false)
+    set({ quickAccess: true })
   },
 
   navigate: async (target, record = true) => {
@@ -72,6 +84,8 @@ export const useNavStore = create<NavState>((set, get) => ({
         parent: result.parent,
         entries: sortEntries(result.entries, s.sortKey, s.sortDir),
         loading: false,
+        // Toute navigation quitte la page Accès rapide.
+        quickAccess: false,
         back: record && current ? [...s.back, current] : s.back,
         forward: record ? [] : s.forward
       }))
@@ -79,6 +93,8 @@ export const useNavStore = create<NavState>((set, get) => ({
       set({ loading: false, error: e instanceof Error ? e.message : String(e) })
     }
   },
+
+  showQuickAccess: () => set({ quickAccess: true }),
 
   goBack: () => {
     const { back, path } = get()
@@ -123,5 +139,11 @@ export const useNavStore = create<NavState>((set, get) => ({
     })
   },
 
-  toggleHidden: () => set((s) => ({ showHidden: !s.showHidden }))
+  toggleHidden: () => set((s) => ({ showHidden: !s.showHidden })),
+
+  toggleGitIgnored: () => {
+    const next = !get().hideGitIgnored
+    set({ hideGitIgnored: next })
+    void window.api.config.set('hideGitIgnored', next)
+  }
 }))

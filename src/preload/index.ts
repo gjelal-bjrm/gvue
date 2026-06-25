@@ -3,6 +3,10 @@ import { IPC } from '@shared/ipc'
 import type {
   ListResult,
   NavLocations,
+  PathKind,
+  QuickAccessData,
+  GitStatus,
+  GitActionResult,
   AppConfig,
   WindowAction,
   WindowStatus,
@@ -12,7 +16,8 @@ import type {
   TerminalExitEvent,
   SearchOptions,
   SearchResultEvent,
-  SearchDoneEvent
+  SearchDoneEvent,
+  NavCommand
 } from '@shared/types'
 
 /**
@@ -54,10 +59,33 @@ const api = {
     locations: (): Promise<NavLocations> => ipcRenderer.invoke(IPC.fsLocations),
     reveal: (path: string): Promise<void> => ipcRenderer.invoke(IPC.fsReveal, path),
     open: (path: string): Promise<string> => ipcRenderer.invoke(IPC.fsOpen, path),
+    probe: (path: string): Promise<PathKind> => ipcRenderer.invoke(IPC.fsProbe, path),
+    trash: (path: string): Promise<void> => ipcRenderer.invoke(IPC.fsTrash, path),
+    quickAccess: (): Promise<QuickAccessData> => ipcRenderer.invoke(IPC.fsQuickAccess),
     onChange: (cb: (path: string) => void): (() => void) => {
       const listener = (_e: unknown, path: string): void => cb(path)
       ipcRenderer.on(IPC.fsOnChange, listener)
       return () => ipcRenderer.removeListener(IPC.fsOnChange, listener)
+    }
+  },
+  git: {
+    status: (dir: string): Promise<GitStatus> => ipcRenderer.invoke(IPC.gitStatus, dir),
+    commit: (dir: string, message: string): Promise<GitActionResult> =>
+      ipcRenderer.invoke(IPC.gitCommit, dir, message),
+    pull: (dir: string): Promise<GitActionResult> => ipcRenderer.invoke(IPC.gitPull, dir),
+    push: (dir: string): Promise<GitActionResult> => ipcRenderer.invoke(IPC.gitPush, dir),
+    stage: (dir: string, file: string): Promise<GitActionResult> =>
+      ipcRenderer.invoke(IPC.gitStage, dir, file),
+    unstage: (dir: string, file: string): Promise<GitActionResult> =>
+      ipcRenderer.invoke(IPC.gitUnstage, dir, file),
+    discard: (dir: string, file: string): Promise<GitActionResult> =>
+      ipcRenderer.invoke(IPC.gitDiscard, dir, file)
+  },
+  nav: {
+    onCommand: (cb: (cmd: NavCommand) => void): (() => void) => {
+      const listener = (_e: unknown, cmd: NavCommand): void => cb(cmd)
+      ipcRenderer.on(IPC.navOnCommand, listener)
+      return () => ipcRenderer.removeListener(IPC.navOnCommand, listener)
     }
   },
   search: {
