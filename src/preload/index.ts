@@ -67,6 +67,7 @@ const api = {
     probe: (path: string): Promise<PathKind> => ipcRenderer.invoke(IPC.fsProbe, path),
     trash: (path: string): Promise<void> => ipcRenderer.invoke(IPC.fsTrash, path),
     preview: (path: string): Promise<PreviewData> => ipcRenderer.invoke(IPC.fsPreview, path),
+    icon: (path: string): Promise<string> => ipcRenderer.invoke(IPC.fsIcon, path),
     copy: (paths: string[], destDir: string): Promise<FileOpResult> =>
       ipcRenderer.invoke(IPC.fsCopy, paths, destDir),
     move: (paths: string[], destDir: string): Promise<FileOpResult> =>

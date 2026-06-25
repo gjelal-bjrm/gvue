@@ -26,6 +26,7 @@ import type { DirEntry, GitCategory, GitFileChange } from '@shared/types'
 import { useUiStore } from '../state/useUiStore'
 import { formatSize, formatRelativeDate, formatDate, pathKey } from '../lib/format'
 import { fileIconSpec } from '../lib/fileIcon'
+import { useOsIcon } from '../lib/osIcons'
 import { clipFiles, pasteInto } from '../lib/fileActions'
 import GitWidget from './GitWidget'
 import ContextMenu, { type MenuEntry } from './ContextMenu'
@@ -479,6 +480,7 @@ function Row(props: {
 }): JSX.Element {
   const { entry, git } = props
   const { Icon, color } = fileIconSpec(entry)
+  const osIcon = useOsIcon(entry)
   const badge = git ? gitBadge(git.category) : null
   // Teinte le nom selon le statut Git (fichier suivi modifié, non suivi, conflit…).
   const nameColor = props.selected
@@ -510,8 +512,12 @@ function Row(props: {
       title={git ? `${entry.path} · ${git.category}${git.staged ? ' (indexé)' : ''}` : entry.path}
     >
       <div className="flex min-w-0 flex-1 items-center gap-2.5 px-2">
-        <span className="relative shrink-0">
-          <Icon size={16} style={{ color }} />
+        <span className="relative grid h-4 w-4 shrink-0 place-items-center">
+          {osIcon ? (
+            <img src={osIcon} alt="" className="max-h-4 max-w-4 object-contain" draggable={false} />
+          ) : (
+            <Icon size={16} style={{ color }} />
+          )}
           {props.gitDir && !badge && (
             <span
               className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full"
