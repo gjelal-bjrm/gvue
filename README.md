@@ -188,7 +188,7 @@ Pour l'activer (si la recompilation a échoué) : installer les *Build Tools* pu
 | **3. Recherche** | ✅ **Fait** | `@vscode/ripgrep`, recherche contenu streamée, résultats cliquables groupés par fichier |
 | **4. Git** | ✅ **Fait** | Badges par fichier, branche + avance/retard, commit/pull/push, menu contextuel, masquage `.gitignore`, détection des dépôts |
 | **5. Personnalisation** | ✅ **Fait** | Apparence, presets nommés, opacité réelle ; reste : dispositions par espace de travail (avec phase 6) |
-| **6. Pro** | ⏳ À faire | Projets, palette de commandes, barre IA, aperçu, espaces de travail, carte disque, double panneau, SSH/SFTP |
+| **6. Pro** | 🟡 **Partiel** | Palette de commandes faite ; reste : barre IA, aperçu, espaces de travail, carte disque, double panneau, SSH/SFTP |
 
 ### ✅ Ce qui est fait
 
@@ -223,6 +223,8 @@ Pour l'activer (si la recompilation a échoué) : installer les *Build Tools* pu
   - Accent, thème, densité, coins, police, taille ; appliqués via variables CSS et persistés.
   - Presets d'apparence nommés (enregistrer / appliquer / supprimer).
   - Opacité réelle de la fenêtre (`win.setOpacity`, niveau OS) réglable au curseur.
+- **Phase 6 (début) — Pro**
+  - Palette de commandes (Ctrl+Maj+P / Ctrl+P) : recherche floue d'actions (navigation, vue, panneaux, Git, thème) et de projets, navigation clavier.
 
 ### ⏳ Ce qu'il reste à faire
 

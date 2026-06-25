@@ -9,6 +9,7 @@ import SearchPanel from './components/SearchPanel'
 import QuickAccessPanel from './components/QuickAccessPanel'
 import AppearancePanel from './components/AppearancePanel'
 import TerminalPanel from './components/TerminalPanel'
+import CommandPalette from './components/CommandPalette'
 import { useNavStore } from './state/useNavStore'
 import { useAppearanceStore } from './state/useAppearanceStore'
 import { useUiStore } from './state/useUiStore'
@@ -71,6 +72,18 @@ export default function App(): JSX.Element {
     }
   }, [])
 
+  // Palette de commandes : Ctrl+P / Ctrl+Maj+P (preventDefault évite l'impression).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P')) {
+        e.preventDefault()
+        useUiStore.getState().togglePalette()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
   // Surveillance disque : rafraîchit la vue si le dossier affiché change.
   useEffect(() => {
     return window.api.fs.onChange((changedDir) => {
@@ -94,6 +107,7 @@ export default function App(): JSX.Element {
       <TitleBar />
       <Toolbar />
       <CommandBar />
+      <CommandPalette />
 
       <div className="min-h-0 flex-1">
         <PanelGroup key={vKey} direction="vertical">

@@ -12,11 +12,15 @@ interface UiState {
   terminalSize: number
   /** Compteur incrémenté pour redéclencher l'agrandissement quand déjà ouvert. */
   terminalGrow: number
+  /** Palette de commandes (Ctrl+Maj+P) ouverte ? */
+  paletteOpen: boolean
   toggleTerminal: () => void
   setTerminalOpen: (v: boolean) => void
   /** Ouvre le terminal et l'affiche en grand (exécution d'une commande). */
   openTerminalLarge: () => void
   toggleAppearance: () => void
+  togglePalette: () => void
+  setPaletteOpen: (v: boolean) => void
 }
 
 export const useUiStore = create<UiState>((set) => ({
@@ -24,6 +28,7 @@ export const useUiStore = create<UiState>((set) => ({
   appearanceOpen: false,
   terminalSize: TERMINAL_DEFAULT,
   terminalGrow: 0,
+  paletteOpen: false,
   toggleTerminal: () => set((s) => ({ terminalOpen: !s.terminalOpen })),
   setTerminalOpen: (v) => set({ terminalOpen: v }),
   openTerminalLarge: () =>
@@ -32,5 +37,7 @@ export const useUiStore = create<UiState>((set) => ({
       terminalSize: TERMINAL_LARGE,
       terminalGrow: s.terminalGrow + 1
     })),
-  toggleAppearance: () => set((s) => ({ appearanceOpen: !s.appearanceOpen }))
+  toggleAppearance: () => set((s) => ({ appearanceOpen: !s.appearanceOpen })),
+  togglePalette: () => set((s) => ({ paletteOpen: !s.paletteOpen })),
+  setPaletteOpen: (v) => set({ paletteOpen: v })
 }))
