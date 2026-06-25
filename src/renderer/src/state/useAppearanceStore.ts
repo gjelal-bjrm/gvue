@@ -4,7 +4,7 @@ import { applyAppearance } from '../theme/applyTheme'
 import { applyThemeAll } from '../lib/terminalRegistry'
 
 const FALLBACK: Appearance = {
-  accent: '#7F77DD',
+  accent: '#D85A30',
   theme: 'dark',
   density: 'comfortable',
   corners: 'rounded',

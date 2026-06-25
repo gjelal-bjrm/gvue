@@ -10,7 +10,7 @@ import type { AppConfig } from '@shared/types'
 
 export const DEFAULT_CONFIG: AppConfig = {
   appearance: {
-    accent: '#7F77DD',
+    accent: '#D85A30',
     theme: 'auto',
     density: 'comfortable',
     corners: 'rounded',
