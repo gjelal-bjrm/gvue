@@ -3,7 +3,11 @@ import { ChevronRight, ChevronDown, Folder, FolderOpen, Crosshair } from 'lucide
 import { useNavStore, activePane } from '../state/useNavStore'
 import { useSidebarStore } from '../state/useSidebarStore'
 import { pathKey } from '../lib/format'
-import type { DirEntry } from '@shared/types'
+import type { DirEntry, DriveInfo } from '@shared/types'
+
+// Référence stable : évite qu'un sélecteur zustand renvoie un nouveau tableau à
+// chaque appel (sinon useSyncExternalStore boucle → écran noir).
+const NO_DRIVES: DriveInfo[] = []
 
 /** Chemins ancêtres (de la racine du lecteur au parent direct), pour le dépli auto. */
 function ancestors(p: string): string[] {
@@ -25,7 +29,7 @@ function ancestors(p: string): string[] {
  * ouvert » : déplie automatiquement le chemin du volet actif (activable).
  */
 export default function FolderTree(): JSX.Element {
-  const drives = useNavStore((s) => s.locations?.drives ?? [])
+  const drives = useNavStore((s) => s.locations?.drives) ?? NO_DRIVES
   const navigate = useNavStore((s) => s.navigate)
   const showHidden = useNavStore((s) => s.showHidden)
   const path = useNavStore((s) => activePane(s).path)
