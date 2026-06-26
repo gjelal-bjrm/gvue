@@ -1,8 +1,8 @@
-import { app, BrowserWindow, shell } from 'electron'
+import { BrowserWindow, shell } from 'electron'
 import { join } from 'node:path'
-import { existsSync } from 'node:fs'
 import { IPC } from '@shared/ipc'
 import { getConfig, setConfig } from './services/config-store'
+import { appIconPath } from './icon'
 import type { WindowState, WindowStatus } from '@shared/types'
 
 /**
@@ -16,7 +16,7 @@ export function createWindow(): BrowserWindow {
 
   // Icône de fenêtre (barre des tâches en dev) ; en production, l'icône de
   // l'exécutable est posée par l'empaqueteur.
-  const iconPath = join(app.getAppPath(), 'build', 'icon.png')
+  const iconPath = appIconPath()
 
   // Décale les fenêtres supplémentaires pour qu'elles ne se superposent pas.
   const existing = BrowserWindow.getAllWindows().length
@@ -31,7 +31,7 @@ export function createWindow(): BrowserWindow {
     minHeight: 520,
     show: false,
     frame: false,
-    icon: existsSync(iconPath) ? iconPath : undefined,
+    icon: iconPath ?? undefined,
     titleBarStyle: 'hidden',
     backgroundColor: '#1a1a1f',
     webPreferences: {

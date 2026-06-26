@@ -20,6 +20,12 @@ files:
   - '!**/{.env,.env.*,.npmrc}'
   - '!build/**'
 
+# Icône embarquée hors asar (utilisée par le plateau système au runtime ;
+# `build/` est exclu des fichiers de l'app).
+extraResources:
+  - from: build/icon.png
+    to: icon.png
+
 # Modules natifs : doivent vivre hors de l'asar pour être exécutés/chargés.
 asarUnpack:
   - '**/node_modules/node-pty/**'

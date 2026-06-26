@@ -1,5 +1,6 @@
 import { app, BrowserWindow } from 'electron'
 import { createWindow } from './window'
+import { createTray, trayActive } from './tray'
 import { registerFsHandlers } from './ipc/fs'
 import { registerConfigHandlers } from './ipc/config'
 import { registerWindowHandlers } from './ipc/window'
@@ -39,6 +40,7 @@ if (!gotLock) {
 
   app.whenReady().then(() => {
     registerIpc()
+    createTray()
     createWindow()
 
     app.on('activate', () => {
@@ -56,5 +58,9 @@ app.on('before-quit', () => {
 })
 
 app.on('window-all-closed', () => {
+  // Avec le plateau système actif, GVue reste en arrière-plan quand toutes les
+  // fenêtres sont fermées (on quitte via « Quitter GVue » dans le plateau).
+  // Sans plateau (icône absente), on conserve l'ancien comportement.
+  if (trayActive()) return
   if (process.platform !== 'darwin') app.quit()
 })

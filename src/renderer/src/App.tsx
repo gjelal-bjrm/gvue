@@ -170,6 +170,38 @@ export default function App(): JSX.Element {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  // Actions du plateau système (tray) : ouvrir un dossier, lancer un lancement/
+  // profil, charger un espace de travail. Les stores sont (ré)initialisés si
+  // l'action arrive avant leur chargement (fenêtre fraîchement ouverte).
+  useEffect(() => {
+    const offOpen = window.api.tray.onOpenPath((path) => {
+      useSearchStore.getState().close()
+      void useNavStore.getState().navigate(path)
+    })
+    const offRun = window.api.tray.onRunTask(async (id) => {
+      let r = useRunnerStore.getState()
+      if (!r.tasks.length && !r.profiles.length) {
+        await r.init()
+        r = useRunnerStore.getState()
+      }
+      if (r.tasks.some((t) => t.id === id)) void r.runTask(id)
+      else if (r.profiles.some((p) => p.id === id)) void r.runProfile(id)
+    })
+    const offWs = window.api.tray.onLoadWorkspace(async (name) => {
+      let w = useWorkspaceStore.getState()
+      if (!w.workspaces[name]) {
+        await w.init()
+        w = useWorkspaceStore.getState()
+      }
+      void w.load(name)
+    })
+    return () => {
+      offOpen()
+      offRun()
+      offWs()
+    }
+  }, [])
+
   // Surveillance disque : rafraîchit chaque volet affichant le dossier changé.
   useEffect(() => {
     return window.api.fs.onChange((changedDir) => {

@@ -54,6 +54,12 @@ navigation, son historique et sa sélection. Le volet « actif » (cliqué) est 
 que pilotent la barre d'adresse, Git et la palette — idéal pour comparer ou
 déplacer entre dossiers. Bouton « diviser » et fermeture par volet.
 
+**Plusieurs fenêtres & arrière-plan** — ouvre **plusieurs fenêtres GVue**
+(barre d'outils, palette, **Ctrl+Maj+N**). GVue reste en **arrière-plan dans le
+plateau système** (icône en bas à droite) quand toutes les fenêtres sont fermées :
+**clic droit** sur l'icône → **Accès rapide, Projets, Lancements, Espaces de
+travail** ; clic gauche pour rouvrir ; « Quitter GVue » pour fermer réellement.
+
 **Manipulation de fichiers** — **multi-sélection** (Ctrl/Maj+clic, Ctrl+A),
 **renommer** en place (F2), **glisser-déposer natif** : entre volets, **entre
 instances de GVue** et **depuis/vers l'explorateur Windows** (drag de sortie via

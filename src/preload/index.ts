@@ -204,6 +204,23 @@ const api = {
       ipcRenderer.on(IPC.windowOnStatus, listener)
       return () => ipcRenderer.removeListener(IPC.windowOnStatus, listener)
     }
+  },
+  tray: {
+    onOpenPath: (cb: (path: string) => void): (() => void) => {
+      const listener = (_e: unknown, path: string): void => cb(path)
+      ipcRenderer.on(IPC.trayOpenPath, listener)
+      return () => ipcRenderer.removeListener(IPC.trayOpenPath, listener)
+    },
+    onRunTask: (cb: (id: string) => void): (() => void) => {
+      const listener = (_e: unknown, id: string): void => cb(id)
+      ipcRenderer.on(IPC.trayRunTask, listener)
+      return () => ipcRenderer.removeListener(IPC.trayRunTask, listener)
+    },
+    onLoadWorkspace: (cb: (name: string) => void): (() => void) => {
+      const listener = (_e: unknown, name: string): void => cb(name)
+      ipcRenderer.on(IPC.trayLoadWorkspace, listener)
+      return () => ipcRenderer.removeListener(IPC.trayLoadWorkspace, listener)
+    }
   }
 }
 
