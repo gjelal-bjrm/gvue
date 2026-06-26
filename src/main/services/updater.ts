@@ -15,11 +15,27 @@ import type { UpdateStatus } from '@shared/types'
  */
 
 let lastStatus: UpdateStatus = { state: 'idle' }
+// Mémorise si la vérification courante a été déclenchée manuellement, pour ne
+// pas afficher d'erreur lors des vérifications automatiques en arrière-plan.
+let manualCheck = false
 
 function broadcast(status: UpdateStatus): void {
   lastStatus = status
   for (const w of BrowserWindow.getAllWindows()) {
     if (!w.isDestroyed()) w.webContents.send(IPC.updateStatus, status)
+  }
+}
+
+// Traite une erreur de mise à jour sans inquiéter l'utilisateur :
+// - « pas de release publiée » = rien à installer → « à jour » (silencieux en auto) ;
+// - autres erreurs (réseau…) → visibles seulement si vérification manuelle.
+function reportError(e: unknown): void {
+  const msg = e instanceof Error ? e.message : String(e)
+  const noRelease = /no published versions|not found|404|cannot find|latest\.yml/i.test(msg)
+  if (noRelease) {
+    broadcast(manualCheck ? { state: 'none', version: app.getVersion() } : { state: 'idle' })
+  } else {
+    broadcast(manualCheck ? { state: 'error', message: msg } : { state: 'idle' })
   }
 }
 
@@ -48,7 +64,7 @@ function loadUpdater(): UpdaterLike | null {
     u.on('update-downloaded', (i: { version?: string }) =>
       broadcast({ state: 'ready', version: i?.version ?? '' })
     )
-    u.on('error', (e: Error) => broadcast({ state: 'error', message: e?.message ?? String(e) }))
+    u.on('error', (e: Error) => reportError(e))
     cached = { autoUpdater: u }
     return u
   } catch {
@@ -77,10 +93,9 @@ export function checkForUpdates(manual = false): void {
     if (manual) broadcast({ state: 'unsupported' })
     return
   }
+  manualCheck = manual
   if (manual) broadcast({ state: 'checking' })
-  u.checkForUpdates().catch((e: Error) =>
-    broadcast({ state: 'error', message: e?.message ?? String(e) })
-  )
+  u.checkForUpdates().catch((e: unknown) => reportError(e))
 }
 
 /** Vérifie au démarrage puis périodiquement (toutes les 6 h). */
