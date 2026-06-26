@@ -175,6 +175,10 @@ export interface AppConfig {
   runnerProfiles: RunnerProfile[]
   /** Commande lancée par le bouton ▶ de chaque projet (racine → commande). */
   projectLaunch: Record<string, string>
+  /** Ordre des sections de la sidebar (clés : thispc, drives, favorites, projects). */
+  sidebarOrder: string[]
+  /** Sections de la sidebar repliées (clé → replié). */
+  sidebarCollapsed: Record<string, boolean>
   hideGitIgnored: boolean
 }
 

@@ -37,8 +37,9 @@ milliers d'entrées, tri par colonne (nom, taille, date), dates relatives
 
 **Terminal intégré** — pseudo-terminal réel (`node-pty` + `xterm`), détection
 dynamique des shells (PowerShell, PowerShell 7, cmd, Git Bash, WSL), **plusieurs
-onglets**, panneau réductible qui **préserve l'historique**, barre de commande qui
-exécute une commande dans le terminal actif.
+onglets** ou affichage **côte à côte** (colonnes redimensionnables), panneau
+réductible qui **préserve l'historique**, barre de commande qui exécute une
+commande dans le terminal actif.
 
 **Lanceur** — définis des **lancements** (commande + dossier, avec un **projet** et/ou
 une **catégorie**, ou un script `package.json` auto-détecté) et des **profils** (groupes
@@ -86,6 +87,8 @@ compact), coins (arrondis / carrés), police et taille. Tout est peint via des
 la fenêtre sont également mémorisées.
 
 **Sidebar** — accès rapide (accueil, téléchargements), lecteurs détectés, favoris.
+Les sections (Ce PC, Lecteurs, Favoris, Projets) sont **repliables** et **réordonnables**
+par glisser-déposer (ordre et repli mémorisés).
 
 ---
 

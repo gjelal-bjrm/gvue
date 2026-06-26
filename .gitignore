@@ -1,5 +1,7 @@
 node_modules
 dist
+dist.zip
+*.zip
 out
 .DS_Store
 *.log

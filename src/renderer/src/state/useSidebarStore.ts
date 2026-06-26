@@ -1,0 +1,61 @@
+import { create } from 'zustand'
+
+/** Clés des sections réordonnables/repliables de la sidebar. */
+export const SIDEBAR_SECTIONS = ['thispc', 'drives', 'favorites', 'projects'] as const
+export type SidebarSection = (typeof SIDEBAR_SECTIONS)[number]
+
+/**
+ * Ordre et état replié des sections de la sidebar, persistés dans la config.
+ * Permet de replier « Ce PC », « Lecteurs »… et d'en changer l'ordre.
+ */
+interface SidebarState {
+  order: string[]
+  collapsed: Record<string, boolean>
+  init: () => Promise<void>
+  toggleCollapsed: (key: string) => void
+  /** Déplace la section `from` à la position de la section `to`. */
+  reorder: (from: string, to: string) => void
+}
+
+// Complète/filtre un ordre stocké pour qu'il contienne toutes les clés connues.
+function normalizeOrder(stored: string[] | undefined): string[] {
+  const known = [...SIDEBAR_SECTIONS] as string[]
+  const kept = (stored ?? []).filter((k) => known.includes(k))
+  for (const k of known) if (!kept.includes(k)) kept.push(k)
+  return kept
+}
+
+export const useSidebarStore = create<SidebarState>((set, get) => ({
+  order: [...SIDEBAR_SECTIONS],
+  collapsed: {},
+
+  init: async () => {
+    try {
+      const [order, collapsed] = await Promise.all([
+        window.api.config.get('sidebarOrder'),
+        window.api.config.get('sidebarCollapsed')
+      ])
+      set({ order: normalizeOrder(order), collapsed: collapsed ?? {} })
+    } catch {
+      set({ order: [...SIDEBAR_SECTIONS], collapsed: {} })
+    }
+  },
+
+  toggleCollapsed: (key) => {
+    const collapsed = { ...get().collapsed, [key]: !get().collapsed[key] }
+    set({ collapsed })
+    void window.api.config.set('sidebarCollapsed', collapsed)
+  },
+
+  reorder: (from, to) => {
+    if (from === to) return
+    const order = [...get().order]
+    const fi = order.indexOf(from)
+    const ti = order.indexOf(to)
+    if (fi < 0 || ti < 0) return
+    order.splice(fi, 1)
+    order.splice(ti, 0, from)
+    set({ order })
+    void window.api.config.set('sidebarOrder', order)
+  }
+}))

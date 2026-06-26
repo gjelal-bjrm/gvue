@@ -16,13 +16,15 @@ import {
   ChevronDown,
   Tag,
   FileCode,
-  FolderOpen
+  FolderOpen,
+  GripVertical
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useNavStore, activePane } from '../state/useNavStore'
 import { useSearchStore } from '../state/useSearchStore'
 import { useFavoritesStore } from '../state/useFavoritesStore'
 import { useRunnerStore, projKey } from '../state/useRunnerStore'
+import { useSidebarStore } from '../state/useSidebarStore'
 import type { GitProject, RunnerTask } from '@shared/types'
 import { pathKey, baseName } from '../lib/format'
 import { commandForFile, joinWin } from '../lib/runfile'
@@ -46,6 +48,12 @@ export default function Sidebar(): JSX.Element {
   const favorites = useFavoritesStore((s) => s.favorites)
   const removeFavorite = useFavoritesStore((s) => s.remove)
 
+  const order = useSidebarStore((s) => s.order)
+  const collapsed = useSidebarStore((s) => s.collapsed)
+  const toggleCollapsed = useSidebarStore((s) => s.toggleCollapsed)
+  const reorder = useSidebarStore((s) => s.reorder)
+  const initSidebar = useSidebarStore((s) => s.init)
+
   const tasks = useRunnerStore((s) => s.tasks)
   const running = useRunnerStore((s) => s.running)
   const projectLaunch = useRunnerStore((s) => s.projectLaunch)
@@ -58,6 +66,11 @@ export default function Sidebar(): JSX.Element {
   const [launchOpen, setLaunchOpen] = useState(false)
   const [groupAxis, setGroupAxis] = useState<'project' | 'category'>('project')
   const [config, setConfig] = useState<{ root: string; name: string } | null>(null)
+
+  // Charge l'ordre et le repli des sections (persistés).
+  useEffect(() => {
+    void initSidebar()
+  }, [initSidebar])
 
   // Recharge la liste des dépôts à chaque navigation (un dépôt fraîchement
   // visité y apparaît). La mémorisation se fait côté main au git:status.
@@ -110,6 +123,102 @@ export default function Sidebar(): JSX.Element {
     }
     return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]))
   }, [tasks, groupAxis])
+
+  // Contenu de chaque section réordonnable (clé → titre + corps).
+  const sections: Record<string, { title: string; body: React.ReactNode }> = {
+    thispc: {
+      title: 'Ce PC',
+      body: (
+        <>
+          {home && (
+            <Item icon={Home} label="Accueil" active={isActive(home)} onClick={() => navigate(home)} />
+          )}
+          {locations?.desktop && (
+            <Item
+              icon={Monitor}
+              label="Bureau"
+              active={isActive(locations.desktop)}
+              onClick={() => navigate(locations.desktop)}
+            />
+          )}
+          {locations?.downloads && (
+            <Item
+              icon={Download}
+              label="Téléchargements"
+              active={isActive(locations.downloads)}
+              onClick={() => navigate(locations.downloads)}
+            />
+          )}
+          {locations?.documents && (
+            <Item
+              icon={FileText}
+              label="Documents"
+              active={isActive(locations.documents)}
+              onClick={() => navigate(locations.documents)}
+            />
+          )}
+        </>
+      )
+    },
+    drives: {
+      title: 'Lecteurs',
+      body: (
+        <>
+          {locations?.drives.map((d) => (
+            <Item
+              key={d.path}
+              icon={HardDrive}
+              label={d.label}
+              active={isActive(d.path)}
+              onClick={() => navigate(d.path)}
+            />
+          ))}
+        </>
+      )
+    },
+    favorites: {
+      title: 'Favoris',
+      body:
+        favorites.length === 0 ? (
+          <p className="px-2 text-[12px] text-fg-muted">
+            Aucun favori — clic droit sur un dossier → « Ajouter aux favoris ».
+          </p>
+        ) : (
+          favorites.map((f) => (
+            <FavoriteItem
+              key={f}
+              path={f}
+              active={isActive(f)}
+              onOpen={() => navigate(f)}
+              onRemove={() => removeFavorite(f)}
+            />
+          ))
+        )
+    },
+    projects: {
+      title: 'Projets',
+      body:
+        projects.length === 0 ? (
+          <p className="px-2 text-[12px] text-fg-muted">Visitez un dépôt Git pour le voir ici.</p>
+        ) : (
+          projects.map((p) => (
+            <ProjectItem
+              key={p.root}
+              project={p}
+              active={!quickAccess && !launcher && pathKey(path) === pathKey(p.root)}
+              running={!!running[projKey(p.root)]}
+              configured={!!projectLaunch[p.root]}
+              onClick={() => navigate(p.root)}
+              onPlay={(e) => onProjectPlay(e, p)}
+              onConfig={(e) => {
+                e.stopPropagation()
+                setConfig({ root: p.root, name: p.name })
+              }}
+            />
+          ))
+        )
+    }
+  }
 
   return (
     <nav className="flex h-full w-full flex-col gap-5 overflow-y-auto bg-bg-secondary p-2.5 text-[13px]">
@@ -166,87 +275,22 @@ export default function Sidebar(): JSX.Element {
         <Item icon={Star} label="Accès rapide" active={quickAccess} onClick={openQuickAccess} />
       </div>
 
-      <Section title="Ce PC">
-        {home && (
-          <Item icon={Home} label="Accueil" active={isActive(home)} onClick={() => navigate(home)} />
-        )}
-        {locations?.desktop && (
-          <Item
-            icon={Monitor}
-            label="Bureau"
-            active={isActive(locations.desktop)}
-            onClick={() => navigate(locations.desktop)}
-          />
-        )}
-        {locations?.downloads && (
-          <Item
-            icon={Download}
-            label="Téléchargements"
-            active={isActive(locations.downloads)}
-            onClick={() => navigate(locations.downloads)}
-          />
-        )}
-        {locations?.documents && (
-          <Item
-            icon={FileText}
-            label="Documents"
-            active={isActive(locations.documents)}
-            onClick={() => navigate(locations.documents)}
-          />
-        )}
-      </Section>
-
-      <Section title="Lecteurs">
-        {locations?.drives.map((d) => (
-          <Item
-            key={d.path}
-            icon={HardDrive}
-            label={d.label}
-            active={isActive(d.path)}
-            onClick={() => navigate(d.path)}
-          />
-        ))}
-      </Section>
-
-      <Section title="Favoris">
-        {favorites.length === 0 ? (
-          <p className="px-2 text-[12px] text-fg-muted">
-            Aucun favori — clic droit sur un dossier → « Ajouter aux favoris ».
-          </p>
-        ) : (
-          favorites.map((f) => (
-            <FavoriteItem
-              key={f}
-              path={f}
-              active={isActive(f)}
-              onOpen={() => navigate(f)}
-              onRemove={() => removeFavorite(f)}
-            />
-          ))
-        )}
-      </Section>
-
-      <Section title="Projets">
-        {projects.length === 0 ? (
-          <p className="px-2 text-[12px] text-fg-muted">Visitez un dépôt Git pour le voir ici.</p>
-        ) : (
-          projects.map((p) => (
-            <ProjectItem
-              key={p.root}
-              project={p}
-              active={!quickAccess && !launcher && pathKey(path) === pathKey(p.root)}
-              running={!!running[projKey(p.root)]}
-              configured={!!projectLaunch[p.root]}
-              onClick={() => navigate(p.root)}
-              onPlay={(e) => onProjectPlay(e, p)}
-              onConfig={(e) => {
-                e.stopPropagation()
-                setConfig({ root: p.root, name: p.name })
-              }}
-            />
-          ))
-        )}
-      </Section>
+      {order.map((key) => {
+        const sec = sections[key]
+        if (!sec) return null
+        return (
+          <Section
+            key={key}
+            sectionKey={key}
+            title={sec.title}
+            collapsed={!!collapsed[key]}
+            onToggle={() => toggleCollapsed(key)}
+            onReorder={(from) => reorder(from, key)}
+          >
+            {sec.body}
+          </Section>
+        )
+      })}
 
       {config && (
         <LaunchConfigDialog
@@ -259,13 +303,51 @@ export default function Sidebar(): JSX.Element {
   )
 }
 
-function Section(props: { title: string; children: React.ReactNode }): JSX.Element {
+function Section(props: {
+  sectionKey: string
+  title: string
+  collapsed: boolean
+  onToggle: () => void
+  onReorder: (from: string) => void
+  children: React.ReactNode
+}): JSX.Element {
+  const [over, setOver] = useState(false)
   return (
-    <div className="flex flex-col gap-0.5">
-      <div className="px-2 pb-1.5 text-[11px] font-medium uppercase tracking-wider text-fg-muted">
-        {props.title}
+    <div
+      onDragOver={(e) => {
+        e.preventDefault()
+        setOver(true)
+      }}
+      onDragLeave={() => setOver(false)}
+      onDrop={(e) => {
+        e.preventDefault()
+        setOver(false)
+        const from = e.dataTransfer.getData('application/x-gvue-section')
+        if (from) props.onReorder(from)
+      }}
+      className={`flex flex-col gap-0.5 rounded-app ${over ? 'outline outline-1 outline-accent' : ''}`}
+    >
+      <div
+        draggable
+        onDragStart={(e) => {
+          e.dataTransfer.setData('application/x-gvue-section', props.sectionKey)
+          e.dataTransfer.effectAllowed = 'move'
+        }}
+        className="group flex items-center gap-1 pb-1.5 pl-1 pr-2"
+      >
+        <button
+          onClick={props.onToggle}
+          className="flex min-w-0 flex-1 items-center gap-1 text-[11px] font-medium uppercase tracking-wider text-fg-muted hover:text-fg-secondary"
+        >
+          {props.collapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
+          <span className="truncate">{props.title}</span>
+        </button>
+        <GripVertical
+          size={13}
+          className="shrink-0 cursor-grab text-fg-muted opacity-0 group-hover:opacity-100"
+        />
       </div>
-      {props.children}
+      {!props.collapsed && props.children}
     </div>
   )
 }

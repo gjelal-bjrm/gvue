@@ -22,9 +22,12 @@ interface UiState {
   terminalGrow: number
   /** Palette de commandes (Ctrl+Maj+P) ouverte ? */
   paletteOpen: boolean
+  /** Terminaux affichés côte à côte (sinon en onglets, un seul visible). */
+  terminalSplit: boolean
   /** Fichiers coupés/copiés en attente de collage. */
   clipboard: FileClipboard | null
   toggleTerminal: () => void
+  toggleTerminalSplit: () => void
   setTerminalOpen: (v: boolean) => void
   /** Ouvre le terminal et l'affiche en grand (exécution d'une commande). */
   openTerminalLarge: () => void
@@ -44,8 +47,10 @@ export const useUiStore = create<UiState>((set) => ({
   terminalSize: TERMINAL_DEFAULT,
   terminalGrow: 0,
   paletteOpen: false,
+  terminalSplit: false,
   clipboard: null,
   toggleTerminal: () => set((s) => ({ terminalOpen: !s.terminalOpen })),
+  toggleTerminalSplit: () => set((s) => ({ terminalSplit: !s.terminalSplit })),
   setTerminalOpen: (v) => set({ terminalOpen: v }),
   openTerminalLarge: () =>
     set((s) => ({

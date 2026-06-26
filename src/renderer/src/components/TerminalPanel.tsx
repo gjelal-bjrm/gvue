@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import {
   Minus,
   X,
@@ -8,7 +9,9 @@ import {
   AlertTriangle,
   Eraser,
   Copy,
-  Check
+  Check,
+  Columns2,
+  Square
 } from 'lucide-react'
 import { useUiStore } from '../state/useUiStore'
 import { useTerminalStore } from '../state/useTerminalStore'
@@ -22,6 +25,8 @@ import Terminal from './Terminal'
  */
 export default function TerminalPanel(): JSX.Element {
   const { toggleTerminal, setTerminalOpen } = useUiStore()
+  const split = useUiStore((s) => s.terminalSplit)
+  const toggleSplit = useUiStore((s) => s.toggleTerminalSplit)
   const { shells, tabs, activeId, error, loadShells, openTab, ensureTab, closeTab, setActive } =
     useTerminalStore()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -122,6 +127,14 @@ export default function TerminalPanel(): JSX.Element {
           <HeaderBtn label="Effacer le terminal" onClick={clearActive} disabled={!activeId}>
             <Eraser size={14} />
           </HeaderBtn>
+          <HeaderBtn
+            label={split ? 'Affichage en onglets' : 'Afficher côte à côte'}
+            onClick={toggleSplit}
+            disabled={tabs.length === 0}
+            active={split}
+          >
+            {split ? <Square size={14} /> : <Columns2 size={14} />}
+          </HeaderBtn>
           <div className="mx-0.5 my-1 w-px bg-border" />
           <HeaderBtn label="Réduire le terminal" onClick={toggleTerminal}>
             <Minus size={14} />
@@ -146,15 +159,59 @@ export default function TerminalPanel(): JSX.Element {
             </button>
           </div>
         )}
-        {tabs.map((t) => (
-          <div
-            key={t.id}
-            className="absolute inset-0 p-1.5"
-            style={{ display: t.id === activeId ? 'block' : 'none' }}
-          >
-            <Terminal ptyId={t.ptyId} active={t.id === activeId} />
-          </div>
-        ))}
+        {split ? (
+          // Côte à côte : chaque terminal dans sa colonne redimensionnable.
+          <PanelGroup key={`tsplit-${tabs.length}`} direction="horizontal" className="p-1.5">
+            {tabs.map((t, i) => (
+              <Fragment key={t.id}>
+                {i > 0 && (
+                  <PanelResizeHandle className="w-px bg-border transition-colors hover:bg-accent" />
+                )}
+                <Panel minSize={12}>
+                  <div
+                    onMouseDown={() => setActive(t.id)}
+                    className={`flex h-full flex-col overflow-hidden rounded-app border ${
+                      t.id === activeId ? 'border-accent' : 'border-border'
+                    }`}
+                  >
+                    <div className="flex shrink-0 items-center justify-between gap-1 border-b border-border bg-bg-secondary px-2 py-0.5">
+                      <span
+                        className={`truncate text-[11px] ${
+                          t.exited ? 'text-fg-muted opacity-60' : t.id === activeId ? 'text-fg' : 'text-fg-muted'
+                        }`}
+                      >
+                        {t.title}
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          closeTab(t.id)
+                        }}
+                        title="Fermer"
+                        className="grid h-4 w-4 shrink-0 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg"
+                      >
+                        <X size={11} />
+                      </button>
+                    </div>
+                    <div className="relative min-h-0 flex-1">
+                      <Terminal ptyId={t.ptyId} active={t.id === activeId} />
+                    </div>
+                  </div>
+                </Panel>
+              </Fragment>
+            ))}
+          </PanelGroup>
+        ) : (
+          tabs.map((t) => (
+            <div
+              key={t.id}
+              className="absolute inset-0 p-1.5"
+              style={{ display: t.id === activeId ? 'block' : 'none' }}
+            >
+              <Terminal ptyId={t.ptyId} active={t.id === activeId} />
+            </div>
+          ))
+        )}
       </div>
     </div>
   )
@@ -164,6 +221,7 @@ function HeaderBtn(props: {
   label: string
   onClick: () => void
   disabled?: boolean
+  active?: boolean
   children: React.ReactNode
 }): JSX.Element {
   return (
@@ -171,7 +229,9 @@ function HeaderBtn(props: {
       onClick={props.onClick}
       disabled={props.disabled}
       title={props.label}
-      className="grid h-6 w-6 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg disabled:opacity-30 disabled:hover:bg-transparent"
+      className={`grid h-6 w-6 place-items-center rounded hover:bg-bg-hover hover:text-fg disabled:opacity-30 disabled:hover:bg-transparent ${
+        props.active ? 'text-accent' : 'text-fg-muted'
+      }`}
     >
       {props.children}
     </button>
