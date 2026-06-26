@@ -25,15 +25,30 @@ function registerIpc(): void {
   registerAppsHandlers()
 }
 
-app.whenReady().then(() => {
-  registerIpc()
-  createWindow()
-
-  app.on('activate', () => {
-    // macOS : recrée une fenêtre si le dock est cliqué sans fenêtre ouverte.
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+// Verrou d'instance unique : une seule fenêtre GVue à la fois. Évite que deux
+// instances se disputent le cache (erreurs « Unable to move the cache »).
+const gotLock = app.requestSingleInstanceLock()
+if (!gotLock) {
+  app.quit()
+} else {
+  app.on('second-instance', () => {
+    const win = BrowserWindow.getAllWindows()[0]
+    if (win) {
+      if (win.isMinimized()) win.restore()
+      win.focus()
+    }
   })
-})
+
+  app.whenReady().then(() => {
+    registerIpc()
+    createWindow()
+
+    app.on('activate', () => {
+      // macOS : recrée une fenêtre si le dock est cliqué sans fenêtre ouverte.
+      if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    })
+  })
+}
 
 app.on('before-quit', () => {
   // Termine proprement tous les pseudo-terminaux et recherches encore vivants.
