@@ -22,7 +22,8 @@ import {
   LayoutGrid,
   Rocket,
   Play,
-  Search
+  Search,
+  AppWindow
 } from 'lucide-react'
 import { useUiStore } from '../state/useUiStore'
 import { useNavStore, activePane } from '../state/useNavStore'
@@ -146,6 +147,7 @@ export default function CommandPalette(): JSX.Element | null {
         }
       },
       { id: 'launcher', title: 'Lanceur', icon: <Rocket size={15} />, run: () => nav().showLauncher() },
+      { id: 'new-window', title: 'Nouvelle fenêtre', hint: 'Ctrl+Maj+N', icon: <AppWindow size={15} />, run: () => void window.api.window.new() },
       { id: 'split', title: 'Diviser — nouveau volet', icon: <Columns2 size={15} />, run: () => void nav().addPane() },
       { id: 'preview', title: "Panneau d'aperçu", icon: <PanelRight size={15} />, run: () => ui().togglePreview() },
       { id: 'appearance', title: "Panneau d'apparence", icon: <Palette size={15} />, run: () => ui().toggleAppearance() },

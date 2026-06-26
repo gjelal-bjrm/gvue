@@ -25,18 +25,16 @@ function registerIpc(): void {
   registerAppsHandlers()
 }
 
-// Verrou d'instance unique : une seule fenêtre GVue à la fois. Évite que deux
-// instances se disputent le cache (erreurs « Unable to move the cache »).
+// Verrou d'instance unique : un seul *processus* GVue (les fenêtres multiples
+// vivent dans ce processus). Évite que deux processus se disputent le cache
+// (erreurs « Unable to move the cache »).
 const gotLock = app.requestSingleInstanceLock()
 if (!gotLock) {
   app.quit()
 } else {
+  // Relancer l'exécutable ouvre une nouvelle fenêtre GVue.
   app.on('second-instance', () => {
-    const win = BrowserWindow.getAllWindows()[0]
-    if (win) {
-      if (win.isMinimized()) win.restore()
-      win.focus()
-    }
+    createWindow()
   })
 
   app.whenReady().then(() => {

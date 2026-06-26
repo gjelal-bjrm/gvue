@@ -101,11 +101,15 @@ export default function App(): JSX.Element {
   }, [])
 
   // Palette de commandes : Ctrl+P / Ctrl+Maj+P (preventDefault évite l'impression).
+  // Ctrl+Maj+N : nouvelle fenêtre GVue.
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
-      if ((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P')) {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === 'p' || e.key === 'P')) {
         e.preventDefault()
         useUiStore.getState().togglePalette()
+      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'n' || e.key === 'N')) {
+        e.preventDefault()
+        void window.api.window.new()
       }
     }
     window.addEventListener('keydown', onKey)

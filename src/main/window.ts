@@ -18,11 +18,15 @@ export function createWindow(): BrowserWindow {
   // l'exécutable est posée par l'empaqueteur.
   const iconPath = join(app.getAppPath(), 'build', 'icon.png')
 
+  // Décale les fenêtres supplémentaires pour qu'elles ne se superposent pas.
+  const existing = BrowserWindow.getAllWindows().length
+  const offset = existing * 28
+
   const win = new BrowserWindow({
     width: saved.width,
     height: saved.height,
-    x: saved.x,
-    y: saved.y,
+    x: saved.x != null ? saved.x + offset : undefined,
+    y: saved.y != null ? saved.y + offset : undefined,
     minWidth: 760,
     minHeight: 520,
     show: false,
@@ -38,7 +42,8 @@ export function createWindow(): BrowserWindow {
     }
   })
 
-  if (saved.maximized) win.maximize()
+  // Seule la première fenêtre restaure l'état maximisé (sinon elles se couvrent).
+  if (saved.maximized && existing === 0) win.maximize()
 
   win.on('ready-to-show', () => win.show())
 

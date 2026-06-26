@@ -19,7 +19,8 @@ import {
   Filter,
   FilterX,
   PanelRight,
-  Columns2
+  Columns2,
+  AppWindow
 } from 'lucide-react'
 import { useNavStore, activePane } from '../state/useNavStore'
 import { useUiStore } from '../state/useUiStore'
@@ -229,6 +230,9 @@ export default function Toolbar(): JSX.Element {
       <SearchBox />
 
       <WorkspaceMenu />
+      <NavBtn onClick={() => void window.api.window.new()} title="Nouvelle fenêtre (Ctrl+Maj+N)">
+        <AppWindow size={17} />
+      </NavBtn>
       <NavBtn
         onClick={() => void addPane()}
         disabled={paneCount >= 3}

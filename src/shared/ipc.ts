@@ -68,7 +68,13 @@ export const IPC = {
   windowAction: 'window:action',
   windowStatus: 'window:status',
   windowSetOpacity: 'window:setOpacity',
-  windowOnStatus: 'window:onStatus'
+  windowOnStatus: 'window:onStatus',
+  windowNew: 'window:new',
+
+  // Plateau système (tray) → actions rapides
+  trayOpenPath: 'tray:openPath',
+  trayRunTask: 'tray:runTask',
+  trayLoadWorkspace: 'tray:loadWorkspace'
 } as const
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC]

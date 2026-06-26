@@ -1,9 +1,14 @@
 import { ipcMain, BrowserWindow } from 'electron'
 import { IPC } from '@shared/ipc'
+import { createWindow } from '../window'
 import type { WindowAction, WindowStatus } from '@shared/types'
 
 /** Handlers IPC de contrôle de la fenêtre frameless (barre de titre custom). */
 export function registerWindowHandlers(): void {
+  ipcMain.handle(IPC.windowNew, async () => {
+    createWindow()
+  })
+
   ipcMain.handle(IPC.windowAction, async (e, action: WindowAction) => {
     const win = BrowserWindow.fromWebContents(e.sender)
     if (!win) return
