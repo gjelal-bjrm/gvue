@@ -1,4 +1,4 @@
-import { ipcMain, shell, app, nativeImage, dialog, BrowserWindow } from 'electron'
+import { ipcMain, shell, app, nativeImage } from 'electron'
 import { dirname, basename, extname } from 'node:path'
 import { IPC } from '@shared/ipc'
 import type { NavLocations, DirEntry, QuickAccessData } from '@shared/types'
@@ -118,24 +118,6 @@ export function registerFsHandlers(): void {
 
   ipcMain.handle(IPC.fsRunnableFiles, async (_e, dir: string) => {
     return filesystem.runnableFiles(dir)
-  })
-
-  // Boîte de dialogue native pour choisir un fichier à lancer (script, .bat…).
-  ipcMain.handle(IPC.fsPickFile, async (e, defaultPath?: string): Promise<string | null> => {
-    const win = BrowserWindow.fromWebContents(e.sender)
-    const options = {
-      title: 'Choisir un fichier à lancer',
-      properties: ['openFile' as const],
-      filters: [
-        { name: 'Exécutables et scripts', extensions: ['bat', 'cmd', 'ps1', 'sh', 'exe', 'py', 'js'] },
-        { name: 'Tous les fichiers', extensions: ['*'] }
-      ],
-      defaultPath
-    }
-    const res = win
-      ? await dialog.showOpenDialog(win, options)
-      : await dialog.showOpenDialog(options)
-    return res.canceled || res.filePaths.length === 0 ? null : res.filePaths[0]
   })
 
   ipcMain.handle(IPC.fsTrash, async (_e, targetPath: string) => {

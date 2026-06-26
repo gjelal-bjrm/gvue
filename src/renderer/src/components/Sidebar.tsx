@@ -26,6 +26,7 @@ import { useRunnerStore, projKey } from '../state/useRunnerStore'
 import type { GitProject, RunnerTask } from '@shared/types'
 import { pathKey, baseName } from '../lib/format'
 import { commandForFile, joinWin } from '../lib/runfile'
+import FilePickerDialog from './FilePickerDialog'
 
 /**
  * Sidebar : lanceur, accès rapide, lecteurs, favoris et projets.
@@ -397,6 +398,7 @@ function LaunchConfigDialog(props: { root: string; name: string; onClose: () => 
   const [command, setCommand] = useState(projectLaunch[props.root] ?? '')
   const [scripts, setScripts] = useState<string[]>([])
   const [files, setFiles] = useState<string[]>([])
+  const [picking, setPicking] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -412,12 +414,6 @@ function LaunchConfigDialog(props: { root: string; name: string; onClose: () => 
       alive = false
     }
   }, [props.root])
-
-  // Parcourir un fichier exécutable n'importe où → commande adaptée.
-  const browse = async (): Promise<void> => {
-    const file = await window.api.fs.pickFile(props.root)
-    if (file) setCommand(commandForFile(file))
-  }
 
   const save = (run: boolean): void => {
     setProjectCommand(props.root, command)
@@ -454,13 +450,24 @@ function LaunchConfigDialog(props: { root: string; name: string; onClose: () => 
             className="min-w-0 flex-1 rounded-app border border-border bg-bg px-2 py-1.5 font-mono text-[12px] text-fg outline-none placeholder:text-fg-muted focus:border-accent"
           />
           <button
-            onClick={() => void browse()}
+            onClick={() => setPicking(true)}
             title="Choisir un fichier à lancer (.bat, .ps1, .exe…)"
             className="flex shrink-0 items-center gap-1 rounded-app border border-border px-2 text-[12px] text-fg-secondary hover:bg-bg-hover"
           >
             <FolderOpen size={13} /> Fichier…
           </button>
         </div>
+
+        {picking && (
+          <FilePickerDialog
+            initialDir={props.root}
+            onPick={(file) => {
+              setCommand(commandForFile(file))
+              setPicking(false)
+            }}
+            onClose={() => setPicking(false)}
+          />
+        )}
 
         {files.length > 0 && (
           <div className="mt-2 flex flex-wrap items-center gap-1.5">

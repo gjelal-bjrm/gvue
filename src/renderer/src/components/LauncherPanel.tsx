@@ -15,6 +15,7 @@ import { useRunnerStore } from '../state/useRunnerStore'
 import { useNavStore, activePane } from '../state/useNavStore'
 import { baseName } from '../lib/format'
 import { commandForFile, joinWin } from '../lib/runfile'
+import FilePickerDialog from './FilePickerDialog'
 import type { GitProject } from '@shared/types'
 
 /**
@@ -38,6 +39,7 @@ export default function LauncherPanel(): JSX.Element {
   const [scripts, setScripts] = useState<string[]>([])
   const [files, setFiles] = useState<string[]>([])
   const [projects, setProjects] = useState<GitProject[]>([])
+  const [picking, setPicking] = useState(false)
 
   const [profileName, setProfileName] = useState('')
   const [picked, setPicked] = useState<Set<string>>(new Set())
@@ -70,12 +72,11 @@ export default function LauncherPanel(): JSX.Element {
     }
   }, [cwd])
 
-  // Parcourir un fichier exécutable → commande adaptée (et nom si vide).
-  const browse = async (): Promise<void> => {
-    const file = await window.api.fs.pickFile(cwd)
-    if (!file) return
+  // Sélection d'un fichier via le sélecteur intégré → commande + nom si vide.
+  const onPickFile = (file: string): void => {
     setCommand(commandForFile(file))
     if (!name.trim()) setName(baseName(file))
+    setPicking(false)
   }
 
   const submitTask = (): void => {
@@ -194,7 +195,7 @@ export default function LauncherPanel(): JSX.Element {
                 <Input value={command} onChange={setCommand} placeholder="Commande (ex. npm run dev)" mono />
               </div>
               <button
-                onClick={() => void browse()}
+                onClick={() => setPicking(true)}
                 title="Choisir un fichier à lancer (.bat, .ps1, .exe…)"
                 className="flex shrink-0 items-center gap-1 rounded-app border border-border px-2 text-[12px] text-fg-secondary hover:bg-bg-hover"
               >
@@ -295,6 +296,10 @@ export default function LauncherPanel(): JSX.Element {
           </section>
         )}
       </div>
+
+      {picking && (
+        <FilePickerDialog initialDir={cwd} onPick={onPickFile} onClose={() => setPicking(false)} />
+      )}
     </div>
   )
 }
