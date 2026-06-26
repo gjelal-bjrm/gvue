@@ -251,9 +251,9 @@ export default function App(): JSX.Element {
       <CommandPalette />
 
       <div className="min-h-0 flex-1">
-        <PanelGroup key={vKey} direction="vertical">
+        <PanelGroup key={vKey} autoSaveId="gvue:vertical" direction="vertical">
           <Panel minSize={30}>
-            <PanelGroup key={hKey} direction="horizontal">
+            <PanelGroup key={hKey} autoSaveId="gvue:horizontal" direction="horizontal">
               <Panel defaultSize={18} minSize={12} maxSize={32}>
                 <Sidebar />
               </Panel>
@@ -263,7 +263,7 @@ export default function App(): JSX.Element {
                 {searchActive ? (
                   <SearchPanel />
                 ) : (
-                  <PanelGroup key={`panes-${panes.length}`} direction="horizontal">
+                  <PanelGroup key={`panes-${panes.length}`} autoSaveId="gvue:panes" direction="horizontal">
                     {panes.map((p, i) => (
                       <Fragment key={p.id}>
                         {i > 0 && (
