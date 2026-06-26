@@ -36,10 +36,10 @@ milliers d'entrées, tri par colonne (nom, taille, date), dates relatives
 (« hier », « lun. »), bascule des éléments masqués.
 
 **Terminal intégré** — pseudo-terminal réel (`node-pty` + `xterm`), détection
-dynamique des shells (PowerShell, PowerShell 7, cmd, Git Bash, WSL) avec **shell
-par défaut configurable** (★ dans les sélecteurs), **plusieurs onglets** ou affichage
-**côte à côte** (colonnes redimensionnables), panneau réductible qui **préserve
-l'historique**, barre de commande qui exécute une commande dans le terminal actif.
+dynamique des shells (PowerShell, PowerShell 7, cmd, Git Bash, WSL, **Python**) avec
+**shell par défaut configurable** (★ dans les sélecteurs), **plusieurs onglets** ou
+affichage **côte à côte** (colonnes redimensionnables), panneau réductible qui
+**préserve l'historique**, barre de commande qui exécute une commande dans le terminal actif.
 
 **Lanceur** — définis des **lancements** (commande + dossier, avec un **projet** et/ou
 une **catégorie**, ou un script `package.json` auto-détecté) et des **profils** (groupes
@@ -88,9 +88,11 @@ fréquents** et **fichiers récents**, alimentés automatiquement au fil de l'us
 
 **Personnalisation** — panneau Apparence pleinement fonctionnel : couleur d'accent
 (6 pastilles + sélecteur libre), thème clair / sombre / auto, densité (confort /
-compact), coins (arrondis / carrés), police et taille. Tout est peint via des
-**variables CSS** et **persisté** entre les sessions ; la taille et la position de
-la fenêtre sont également mémorisées.
+compact), coins (arrondis / carrés), police et taille, **presets nommés**. Tout est
+peint via des **variables CSS** et **persisté** entre les sessions ; la taille/position
+de la fenêtre **et les tailles des zones** (sidebar, volets, panneaux, terminal) sont
+mémorisées. Section **« À propos »** : version de l'app + état des mises à jour + bouton
+« Vérifier ».
 
 **Sidebar** — accès rapide (accueil, téléchargements), lecteurs détectés, favoris.
 Les sections (Ce PC, Lecteurs, Favoris, Projets) sont **repliables** et **réordonnables**
@@ -118,6 +120,8 @@ désactivable, mémorisée).
 | Panneaux redimensionnables | **react-resizable-panels** |
 | Config persistée | **electron-store** |
 | Recompilation native | **@electron/rebuild** (pour `node-pty`) |
+| Empaquetage | **electron-builder** (installeur Windows NSIS) |
+| Mises à jour auto | **electron-updater** (flux GitHub Releases) |
 
 *Git utilise le binaire `git` du système plutôt que `simple-git` : zéro
 dépendance native, zéro téléchargement. À venir selon les phases : `chokidar`
@@ -152,24 +156,34 @@ jamais à Node directement.
 ```
 gvue/
 ├─ electron.vite.config.ts
-├─ run.bat                     # lancement guidé (vérif Node, install, rebuild, dev)
+├─ electron-builder.yml         # config installeur NSIS + publication GitHub
+├─ run.bat                      # lancement guidé (vérif Node, install, rebuild, dev)
+├─ build.bat                    # build de l'installeur Windows
+├─ publish.bat                  # assistant de publication d'une mise à jour
+├─ build/icon.png               # icône de l'app (badge circulaire)
 ├─ src/
 │  ├─ main/
-│  │  ├─ index.ts              # bootstrap app + IPC
-│  │  ├─ window.ts             # fenêtre frameless + état persistant
-│  │  ├─ ipc/                  # fs, terminal, search, git, config, window
-│  │  └─ services/             # filesystem, pty-manager, shell-detect, search, git, config-store
+│  │  ├─ index.ts               # bootstrap app + IPC + instance unique
+│  │  ├─ window.ts              # fenêtre frameless (multi-fenêtres) + état persistant
+│  │  ├─ tray.ts                # plateau système (arrière-plan, actions rapides)
+│  │  ├─ icon.ts                # résolution de l'icône (dev vs packagé)
+│  │  ├─ ipc/                   # fs, terminal, search, git, config, window, apps
+│  │  └─ services/              # filesystem, pty-manager, shell-detect, search, git,
+│  │  │                         #   config-store, fileops, fs-watch, preview, apps, updater
 │  ├─ preload/
-│  │  └─ index.ts              # contextBridge → window.api
+│  │  └─ index.ts               # contextBridge → window.api
 │  ├─ renderer/
 │  │  └─ src/
 │  │     ├─ App.tsx
-│  │     ├─ components/        # TitleBar, Toolbar, CommandBar, Sidebar, FileList, GitWidget,
-│  │     │                     #   ContextMenu, SearchPanel, QuickAccessPanel, Terminal, TerminalPanel, AppearancePanel
-│  │     ├─ state/             # stores zustand (nav, terminal, search, git, appearance, ui)
-│  │     ├─ theme/             # variables CSS, presets, application du thème
-│  │     └─ lib/               # helpers (format, icônes, registre xterm)
-│  └─ shared/                  # types.ts, ipc.ts
+│  │     ├─ components/         # TitleBar, Toolbar, CommandBar, CommandPalette, Sidebar, FolderTree,
+│  │     │                      #   FileList, FilePickerDialog, GitWidget, ContextMenu, SearchPanel,
+│  │     │                      #   QuickAccessPanel, Terminal, TerminalPanel, LauncherPanel,
+│  │     │                      #   AppearancePanel, PreviewPanel, WorkspaceMenu, UpdateBanner, Logo
+│  │     ├─ state/              # stores zustand (nav, terminal, search, git, appearance, ui,
+│  │     │                      #   favorites, apps, openWith, workspace, runner, sidebar, update)
+│  │     ├─ theme/              # variables CSS, presets, application du thème
+│  │     └─ lib/                # helpers (format, icônes, registre xterm, runfile)
+│  └─ shared/                   # types.ts, ipc.ts
 └─ resources/
 ```
 
@@ -197,6 +211,8 @@ npm run build       # build de production
 npm start           # prévisualise le build
 npm run rebuild     # recompile node-pty pour l'ABI d'Electron
 npm run dist        # construit l'installeur Windows (NSIS) dans dist/
+npm run dist:dir    # build non empaqueté (dossier, pour tester)
+npm run publish     # build + publie une release sur GitHub (auto-update)
 ```
 
 Ou, pour produire l'**installeur**, double-clic sur **`build.bat`** (vérif Node,
@@ -213,19 +229,29 @@ peut aussi vérifier à la demande via la **palette** ou le **plateau système**
 dev (non empaqueté) ou si la dépendance est absente, l'auto-update est simplement
 inactif — l'app fonctionne normalement.
 
-**Publier une mise à jour** (une seule fois par version, plus besoin de réinstaller
-manuellement sur chaque machine) :
+**Publier une mise à jour** — le plus simple : double-clic sur **`publish.bat`**
+(assistant guidé : choix de la version, build, téléversement de la release GitHub).
+Il lit le token depuis la variable `GH_TOKEN` (sinon il le demande). Pour ne plus
+jamais le saisir, enregistre-le une fois :
 
-```bash
-npm install                       # récupère electron-updater (1re fois)
-# bump du numéro de version dans package.json (ex. 0.1.1)
-set GH_TOKEN=<token GitHub>        # PowerShell : $env:GH_TOKEN="<token>"
-npm run publish                   # build + téléverse l'installeur + latest.yml
-                                  #   sur une release GitHub (gjelal-bjrm/gvue)
+```cmd
+setx GH_TOKEN <ton_token_github>   :: token = PAT GitHub avec le scope repo
 ```
 
-Les apps déjà installées détecteront la nouvelle release et se mettront à jour
-seules. (Le `GH_TOKEN` est un *personal access token* avec le scope `repo`.)
+Équivalent en ligne de commande :
+
+```bash
+# bump du numéro de version dans package.json (doit être > version installée)
+set GH_TOKEN=<token GitHub>        # PowerShell : $env:GH_TOKEN="<token>"
+npm run publish                    # build + téléverse installeur + latest.yml
+                                   #   sur une release GitHub (gjelal-bjrm/gvue)
+```
+
+La release est publiée directement (`releaseType: release`). Les apps déjà installées
+**en version auto-update** détectent la nouvelle release et se mettent à jour seules.
+⚠️ La **toute première** installation doit se faire à la main (une version sans
+auto-update ne peut pas se mettre à jour toute seule). Ne mets **jamais** le token
+dans un fichier versionné.
 
 ---
 
@@ -249,8 +275,8 @@ Pour l'activer (si la recompilation a échoué) : installer les *Build Tools* pu
 | **2. Terminal** | ✅ **Fait** | node-pty + xterm, détection des shells, onglets, barre de commande |
 | **3. Recherche** | ✅ **Fait** | `@vscode/ripgrep`, recherche contenu streamée, résultats cliquables groupés par fichier |
 | **4. Git** | ✅ **Fait** | Badges par fichier, branche + avance/retard, commit/pull/push, menu contextuel, masquage `.gitignore`, détection des dépôts |
-| **5. Personnalisation** | ✅ **Fait** | Apparence, presets nommés, opacité réelle ; reste : dispositions par espace de travail (avec phase 6) |
-| **6. Pro** | 🟡 **Partiel** | Palette, aperçu, multi-volets, intégrations, espaces de travail faits ; reste : commandes perso, barre IA, carte disque, SSH/SFTP, packaging |
+| **5. Personnalisation** | ✅ **Fait** | Apparence, presets nommés, opacité réelle, tailles de zones mémorisées |
+| **6. Pro** | 🟡 **Partiel** | Palette, aperçu, multi-volets, intégrations, espaces de travail enrichis, Lanceur, multi-fenêtres, plateau système, packaging + auto-update faits ; reste : commandes perso, barre IA, carte disque, SSH/SFTP |
 
 ### ✅ Ce qui est fait
 
@@ -296,20 +322,23 @@ Pour l'activer (si la recompilation a échoué) : installer les *Build Tools* pu
   - Intégrations applications (détectées par chemin d'install) : ouvrir avec VS Code, éditer avec Notepad++, compresser/extraire avec 7-Zip (interface graphique `7zG.exe` → progression native).
   - « Ouvrir avec… » : sélecteur de programme (`.exe`), association **mémorisée par type de fichier** (proposée ensuite pour tous les fichiers du même type).
   - Espaces de travail nommés : enregistrent/restaurent un environnement complet — dossiers ouverts par volet + Accès rapide + volet actif, panneaux terminal/aperçu/apparence, **thème & couleur d'accent**, **ordre/repli des sections de la sidebar**, **suivi du dossier ouvert**, et les **terminaux ouverts** (shells + affichage onglets/côte à côte) ; réenregistrement d'un espace existant ; bouton dédié dans la barre d'outils + entrées dans la palette. Les **tailles des zones** sont mémorisées entre les sessions.
-  - Lanceur : lancements (commande ou script package.json, avec projet/catégorie) et profils, exécutés dans le terminal intégré (Play/Stop) ; vue dédiée + liste repliable regroupée (projet/catégorie) sous « Lanceur » + ▶ configurable par dépôt (⚙) dans la sidebar + lancement via la palette.
+  - Lanceur : lancements (commande ou script package.json **ou fichier choisi via un sélecteur intégré**, avec projet/catégorie) et profils, exécutés dans le terminal intégré (Play/Stop) ; vue dédiée + liste repliable regroupée (projet/catégorie) sous « Lanceur » + ▶ configurable par dépôt (⚙) dans la sidebar + lancement via la palette.
+  - Terminal : **shell par défaut configurable** (★), shell **Python** (REPL), affichage en **onglets ou côte à côte** (colonnes redimensionnables).
+  - Sidebar : sections **repliables** et **réordonnables** (glisser-déposer, persistées) ; section Lecteurs en **arbre** avec **« Suivre le dossier ouvert »**.
+  - **Plusieurs fenêtres** (Ctrl+Maj+N) + **plateau système** : GVue tourne en arrière-plan, clic droit → Accès rapide / Projets / Lancements / Espaces de travail.
+  - Espaces de travail **enrichis** : thème/accent, config sidebar, suivi du dossier, terminaux ouverts (shells + onglets/côte à côte) ; réenregistrement d'un espace.
+  - **Packaging** (electron-builder NSIS) + **mises à jour automatiques** (electron-updater / GitHub Releases) avec bandeau « Redémarrer et installer », section « À propos » (version + vérif), assistant `publish.bat`.
+  - **Tailles des zones** mémorisées entre les sessions ; **logo** en badge circulaire (icône système sans cadre carré).
 
 ### ⏳ Ce qu'il reste à faire
 
-- **Phase 5 (reliquat)** : les espaces de travail mémorisent l'ouverture des
-  panneaux mais pas encore leurs **tailles** exactes (nécessite de lire les
-  dimensions des volets — à ajouter).
-- **Phase 6 — Pro** : vue par projet + actions rapides, palette de commandes (Ctrl+P),
-  barre IA (Ollama, commande validée avant exécution), panneau d'aperçu (code coloré,
-  Markdown, images, JSON, PDF), espaces de travail, carte de l'espace disque, double
-  panneau + renommage en masse, accès SSH/SFTP.
-- **Transverse** : surveillance disque temps réel (`chokidar` → rafraîchissement
-  automatique de la vue), gestion des favoris/récents depuis l'UI, suppression vers la
-  corbeille (`shell.trashItem`), tests des services (parsing Git, construction des requêtes).
+- **Phase 6 — Pro (reliquat)** : commandes personnalisées, barre IA (Ollama,
+  commande validée avant exécution), carte de l'espace disque, renommage en masse,
+  accès SSH/SFTP.
+- **Affinages possibles** : taille des zones **par espace de travail** (aujourd'hui
+  globale), surveillance disque temps réel via `chokidar` (au lieu de `fs.watch`),
+  navigation clavier dans la liste, signature de code (supprimer l'avertissement
+  SmartScreen), tests automatisés des services purs.
 
 ---
 
@@ -336,7 +365,3 @@ Garde-fous Electron non négociables, en place dès le départ :
 ## Licence
 
 MIT.
-"# gvue" 
-"# gvue" 
-"# gvue" 
-"# gvue" 
