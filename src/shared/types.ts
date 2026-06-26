@@ -118,7 +118,7 @@ export interface WindowState {
 
 // --- Lanceur de tâches (phase 6) ---
 
-/** Une tâche exécutable : une commande shell lancée dans un dossier. */
+/** Un lancement exécutable : une commande shell lancée dans un dossier. */
 export interface RunnerTask {
   id: string
   name: string
@@ -126,6 +126,10 @@ export interface RunnerTask {
   cwd: string
   /** Commande shell (ex. « npm run dev », « python app.py »). */
   command: string
+  /** Racine du projet auquel ce lancement est rattaché (pour le regroupement). */
+  project?: string
+  /** Catégorie libre (ex. « front », « outils ») pour le regroupement. */
+  category?: string
 }
 
 /** Un profil : plusieurs tâches lancées ensemble (front + back…). */
@@ -166,9 +170,11 @@ export interface AppConfig {
   openWith: Record<string, string[]>
   /** Espaces de travail nommés. */
   workspaces: Record<string, WorkspaceData>
-  /** Tâches et profils du lanceur. */
+  /** Lancements et profils du lanceur. */
   runnerTasks: RunnerTask[]
   runnerProfiles: RunnerProfile[]
+  /** Commande lancée par le bouton ▶ de chaque projet (racine → commande). */
+  projectLaunch: Record<string, string>
   hideGitIgnored: boolean
 }
 

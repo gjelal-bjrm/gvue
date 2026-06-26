@@ -8,10 +8,15 @@ import { useUiStore } from './useUiStore'
  * Persistés dans electron-store. L'exécution se fait dans le terminal intégré
  * (un onglet par tâche) ; on suit l'état « en cours » (taskId → ptyId).
  */
+/** Clé d'état « en cours » pour le lancement d'un projet (vs un lancement). */
+export const projKey = (root: string): string => `proj:${root}`
+
 interface RunnerState {
   tasks: RunnerTask[]
   profiles: RunnerProfile[]
-  /** Tâches en cours : taskId → ptyId de l'onglet terminal. */
+  /** Commande du bouton ▶ de chaque projet (racine → commande). */
+  projectLaunch: Record<string, string>
+  /** En cours : taskId (ou projKey) → ptyId de l'onglet terminal. */
   running: Record<string, string>
 
   init: () => Promise<void>
@@ -25,6 +30,11 @@ interface RunnerState {
   stopTask: (id: string) => void
   runProfile: (id: string) => Promise<void>
   stopProfile: (id: string) => void
+
+  /** Définit (ou efface) la commande ▶ d'un projet. */
+  setProjectCommand: (root: string, command: string) => void
+  runProject: (root: string, name: string) => Promise<void>
+  stopProject: (root: string) => void
 }
 
 let counter = 0
@@ -40,20 +50,57 @@ export const useRunnerStore = create<RunnerState>((set, get) => {
     void window.api.config.set('runnerProfiles', profiles)
   }
 
+  // Lance une commande dans un onglet terminal et suit son état sous `key`.
+  const runUnder = async (
+    key: string,
+    opts: { cwd: string; title: string; command: string }
+  ): Promise<void> => {
+    if (get().running[key]) return
+    useUiStore.getState().setTerminalOpen(true)
+    const ptyId = await useTerminalStore.getState().openTaskTab(opts)
+    if (!ptyId) return
+    set((s) => ({ running: { ...s.running, [key]: ptyId } }))
+    const off = window.api.terminal.onExit(ptyId, () => {
+      set((s) => {
+        const r = { ...s.running }
+        if (r[key] === ptyId) delete r[key]
+        return { running: r }
+      })
+      off()
+    })
+  }
+
+  const stopUnder = (key: string): void => {
+    const ptyId = get().running[key]
+    if (!ptyId) return
+    window.api.terminal.kill(ptyId)
+    set((s) => {
+      const r = { ...s.running }
+      delete r[key]
+      return { running: r }
+    })
+  }
+
   return {
     tasks: [],
     profiles: [],
+    projectLaunch: {},
     running: {},
 
     init: async () => {
       try {
-        const [tasks, profiles] = await Promise.all([
+        const [tasks, profiles, projectLaunch] = await Promise.all([
           window.api.config.get('runnerTasks'),
-          window.api.config.get('runnerProfiles')
+          window.api.config.get('runnerProfiles'),
+          window.api.config.get('projectLaunch')
         ])
-        set({ tasks: tasks ?? [], profiles: profiles ?? [] })
+        set({
+          tasks: tasks ?? [],
+          profiles: profiles ?? [],
+          projectLaunch: projectLaunch ?? {}
+        })
       } catch {
-        set({ tasks: [], profiles: [] })
+        set({ tasks: [], profiles: [], projectLaunch: {} })
       }
     },
 
@@ -75,33 +122,11 @@ export const useRunnerStore = create<RunnerState>((set, get) => {
 
     runTask: async (id) => {
       const task = get().tasks.find((t) => t.id === id)
-      if (!task || get().running[id]) return
-      useUiStore.getState().setTerminalOpen(true)
-      const ptyId = await useTerminalStore
-        .getState()
-        .openTaskTab({ cwd: task.cwd, title: task.name, command: task.command })
-      if (!ptyId) return
-      set((s) => ({ running: { ...s.running, [id]: ptyId } }))
-      const off = window.api.terminal.onExit(ptyId, () => {
-        set((s) => {
-          const r = { ...s.running }
-          if (r[id] === ptyId) delete r[id]
-          return { running: r }
-        })
-        off()
-      })
+      if (!task) return
+      await runUnder(id, { cwd: task.cwd, title: task.name, command: task.command })
     },
 
-    stopTask: (id) => {
-      const ptyId = get().running[id]
-      if (!ptyId) return
-      window.api.terminal.kill(ptyId)
-      set((s) => {
-        const r = { ...s.running }
-        delete r[id]
-        return { running: r }
-      })
-    },
+    stopTask: (id) => stopUnder(id),
 
     runProfile: async (id) => {
       const profile = get().profiles.find((p) => p.id === id)
@@ -113,6 +138,22 @@ export const useRunnerStore = create<RunnerState>((set, get) => {
       const profile = get().profiles.find((p) => p.id === id)
       if (!profile) return
       for (const tid of profile.taskIds) get().stopTask(tid)
-    }
+    },
+
+    setProjectCommand: (root, command) => {
+      const next = { ...get().projectLaunch }
+      if (command.trim()) next[root] = command.trim()
+      else delete next[root]
+      set({ projectLaunch: next })
+      void window.api.config.set('projectLaunch', next)
+    },
+
+    runProject: async (root, name) => {
+      const command = get().projectLaunch[root]
+      if (!command) return
+      await runUnder(projKey(root), { cwd: root, title: name, command })
+    },
+
+    stopProject: (root) => stopUnder(projKey(root))
   }
 })

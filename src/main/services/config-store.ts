@@ -35,6 +35,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   workspaces: {},
   runnerTasks: [],
   runnerProfiles: [],
+  projectLaunch: {},
   hideGitIgnored: true
 }
 

@@ -1,19 +1,35 @@
-import { useEffect, useState } from 'react'
-import { Home, Monitor, Download, FileText, HardDrive, Star, FolderGit2, X, Rocket, Play } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import {
+  Home,
+  Monitor,
+  Download,
+  FileText,
+  HardDrive,
+  Star,
+  FolderGit2,
+  X,
+  Rocket,
+  Play,
+  Square,
+  Settings2,
+  ChevronRight,
+  ChevronDown,
+  Tag,
+  FileCode
+} from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useNavStore, activePane } from '../state/useNavStore'
 import { useSearchStore } from '../state/useSearchStore'
 import { useFavoritesStore } from '../state/useFavoritesStore'
-import { useUiStore } from '../state/useUiStore'
-import { useTerminalStore } from '../state/useTerminalStore'
-import type { GitProject } from '@shared/types'
+import { useRunnerStore, projKey } from '../state/useRunnerStore'
+import type { GitProject, RunnerTask } from '@shared/types'
 import { pathKey, baseName } from '../lib/format'
-import ContextMenu, { type MenuEntry } from './ContextMenu'
 
 /**
- * Sidebar : accès rapide, lecteurs, favoris et projets.
- * Les favoris viennent d'electron-store ; la détection auto des projets Git
- * (icônes branche) arrive en phase 6 — section affichée en aperçu d'ici là.
+ * Sidebar : lanceur, accès rapide, lecteurs, favoris et projets.
+ * - Le bouton ▶ d'un projet exécute une commande définie (⚙ pour la définir).
+ * - Sous « Lanceur », une liste repliable de tous les lancements, regroupés
+ *   par projet ou par catégorie.
  */
 export default function Sidebar(): JSX.Element {
   const locations = useNavStore((s) => s.locations)
@@ -26,8 +42,19 @@ export default function Sidebar(): JSX.Element {
   const closeSearch = useSearchStore((s) => s.close)
   const favorites = useFavoritesStore((s) => s.favorites)
   const removeFavorite = useFavoritesStore((s) => s.remove)
+
+  const tasks = useRunnerStore((s) => s.tasks)
+  const running = useRunnerStore((s) => s.running)
+  const projectLaunch = useRunnerStore((s) => s.projectLaunch)
+  const runProject = useRunnerStore((s) => s.runProject)
+  const stopProject = useRunnerStore((s) => s.stopProject)
+  const runTask = useRunnerStore((s) => s.runTask)
+  const stopTask = useRunnerStore((s) => s.stopTask)
+
   const [projects, setProjects] = useState<GitProject[]>([])
-  const [runMenu, setRunMenu] = useState<{ x: number; y: number; entries: MenuEntry[] } | null>(null)
+  const [launchOpen, setLaunchOpen] = useState(false)
+  const [groupAxis, setGroupAxis] = useState<'project' | 'category'>('project')
+  const [config, setConfig] = useState<{ root: string; name: string } | null>(null)
 
   // Recharge la liste des dépôts à chaque navigation (un dépôt fraîchement
   // visité y apparaît). La mémorisation se fait côté main au git:status.
@@ -56,29 +83,83 @@ export default function Sidebar(): JSX.Element {
     showLauncher()
   }
 
-  // Bouton Play d'un projet : propose ses scripts package.json → terminal.
-  const onProjectPlay = async (e: React.MouseEvent, project: GitProject): Promise<void> => {
+  // Clic sur ▶ d'un projet : arrête si en cours, lance si défini, sinon configure.
+  const onProjectPlay = (e: React.MouseEvent, p: GitProject): void => {
     e.stopPropagation()
-    const scripts = await window.api.fs.packageScripts(project.root)
-    const entries: MenuEntry[] = scripts.length
-      ? scripts.map((s) => ({
-          label: `npm run ${s}`,
-          icon: <Play size={14} />,
-          onClick: () => {
-            useUiStore.getState().setTerminalOpen(true)
-            void useTerminalStore
-              .getState()
-              .openTaskTab({ cwd: project.root, title: `${project.name}: ${s}`, command: `npm run ${s}` })
-          }
-        }))
-      : [{ label: 'Aucun script package.json', disabled: true, onClick: () => {} }]
-    setRunMenu({ x: e.clientX, y: e.clientY, entries })
+    if (running[projKey(p.root)]) stopProject(p.root)
+    else if (projectLaunch[p.root]) void runProject(p.root, p.name)
+    else setConfig({ root: p.root, name: p.name })
   }
+
+  // Regroupe les lancements selon l'axe choisi (projet ou catégorie).
+  const groups = useMemo(() => {
+    const map = new Map<string, RunnerTask[]>()
+    for (const t of tasks) {
+      const label =
+        groupAxis === 'project'
+          ? t.project
+            ? baseName(t.project)
+            : 'Sans projet'
+          : t.category || 'Sans catégorie'
+      const arr = map.get(label)
+      if (arr) arr.push(t)
+      else map.set(label, [t])
+    }
+    return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]))
+  }, [tasks, groupAxis])
 
   return (
     <nav className="flex h-full w-full flex-col gap-5 overflow-y-auto bg-bg-secondary p-2.5 text-[13px]">
       <div className="flex flex-col gap-0.5">
         <Item icon={Rocket} label="Lanceur" active={launcher} onClick={openLauncher} />
+
+        {/* Liste repliable des lancements, regroupés par projet/catégorie. */}
+        {tasks.length > 0 && (
+          <div className="flex flex-col">
+            <div className="flex items-center">
+              <button
+                onClick={() => setLaunchOpen((o) => !o)}
+                className="flex min-w-0 flex-1 items-center gap-1 rounded-app px-2 py-[var(--row-pad)] text-left text-[12px] text-fg-secondary hover:bg-bg-hover hover:text-fg"
+              >
+                {launchOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+                <span className="truncate">Lancements</span>
+                <span className="text-[11px] text-fg-muted">({tasks.length})</span>
+              </button>
+              {launchOpen && (
+                <button
+                  onClick={() => setGroupAxis((a) => (a === 'project' ? 'category' : 'project'))}
+                  title="Changer le regroupement (projet / catégorie)"
+                  className="mr-1 flex shrink-0 items-center gap-1 rounded-app px-1.5 py-0.5 text-[10px] text-fg-muted hover:bg-bg-hover hover:text-fg"
+                >
+                  {groupAxis === 'project' ? <FolderGit2 size={11} /> : <Tag size={11} />}
+                  {groupAxis === 'project' ? 'Projet' : 'Cat.'}
+                </button>
+              )}
+            </div>
+
+            {launchOpen && (
+              <div className="flex flex-col gap-1 pb-1 pl-3">
+                {groups.map(([label, items]) => (
+                  <div key={label} className="flex flex-col">
+                    <div className="px-1 pb-0.5 pt-1 text-[10px] font-medium uppercase tracking-wider text-fg-muted">
+                      {label}
+                    </div>
+                    {items.map((t) => (
+                      <LaunchRow
+                        key={t.id}
+                        task={t}
+                        running={!!running[t.id]}
+                        onRun={() => void runTask(t.id)}
+                        onStop={() => stopTask(t.id)}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         <Item icon={Star} label="Accès rapide" active={quickAccess} onClick={openQuickAccess} />
       </div>
 
@@ -151,15 +232,25 @@ export default function Sidebar(): JSX.Element {
               key={p.root}
               project={p}
               active={!quickAccess && !launcher && pathKey(path) === pathKey(p.root)}
+              running={!!running[projKey(p.root)]}
+              configured={!!projectLaunch[p.root]}
               onClick={() => navigate(p.root)}
-              onPlay={(e) => void onProjectPlay(e, p)}
+              onPlay={(e) => onProjectPlay(e, p)}
+              onConfig={(e) => {
+                e.stopPropagation()
+                setConfig({ root: p.root, name: p.name })
+              }}
             />
           ))
         )}
       </Section>
 
-      {runMenu && (
-        <ContextMenu x={runMenu.x} y={runMenu.y} entries={runMenu.entries} onClose={() => setRunMenu(null)} />
+      {config && (
+        <LaunchConfigDialog
+          root={config.root}
+          name={config.name}
+          onClose={() => setConfig(null)}
+        />
       )}
     </nav>
   )
@@ -172,6 +263,39 @@ function Section(props: { title: string; children: React.ReactNode }): JSX.Eleme
         {props.title}
       </div>
       {props.children}
+    </div>
+  )
+}
+
+function LaunchRow(props: {
+  task: RunnerTask
+  running: boolean
+  onRun: () => void
+  onStop: () => void
+}): JSX.Element {
+  const { task } = props
+  return (
+    <div className="group flex items-center gap-1 rounded-app pr-1 text-fg-secondary hover:bg-bg-hover hover:text-fg">
+      <span className="flex min-w-0 flex-1 items-center gap-2 px-2 py-[var(--row-pad)]" title={`${task.command} — ${task.cwd}`}>
+        <span className="truncate text-[12px]">{task.name}</span>
+      </span>
+      {props.running ? (
+        <button
+          onClick={props.onStop}
+          title="Arrêter"
+          className="grid h-5 w-5 shrink-0 place-items-center rounded text-danger-fg hover:bg-bg-hover"
+        >
+          <Square size={12} />
+        </button>
+      ) : (
+        <button
+          onClick={props.onRun}
+          title="Lancer"
+          className="grid h-5 w-5 shrink-0 place-items-center rounded text-fg-muted opacity-0 hover:bg-bg-hover hover:text-success-fg group-hover:opacity-100"
+        >
+          <Play size={12} />
+        </button>
+      )}
     </div>
   )
 }
@@ -210,8 +334,11 @@ function FavoriteItem(props: {
 function ProjectItem(props: {
   project: GitProject
   active?: boolean
+  running: boolean
+  configured: boolean
   onClick: () => void
   onPlay: (e: React.MouseEvent) => void
+  onConfig: (e: React.MouseEvent) => void
 }): JSX.Element {
   const { project } = props
   return (
@@ -233,12 +360,135 @@ function ProjectItem(props: {
         </span>
       </button>
       <button
-        onClick={props.onPlay}
-        title="Lancer un script du projet"
-        className="grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted opacity-0 hover:bg-bg-hover hover:text-success-fg group-hover:opacity-100"
+        onClick={props.onConfig}
+        title="Définir la commande du ▶"
+        className="grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted opacity-0 hover:bg-bg-hover hover:text-fg group-hover:opacity-100"
       >
-        <Play size={13} />
+        <Settings2 size={13} />
       </button>
+      <button
+        onClick={props.onPlay}
+        title={
+          props.running ? 'Arrêter' : props.configured ? 'Lancer le projet' : 'Définir puis lancer'
+        }
+        className={`grid h-6 w-6 shrink-0 place-items-center rounded hover:bg-bg-hover ${
+          props.running
+            ? 'text-danger-fg'
+            : 'text-fg-muted opacity-0 hover:text-success-fg group-hover:opacity-100'
+        }`}
+      >
+        {props.running ? <Square size={12} /> : <Play size={13} />}
+      </button>
+    </div>
+  )
+}
+
+/**
+ * Petite boîte de dialogue pour définir la commande exécutée par le ▶ d'un
+ * projet (avec raccourcis vers les scripts package.json détectés).
+ */
+function LaunchConfigDialog(props: { root: string; name: string; onClose: () => void }): JSX.Element {
+  const projectLaunch = useRunnerStore((s) => s.projectLaunch)
+  const setProjectCommand = useRunnerStore((s) => s.setProjectCommand)
+  const runProject = useRunnerStore((s) => s.runProject)
+
+  const [command, setCommand] = useState(projectLaunch[props.root] ?? '')
+  const [scripts, setScripts] = useState<string[]>([])
+
+  useEffect(() => {
+    let alive = true
+    window.api.fs
+      .packageScripts(props.root)
+      .then((s) => alive && setScripts(s))
+      .catch(() => alive && setScripts([]))
+    return () => {
+      alive = false
+    }
+  }, [props.root])
+
+  const save = (run: boolean): void => {
+    setProjectCommand(props.root, command)
+    if (run && command.trim()) void runProject(props.root, props.name)
+    props.onClose()
+  }
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center" onMouseDown={props.onClose}>
+      <div className="absolute inset-0 bg-black/40" />
+      <div
+        className="relative z-10 w-[min(440px,92vw)] rounded-app border border-border bg-bg-secondary p-4 shadow-2xl"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <div className="mb-1 flex items-center gap-2 text-[13px] font-medium text-fg">
+          <Play size={14} className="text-accent" />
+          Lancement de {props.name}
+        </div>
+        <p className="mb-3 text-[12px] text-fg-muted">
+          Commande exécutée d'un clic sur ▶, dans le dossier du projet.
+        </p>
+
+        <input
+          value={command}
+          onChange={(e) => setCommand(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') save(true)
+            else if (e.key === 'Escape') props.onClose()
+          }}
+          autoFocus
+          spellCheck={false}
+          placeholder="ex. npm run dev"
+          className="w-full rounded-app border border-border bg-bg px-2 py-1.5 font-mono text-[12px] text-fg outline-none placeholder:text-fg-muted focus:border-accent"
+        />
+
+        {scripts.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            <span className="text-[11px] text-fg-muted">Scripts :</span>
+            {scripts.map((s) => (
+              <button
+                key={s}
+                onClick={() => setCommand(`npm run ${s}`)}
+                className="flex items-center gap-1 rounded-app border border-border px-1.5 py-0.5 text-[11px] text-fg-secondary hover:bg-bg-hover"
+              >
+                <FileCode size={11} /> {s}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-4 flex items-center justify-end gap-2">
+          {projectLaunch[props.root] && (
+            <button
+              onClick={() => {
+                setProjectCommand(props.root, '')
+                props.onClose()
+              }}
+              className="mr-auto rounded-app px-2 py-1.5 text-[12px] text-danger-fg hover:bg-bg-hover"
+            >
+              Effacer
+            </button>
+          )}
+          <button
+            onClick={props.onClose}
+            className="rounded-app px-2.5 py-1.5 text-[12px] text-fg-secondary hover:bg-bg-hover"
+          >
+            Annuler
+          </button>
+          <button
+            onClick={() => save(false)}
+            disabled={!command.trim()}
+            className="rounded-app border border-border px-2.5 py-1.5 text-[12px] text-fg hover:bg-bg-hover disabled:opacity-40"
+          >
+            Enregistrer
+          </button>
+          <button
+            onClick={() => save(true)}
+            disabled={!command.trim()}
+            className="flex items-center gap-1.5 rounded-app bg-accent px-2.5 py-1.5 text-[12px] font-medium text-white hover:opacity-90 disabled:opacity-40"
+          >
+            <Play size={13} /> Lancer
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

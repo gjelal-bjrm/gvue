@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
-import { Rocket, Play, Square, Plus, Trash2, Layers, FileCode } from 'lucide-react'
+import { Rocket, Play, Square, Plus, Trash2, Layers, FileCode, FolderGit2, Tag } from 'lucide-react'
 import { useRunnerStore } from '../state/useRunnerStore'
 import { useNavStore, activePane } from '../state/useNavStore'
 import { baseName } from '../lib/format'
+import type { GitProject } from '@shared/types'
 
 /**
- * Lanceur : définir des tâches (commande + dossier) et des profils (groupes de
- * tâches), puis les lancer/arrêter. L'exécution se fait dans le terminal intégré.
+ * Lanceur : définir des lancements (commande + dossier, avec projet/catégorie)
+ * et des profils (groupes de lancements), puis les lancer/arrêter. L'exécution
+ * se fait dans le terminal intégré.
  */
 export default function LauncherPanel(): JSX.Element {
   const tasks = useRunnerStore((s) => s.tasks)
@@ -19,10 +21,25 @@ export default function LauncherPanel(): JSX.Element {
   const [name, setName] = useState('')
   const [cwd, setCwd] = useState(defaultCwd)
   const [command, setCommand] = useState('')
+  const [project, setProject] = useState('')
+  const [category, setCategory] = useState('')
   const [scripts, setScripts] = useState<string[]>([])
+  const [projects, setProjects] = useState<GitProject[]>([])
 
   const [profileName, setProfileName] = useState('')
   const [picked, setPicked] = useState<Set<string>>(new Set())
+
+  // Dépôts Git connus, pour rattacher un lancement à un projet.
+  useEffect(() => {
+    let alive = true
+    window.api.git
+      .projects()
+      .then((p) => alive && setProjects(p))
+      .catch(() => alive && setProjects([]))
+    return () => {
+      alive = false
+    }
+  }, [])
 
   // Scripts package.json détectés pour le dossier saisi.
   useEffect(() => {
@@ -38,9 +55,16 @@ export default function LauncherPanel(): JSX.Element {
 
   const submitTask = (): void => {
     if (!name.trim() || !command.trim() || !cwd.trim()) return
-    addTask({ name: name.trim(), cwd: cwd.trim(), command: command.trim() })
+    addTask({
+      name: name.trim(),
+      cwd: cwd.trim(),
+      command: command.trim(),
+      project: project || undefined,
+      category: category.trim() || undefined
+    })
     setName('')
     setCommand('')
+    setCategory('')
   }
 
   const submitProfile = (): void => {
@@ -85,7 +109,7 @@ export default function LauncherPanel(): JSX.Element {
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-fg">{p.name}</div>
                       <div className="truncate text-[11px] text-fg-muted">
-                        {p.taskIds.length} tâche{p.taskIds.length > 1 ? 's' : ''}
+                        {p.taskIds.length} lancement{p.taskIds.length > 1 ? 's' : ''}
                       </div>
                     </div>
                     <IconBtn title="Supprimer le profil" onClick={() => removeProfile(p.id)} danger>
@@ -98,11 +122,11 @@ export default function LauncherPanel(): JSX.Element {
           </section>
         )}
 
-        {/* Tâches */}
+        {/* Lancements */}
         <section className="mb-5">
-          <GroupTitle icon={<Rocket size={12} />}>Tâches</GroupTitle>
+          <GroupTitle icon={<Rocket size={12} />}>Lancements</GroupTitle>
           {tasks.length === 0 ? (
-            <p className="px-1 py-1.5 text-fg-muted">Aucune tâche. Ajoutez-en une ci-dessous.</p>
+            <p className="px-1 py-1.5 text-fg-muted">Aucun lancement. Ajoutez-en un ci-dessous.</p>
           ) : (
             <div className="flex flex-col gap-1.5">
               {tasks.map((t) => (
@@ -116,12 +140,16 @@ export default function LauncherPanel(): JSX.Element {
                     onStop={() => stopTask(t.id)}
                   />
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-fg">{t.name}</div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="truncate text-fg">{t.name}</span>
+                      {t.project && <Badge icon={<FolderGit2 size={9} />}>{baseName(t.project)}</Badge>}
+                      {t.category && <Badge icon={<Tag size={9} />}>{t.category}</Badge>}
+                    </div>
                     <div className="truncate font-mono text-[11px] text-fg-muted" title={`${t.command} — ${t.cwd}`}>
                       {t.command} · {baseName(t.cwd)}
                     </div>
                   </div>
-                  <IconBtn title="Supprimer la tâche" onClick={() => removeTask(t.id)} danger>
+                  <IconBtn title="Supprimer le lancement" onClick={() => removeTask(t.id)} danger>
                     <Trash2 size={14} />
                   </IconBtn>
                 </div>
@@ -130,13 +158,33 @@ export default function LauncherPanel(): JSX.Element {
           )}
         </section>
 
-        {/* Nouvelle tâche */}
+        {/* Nouveau lancement */}
         <section className="mb-5 rounded-app border border-border p-2.5">
-          <div className="mb-2 text-[12px] font-medium text-fg-secondary">Nouvelle tâche</div>
+          <div className="mb-2 text-[12px] font-medium text-fg-secondary">Nouveau lancement</div>
           <div className="flex flex-col gap-1.5">
             <Input value={name} onChange={setName} placeholder="Nom (ex. Front dev)" />
             <Input value={cwd} onChange={setCwd} placeholder="Dossier (cwd)" mono />
             <Input value={command} onChange={setCommand} placeholder="Commande (ex. npm run dev)" mono />
+            <div className="flex gap-1.5">
+              <select
+                value={project}
+                onChange={(e) => {
+                  const root = e.target.value
+                  setProject(root)
+                  // Rattacher à un projet pré-remplit le dossier d'exécution.
+                  if (root) setCwd(root)
+                }}
+                className="min-w-0 flex-1 rounded-app border border-border bg-bg px-2 py-1.5 text-[12px] text-fg outline-none focus:border-accent"
+              >
+                <option value="">Projet (aucun)</option>
+                {projects.map((p) => (
+                  <option key={p.root} value={p.root}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+              <Input value={category} onChange={setCategory} placeholder="Catégorie" />
+            </div>
             {scripts.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 <span className="text-[11px] text-fg-muted">Scripts détectés :</span>
@@ -159,7 +207,7 @@ export default function LauncherPanel(): JSX.Element {
               disabled={!name.trim() || !command.trim() || !cwd.trim()}
               className="flex items-center justify-center gap-1.5 rounded-app bg-accent px-2 py-1.5 text-[12px] font-medium text-white hover:opacity-90 disabled:opacity-40"
             >
-              <Plus size={14} /> Ajouter la tâche
+              <Plus size={14} /> Ajouter le lancement
             </button>
           </div>
         </section>
@@ -195,6 +243,15 @@ export default function LauncherPanel(): JSX.Element {
         )}
       </div>
     </div>
+  )
+}
+
+function Badge(props: { icon: React.ReactNode; children: React.ReactNode }): JSX.Element {
+  return (
+    <span className="flex shrink-0 items-center gap-1 rounded-full border border-border px-1.5 py-px text-[10px] text-fg-muted">
+      {props.icon}
+      <span className="max-w-[90px] truncate">{props.children}</span>
+    </span>
   )
 }
 
