@@ -18,6 +18,8 @@ export interface Pane {
   sortDir: SortDir
   /** Ce volet affiche-t-il la page Accès rapide plutôt qu'un dossier ? */
   quickAccess: boolean
+  /** Ce volet affiche-t-il la page Lanceur ? */
+  launcher: boolean
   /** Chemins sélectionnés (multi-sélection). */
   selected: string[]
   /** Chemin en cours de renommage (édition en place), ou null. */
@@ -45,6 +47,7 @@ interface NavState {
   silentRefresh: (paneId?: string) => Promise<void>
   /** Rafraîchit tous les volets affichant un dossier (après copie/déplacement). */
   refreshAll: () => void
+  showLauncher: () => void
   goBack: () => void
   goForward: () => void
   goParent: () => void
@@ -76,6 +79,7 @@ function makePane(id: string, sortKey: SortKey = 'name', sortDir: SortDir = 'asc
     sortKey,
     sortDir,
     quickAccess: false,
+    launcher: false,
     selected: [],
     renaming: null
   }
@@ -121,6 +125,7 @@ export const useNavStore = create<NavState>((set, get) => {
         entries: sortEntries(result.entries, p.sortKey, p.sortDir),
         loading: false,
         quickAccess: false,
+        launcher: false,
         selected: [],
         renaming: null,
         back: record && current ? [...p.back, current] : p.back,
@@ -240,7 +245,9 @@ export const useNavStore = create<NavState>((set, get) => {
       patch(pane.id, { sortKey: key, sortDir, entries: sortEntries(pane.entries, key, sortDir) })
     },
 
-    showQuickAccess: () => patch(get().activeId, { quickAccess: true }),
+    showQuickAccess: () => patch(get().activeId, { quickAccess: true, launcher: false }),
+
+    showLauncher: () => patch(get().activeId, { launcher: true, quickAccess: false }),
 
     setSelected: (paths) => patch(get().activeId, { selected: paths }),
 

@@ -33,6 +33,8 @@ export const DEFAULT_CONFIG: AppConfig = {
   projectRoots: [],
   openWith: {},
   workspaces: {},
+  runnerTasks: [],
+  runnerProfiles: [],
   hideGitIgnored: true
 }
 

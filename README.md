@@ -40,6 +40,11 @@ dynamique des shells (PowerShell, PowerShell 7, cmd, Git Bash, WSL), **plusieurs
 onglets**, panneau réductible qui **préserve l'historique**, barre de commande qui
 exécute une commande dans le terminal actif.
 
+**Lanceur** — définis des **tâches** (commande + dossier, ou un script `package.json`
+auto-détecté) et des **profils** (groupes lancés ensemble : front + back…), puis
+lance/arrête via **Play/Stop**. Tout tourne dans le **terminal intégré** (un onglet
+par tâche). Bouton **▶ sur chaque dépôt** de la sidebar pour lancer un script.
+
 **Multi-volets** — ouvre **jusqu'à 3 dossiers côte à côte**, chacun avec sa
 navigation, son historique et sa sélection. Le volet « actif » (cliqué) est celui
 que pilotent la barre d'adresse, Git et la palette — idéal pour comparer ou
@@ -253,6 +258,7 @@ Pour l'activer (si la recompilation a échoué) : installer les *Build Tools* pu
   - Intégrations applications (détectées par chemin d'install) : ouvrir avec VS Code, éditer avec Notepad++, compresser/extraire avec 7-Zip (interface graphique `7zG.exe` → progression native).
   - « Ouvrir avec… » : sélecteur de programme (`.exe`), association **mémorisée par type de fichier** (proposée ensuite pour tous les fichiers du même type).
   - Espaces de travail nommés : enregistrer/restaurer la disposition (dossiers ouverts par volet + Accès rapide + volet actif + panneaux terminal/aperçu/apparence) ; bouton dédié dans la barre d'outils + entrées dans la palette.
+  - Lanceur : tâches (commande ou script package.json) et profils, exécutés dans le terminal intégré (Play/Stop) ; vue dédiée + bouton ▶ par dépôt dans la sidebar + lancement via la palette.
 
 ### ⏳ Ce qu'il reste à faire
 

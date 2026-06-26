@@ -20,11 +20,14 @@ import {
   FolderGit2,
   Columns2,
   LayoutGrid,
+  Rocket,
+  Play,
   Search
 } from 'lucide-react'
 import { useUiStore } from '../state/useUiStore'
 import { useNavStore, activePane } from '../state/useNavStore'
 import { useWorkspaceStore } from '../state/useWorkspaceStore'
+import { useRunnerStore } from '../state/useRunnerStore'
 import { useGitStore } from '../state/useGitStore'
 import { useSearchStore } from '../state/useSearchStore'
 import { useTerminalStore } from '../state/useTerminalStore'
@@ -68,6 +71,7 @@ export default function CommandPalette(): JSX.Element | null {
   const parent = useNavStore((s) => activePane(s).parent)
   const paneCount = useNavStore((s) => s.panes.length)
   const workspaces = useWorkspaceStore((s) => s.workspaces)
+  const runnerTasks = useRunnerStore((s) => s.tasks)
   const showHidden = useNavStore((s) => s.showHidden)
   const hideGitIgnored = useNavStore((s) => s.hideGitIgnored)
   const terminalOpen = useUiStore((s) => s.terminalOpen)
@@ -141,6 +145,7 @@ export default function CommandPalette(): JSX.Element | null {
           void useTerminalStore.getState().openTab()
         }
       },
+      { id: 'launcher', title: 'Lanceur', icon: <Rocket size={15} />, run: () => nav().showLauncher() },
       { id: 'split', title: 'Diviser — nouveau volet', icon: <Columns2 size={15} />, run: () => void nav().addPane() },
       { id: 'preview', title: "Panneau d'aperçu", icon: <PanelRight size={15} />, run: () => ui().togglePreview() },
       { id: 'appearance', title: "Panneau d'apparence", icon: <Palette size={15} />, run: () => ui().toggleAppearance() },
@@ -179,6 +184,15 @@ export default function CommandPalette(): JSX.Element | null {
       })
     }
 
+    for (const t of runnerTasks) {
+      list.push({
+        id: `run-${t.id}`,
+        title: `Lancer : ${t.name}`,
+        icon: <Play size={15} />,
+        run: () => void useRunnerStore.getState().runTask(t.id)
+      })
+    }
+
     for (const name of Object.keys(workspaces)) {
       list.push({
         id: `ws-${name}`,
@@ -199,7 +213,7 @@ export default function CommandPalette(): JSX.Element | null {
     }
 
     return list
-  }, [path, parent, paneCount, workspaces, showHidden, hideGitIgnored, terminalOpen, repo, projects])
+  }, [path, parent, paneCount, workspaces, runnerTasks, showHidden, hideGitIgnored, terminalOpen, repo, projects])
 
   const filtered = useMemo(() => {
     return commands

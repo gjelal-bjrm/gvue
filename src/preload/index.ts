@@ -67,6 +67,8 @@ const api = {
     reveal: (path: string): Promise<void> => ipcRenderer.invoke(IPC.fsReveal, path),
     open: (path: string): Promise<string> => ipcRenderer.invoke(IPC.fsOpen, path),
     probe: (path: string): Promise<PathKind> => ipcRenderer.invoke(IPC.fsProbe, path),
+    packageScripts: (dir: string): Promise<string[]> =>
+      ipcRenderer.invoke(IPC.fsPackageScripts, dir),
     trash: (path: string): Promise<void> => ipcRenderer.invoke(IPC.fsTrash, path),
     preview: (path: string): Promise<PreviewData> => ipcRenderer.invoke(IPC.fsPreview, path),
     icon: (path: string): Promise<string> => ipcRenderer.invoke(IPC.fsIcon, path),

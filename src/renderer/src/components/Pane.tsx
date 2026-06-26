@@ -1,8 +1,9 @@
-import { X, Star } from 'lucide-react'
+import { X, Star, Rocket } from 'lucide-react'
 import { useNavStore } from '../state/useNavStore'
 import { baseName } from '../lib/format'
 import FileList from './FileList'
 import QuickAccessPanel from './QuickAccessPanel'
+import LauncherPanel from './LauncherPanel'
 
 /**
  * Volet de navigation : en-tête (chemin + fermeture, visible en multi-volets)
@@ -34,8 +35,13 @@ export default function Pane({ paneId }: { paneId: string }): JSX.Element | null
           }`}
         >
           {pane.quickAccess && <Star size={11} className="shrink-0 text-accent" />}
+          {pane.launcher && <Rocket size={11} className="shrink-0 text-accent" />}
           <span className="min-w-0 flex-1 truncate" title={pane.path}>
-            {pane.quickAccess ? 'Accès rapide' : baseName(pane.path) || pane.path}
+            {pane.launcher
+              ? 'Lanceur'
+              : pane.quickAccess
+                ? 'Accès rapide'
+                : baseName(pane.path) || pane.path}
           </span>
           <button
             onClick={(e) => {
@@ -50,7 +56,13 @@ export default function Pane({ paneId }: { paneId: string }): JSX.Element | null
         </div>
       )}
       <div className="min-h-0 flex-1">
-        {pane.quickAccess ? <QuickAccessPanel /> : <FileList paneId={paneId} />}
+        {pane.launcher ? (
+          <LauncherPanel />
+        ) : pane.quickAccess ? (
+          <QuickAccessPanel />
+        ) : (
+          <FileList paneId={paneId} />
+        )}
       </div>
     </div>
   )

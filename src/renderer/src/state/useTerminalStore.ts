@@ -22,6 +22,8 @@ interface TerminalState {
 
   loadShells: () => Promise<void>
   openTab: (shellId?: string) => Promise<void>
+  /** Ouvre un onglet pour une tâche (cwd/titre/commande) et renvoie son ptyId. */
+  openTaskTab: (opts: { cwd: string; title: string; command: string }) => Promise<string | null>
   ensureTab: () => Promise<void>
   closeTab: (id: string) => void
   setActive: (id: string) => void
@@ -79,6 +81,37 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
       set((s) => ({ tabs: [...s.tabs, tab], activeId: ptyId, error: null }))
     } catch (e) {
       set({ error: e instanceof Error ? e.message : String(e) })
+    }
+  },
+
+  openTaskTab: async ({ cwd, title, command }) => {
+    if (get().shells.length === 0) await get().loadShells()
+    const shell = get().shells[0]
+    if (!shell) {
+      set({ error: 'Aucun shell disponible.' })
+      return null
+    }
+    try {
+      const ptyId = await window.api.terminal.create({
+        shellPath: shell.path,
+        args: shell.args,
+        cwd: cwd || shell.path,
+        cols: 80,
+        rows: 24
+      })
+      const disposeExit = window.api.terminal.onExit(ptyId, () => {
+        set((s) => ({
+          tabs: s.tabs.map((t) => (t.id === ptyId ? { ...t, exited: true, title: `${title} (terminé)` } : t))
+        }))
+        disposeExit()
+      })
+      const tab: TermTab = { id: ptyId, ptyId, shell, title, exited: false, disposeExit }
+      set((s) => ({ tabs: [...s.tabs, tab], activeId: ptyId, error: null }))
+      window.api.terminal.write(ptyId, command + '\r')
+      return ptyId
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e) })
+      return null
     }
   },
 

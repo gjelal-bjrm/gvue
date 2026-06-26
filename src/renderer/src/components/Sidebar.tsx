@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
-import { Home, Monitor, Download, FileText, HardDrive, Star, FolderGit2, X } from 'lucide-react'
+import { Home, Monitor, Download, FileText, HardDrive, Star, FolderGit2, X, Rocket, Play } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useNavStore, activePane } from '../state/useNavStore'
 import { useSearchStore } from '../state/useSearchStore'
 import { useFavoritesStore } from '../state/useFavoritesStore'
+import { useUiStore } from '../state/useUiStore'
+import { useTerminalStore } from '../state/useTerminalStore'
 import type { GitProject } from '@shared/types'
 import { pathKey, baseName } from '../lib/format'
+import ContextMenu, { type MenuEntry } from './ContextMenu'
 
 /**
  * Sidebar : accès rapide, lecteurs, favoris et projets.
@@ -16,12 +19,15 @@ export default function Sidebar(): JSX.Element {
   const locations = useNavStore((s) => s.locations)
   const navigate = useNavStore((s) => s.navigate)
   const showQuickAccess = useNavStore((s) => s.showQuickAccess)
+  const showLauncher = useNavStore((s) => s.showLauncher)
   const path = useNavStore((s) => activePane(s).path)
   const quickAccess = useNavStore((s) => activePane(s).quickAccess)
+  const launcher = useNavStore((s) => activePane(s).launcher)
   const closeSearch = useSearchStore((s) => s.close)
   const favorites = useFavoritesStore((s) => s.favorites)
   const removeFavorite = useFavoritesStore((s) => s.remove)
   const [projects, setProjects] = useState<GitProject[]>([])
+  const [runMenu, setRunMenu] = useState<{ x: number; y: number; entries: MenuEntry[] } | null>(null)
 
   // Recharge la liste des dépôts à chaque navigation (un dépôt fraîchement
   // visité y apparaît). La mémorisation se fait côté main au git:status.
@@ -45,9 +51,34 @@ export default function Sidebar(): JSX.Element {
     showQuickAccess()
   }
 
+  const openLauncher = (): void => {
+    closeSearch()
+    showLauncher()
+  }
+
+  // Bouton Play d'un projet : propose ses scripts package.json → terminal.
+  const onProjectPlay = async (e: React.MouseEvent, project: GitProject): Promise<void> => {
+    e.stopPropagation()
+    const scripts = await window.api.fs.packageScripts(project.root)
+    const entries: MenuEntry[] = scripts.length
+      ? scripts.map((s) => ({
+          label: `npm run ${s}`,
+          icon: <Play size={14} />,
+          onClick: () => {
+            useUiStore.getState().setTerminalOpen(true)
+            void useTerminalStore
+              .getState()
+              .openTaskTab({ cwd: project.root, title: `${project.name}: ${s}`, command: `npm run ${s}` })
+          }
+        }))
+      : [{ label: 'Aucun script package.json', disabled: true, onClick: () => {} }]
+    setRunMenu({ x: e.clientX, y: e.clientY, entries })
+  }
+
   return (
     <nav className="flex h-full w-full flex-col gap-5 overflow-y-auto bg-bg-secondary p-2.5 text-[13px]">
       <div className="flex flex-col gap-0.5">
+        <Item icon={Rocket} label="Lanceur" active={launcher} onClick={openLauncher} />
         <Item icon={Star} label="Accès rapide" active={quickAccess} onClick={openQuickAccess} />
       </div>
 
@@ -119,12 +150,17 @@ export default function Sidebar(): JSX.Element {
             <ProjectItem
               key={p.root}
               project={p}
-              active={!quickAccess && pathKey(path) === pathKey(p.root)}
+              active={!quickAccess && !launcher && pathKey(path) === pathKey(p.root)}
               onClick={() => navigate(p.root)}
+              onPlay={(e) => void onProjectPlay(e, p)}
             />
           ))
         )}
       </Section>
+
+      {runMenu && (
+        <ContextMenu x={runMenu.x} y={runMenu.y} entries={runMenu.entries} onClose={() => setRunMenu(null)} />
+      )}
     </nav>
   )
 }
@@ -175,23 +211,35 @@ function ProjectItem(props: {
   project: GitProject
   active?: boolean
   onClick: () => void
+  onPlay: (e: React.MouseEvent) => void
 }): JSX.Element {
   const { project } = props
   return (
-    <button
-      onClick={props.onClick}
-      title={`${project.root} · ${project.branch}`}
-      className={`flex items-center gap-2.5 rounded-app px-2 py-[var(--row-pad)] text-left transition-colors ${
+    <div
+      className={`group flex items-center gap-1 rounded-app pr-1 ${
         props.active ? 'bg-accent-soft text-accent' : 'text-fg-secondary hover:bg-bg-hover hover:text-fg'
       }`}
     >
-      <FolderGit2 size={16} className="shrink-0" />
-      <span className="min-w-0 flex-1 truncate">{project.name}</span>
-      <span className="flex shrink-0 items-center gap-1 text-[11px] text-fg-muted">
-        {project.dirty && <span className="text-warning-fg">●</span>}
-        {project.branch}
-      </span>
-    </button>
+      <button
+        onClick={props.onClick}
+        title={`${project.root} · ${project.branch}`}
+        className="flex min-w-0 flex-1 items-center gap-2.5 px-2 py-[var(--row-pad)] text-left"
+      >
+        <FolderGit2 size={16} className="shrink-0" />
+        <span className="min-w-0 flex-1 truncate">{project.name}</span>
+        <span className="flex shrink-0 items-center gap-1 text-[11px] text-fg-muted">
+          {project.dirty && <span className="text-warning-fg">●</span>}
+          {project.branch}
+        </span>
+      </button>
+      <button
+        onClick={props.onPlay}
+        title="Lancer un script du projet"
+        className="grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted opacity-0 hover:bg-bg-hover hover:text-success-fg group-hover:opacity-100"
+      >
+        <Play size={13} />
+      </button>
+    </div>
   )
 }
 

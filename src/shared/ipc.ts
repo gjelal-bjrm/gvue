@@ -8,6 +8,7 @@ export const IPC = {
   fsReveal: 'fs:reveal',
   fsOpen: 'fs:open',
   fsProbe: 'fs:probe',
+  fsPackageScripts: 'fs:packageScripts',
   fsTrash: 'fs:trash',
   fsPreview: 'fs:preview',
   fsIcon: 'fs:icon',

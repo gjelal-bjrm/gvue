@@ -122,6 +122,18 @@ export async function list(input: string): Promise<ListResult> {
   }
 }
 
+/** Noms des scripts du package.json d'un dossier (pour le lanceur). */
+export async function packageScripts(input: string): Promise<string[]> {
+  try {
+    const dir = assertAbsolute(input)
+    const raw = await fs.readFile(path.join(dir, 'package.json'), 'utf8')
+    const pkg = JSON.parse(raw) as { scripts?: Record<string, string> }
+    return pkg.scripts && typeof pkg.scripts === 'object' ? Object.keys(pkg.scripts) : []
+  } catch {
+    return []
+  }
+}
+
 /**
  * Sonde un chemin saisi à la main : renvoie « directory », « file » ou
  * « missing ». Sert à valider la barre d'adresse avant de naviguer.

@@ -112,6 +112,10 @@ export function registerFsHandlers(): void {
     return filesystem.probe(targetPath)
   })
 
+  ipcMain.handle(IPC.fsPackageScripts, async (_e, dir: string) => {
+    return filesystem.packageScripts(dir)
+  })
+
   ipcMain.handle(IPC.fsTrash, async (_e, targetPath: string) => {
     const safe = filesystem.assertAbsolute(targetPath)
     // Corbeille de l'OS (réversible), jamais de suppression définitive.
