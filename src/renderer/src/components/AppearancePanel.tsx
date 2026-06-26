@@ -1,9 +1,32 @@
 import { useState } from 'react'
-import { Palette, Check, X, Save, Trash2 } from 'lucide-react'
+import { Palette, Check, X, Save, Trash2, DownloadCloud } from 'lucide-react'
 import { useAppearanceStore } from '../state/useAppearanceStore'
 import { useUiStore } from '../state/useUiStore'
+import { useUpdateStore } from '../state/useUpdateStore'
 import { ACCENT_SWATCHES, FONT_CHOICES } from '../theme/presets'
-import type { Appearance } from '@shared/types'
+import type { Appearance, UpdateStatus } from '@shared/types'
+
+/** Libellé court de l'état de mise à jour, pour la section « À propos ». */
+function updateLabel(s: UpdateStatus): string {
+  switch (s.state) {
+    case 'checking':
+      return 'Recherche de mises à jour…'
+    case 'available':
+      return `Mise à jour v${s.version} disponible…`
+    case 'downloading':
+      return `Téléchargement… ${s.percent}%`
+    case 'ready':
+      return `Mise à jour v${s.version} prête — redémarrez pour installer`
+    case 'none':
+      return 'À jour ✓'
+    case 'error':
+      return 'Échec de la vérification'
+    case 'unsupported':
+      return 'Mises à jour indisponibles (mode dev)'
+    default:
+      return 'Cliquez sur « Vérifier » pour rechercher'
+  }
+}
 
 /**
  * Panneau d'apparence — entièrement fonctionnel (cf. section 7 de la spec).
@@ -13,6 +36,9 @@ import type { Appearance } from '@shared/types'
 export default function AppearancePanel(): JSX.Element {
   const { appearance, update, savePreset, applyPreset, deletePreset } = useAppearanceStore()
   const closePanel = useUiStore((s) => s.toggleAppearance)
+  const version = useUpdateStore((s) => s.version)
+  const updateStatus = useUpdateStore((s) => s.status)
+  const checkUpdate = useUpdateStore((s) => s.check)
   const [presetName, setPresetName] = useState('')
   const presetNames = Object.keys(appearance.presets)
 
@@ -214,6 +240,23 @@ export default function AppearancePanel(): JSX.Element {
             ))}
           </div>
         )}
+      </Field>
+
+      {/* À propos / version */}
+      <Field label="À propos">
+        <div className="flex items-center justify-between gap-2 rounded-app border border-border bg-bg px-2.5 py-2">
+          <div className="min-w-0">
+            <div className="text-[12px] font-medium text-fg">GVue v{version || '—'}</div>
+            <div className="truncate text-[11px] text-fg-muted">{updateLabel(updateStatus)}</div>
+          </div>
+          <button
+            onClick={checkUpdate}
+            title="Vérifier les mises à jour"
+            className="flex shrink-0 items-center gap-1.5 rounded-app border border-border px-2 py-1.5 text-[12px] text-fg-secondary hover:bg-bg-hover hover:text-fg"
+          >
+            <DownloadCloud size={14} /> Vérifier
+          </button>
+        </div>
       </Field>
     </aside>
   )
