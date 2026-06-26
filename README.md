@@ -295,7 +295,7 @@ Pour l'activer (si la recompilation a échoué) : installer les *Build Tools* pu
   - Favoris gérables depuis l'UI (ajout/retrait via le menu contextuel et la sidebar) ; masquage des fichiers système (`desktop.ini`, `Thumbs.db`…).
   - Intégrations applications (détectées par chemin d'install) : ouvrir avec VS Code, éditer avec Notepad++, compresser/extraire avec 7-Zip (interface graphique `7zG.exe` → progression native).
   - « Ouvrir avec… » : sélecteur de programme (`.exe`), association **mémorisée par type de fichier** (proposée ensuite pour tous les fichiers du même type).
-  - Espaces de travail nommés : enregistrer/restaurer la disposition (dossiers ouverts par volet + Accès rapide + volet actif + panneaux terminal/aperçu/apparence) ; bouton dédié dans la barre d'outils + entrées dans la palette.
+  - Espaces de travail nommés : enregistrent/restaurent un environnement complet — dossiers ouverts par volet + Accès rapide + volet actif, panneaux terminal/aperçu/apparence, **thème & couleur d'accent**, **ordre/repli des sections de la sidebar**, **suivi du dossier ouvert**, et les **terminaux ouverts** (shells + affichage onglets/côte à côte) ; réenregistrement d'un espace existant ; bouton dédié dans la barre d'outils + entrées dans la palette. Les **tailles des zones** sont mémorisées entre les sessions.
   - Lanceur : lancements (commande ou script package.json, avec projet/catégorie) et profils, exécutés dans le terminal intégré (Play/Stop) ; vue dédiée + liste repliable regroupée (projet/catégorie) sous « Lanceur » + ▶ configurable par dépôt (⚙) dans la sidebar + lancement via la palette.
 
 ### ⏳ Ce qu'il reste à faire

@@ -18,6 +18,8 @@ interface SidebarState {
   toggleTreeExpand: () => void
   /** Déplace la section `from` à la position de la section `to`. */
   reorder: (from: string, to: string) => void
+  /** Applique et persiste un état complet (ordre, repli, suivi) — espaces de travail. */
+  applyState: (order?: string[], collapsed?: Record<string, boolean>, treeExpand?: boolean) => void
 }
 
 // Complète/filtre un ordre stocké pour qu'il contienne toutes les clés connues.
@@ -68,5 +70,17 @@ export const useSidebarStore = create<SidebarState>((set, get) => ({
     order.splice(ti, 0, from)
     set({ order })
     void window.api.config.set('sidebarOrder', order)
+  },
+
+  applyState: (order, collapsed, treeExpand) => {
+    const next = {
+      order: order ? normalizeOrder(order) : get().order,
+      collapsed: collapsed ?? get().collapsed,
+      treeExpand: treeExpand ?? get().treeExpand
+    }
+    set(next)
+    void window.api.config.set('sidebarOrder', next.order)
+    void window.api.config.set('sidebarCollapsed', next.collapsed)
+    void window.api.config.set('treeExpandToCurrent', next.treeExpand)
   }
 }))

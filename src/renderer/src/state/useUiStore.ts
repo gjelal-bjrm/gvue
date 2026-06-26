@@ -28,6 +28,7 @@ interface UiState {
   clipboard: FileClipboard | null
   toggleTerminal: () => void
   toggleTerminalSplit: () => void
+  setTerminalSplit: (v: boolean) => void
   setTerminalOpen: (v: boolean) => void
   /** Ouvre le terminal et l'affiche en grand (exécution d'une commande). */
   openTerminalLarge: () => void
@@ -51,6 +52,7 @@ export const useUiStore = create<UiState>((set) => ({
   clipboard: null,
   toggleTerminal: () => set((s) => ({ terminalOpen: !s.terminalOpen })),
   toggleTerminalSplit: () => set((s) => ({ terminalSplit: !s.terminalSplit })),
+  setTerminalSplit: (v) => set({ terminalSplit: v }),
   setTerminalOpen: (v) => set({ terminalOpen: v }),
   openTerminalLarge: () =>
     set((s) => ({

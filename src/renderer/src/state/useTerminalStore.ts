@@ -29,6 +29,8 @@ interface TerminalState {
   /** Ouvre un onglet pour une tâche (cwd/titre/commande) et renvoie son ptyId. */
   openTaskTab: (opts: { cwd: string; title: string; command: string }) => Promise<string | null>
   ensureTab: () => Promise<void>
+  /** Ferme tous les onglets puis rouvre un terminal par shell (espaces de travail). */
+  restore: (shellIds: string[]) => Promise<void>
   closeTab: (id: string) => void
   setActive: (id: string) => void
   /** Écrit dans le terminal actif (ex. depuis la barre de commande). */
@@ -142,6 +144,12 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
     } finally {
       ensuring = false
     }
+  },
+
+  restore: async (shellIds) => {
+    if (get().shells.length === 0) await get().loadShells()
+    for (const t of [...get().tabs]) get().closeTab(t.id)
+    for (const id of shellIds) await get().openTab(id)
   },
 
   closeTab: (id) => {

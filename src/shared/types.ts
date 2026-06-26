@@ -145,13 +145,26 @@ export interface WorkspacePane {
   quickAccess: boolean
 }
 
-/** Espace de travail : disposition des volets + état des panneaux. */
+/** Espace de travail : disposition des volets + état des panneaux + config. */
 export interface WorkspaceData {
   panes: WorkspacePane[]
   activeIndex: number
   terminalOpen: boolean
   previewOpen: boolean
   appearanceOpen: boolean
+  // --- Champs additionnels (optionnels, pour rétrocompatibilité) ---
+  /** Thème/couleur d'accent et autres réglages visuels. */
+  appearance?: Partial<Appearance>
+  /** Option « Suivre le dossier ouvert » de l'arbre. */
+  treeExpand?: boolean
+  /** Ordre des sections de la sidebar. */
+  sidebarOrder?: string[]
+  /** Sections de la sidebar repliées. */
+  sidebarCollapsed?: Record<string, boolean>
+  /** Terminaux affichés côte à côte (sinon onglets). */
+  terminalSplit?: boolean
+  /** Shells des terminaux ouverts (un par onglet), pour les rouvrir. */
+  terminals?: string[]
 }
 
 export interface AppConfig {
