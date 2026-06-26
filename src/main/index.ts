@@ -58,9 +58,10 @@ app.on('before-quit', () => {
 })
 
 app.on('window-all-closed', () => {
-  // Avec le plateau système actif, GVue reste en arrière-plan quand toutes les
-  // fenêtres sont fermées (on quitte via « Quitter GVue » dans le plateau).
-  // Sans plateau (icône absente), on conserve l'ancien comportement.
-  if (trayActive()) return
+  // En production avec le plateau actif, GVue reste en arrière-plan quand toutes
+  // les fenêtres sont fermées (on quitte via « Quitter GVue » dans le plateau).
+  // En dev, on quitte normalement pour ne pas bloquer le redémarrage d'Electron
+  // (verrou d'instance) à chaud.
+  if (app.isPackaged && trayActive()) return
   if (process.platform !== 'darwin') app.quit()
 })

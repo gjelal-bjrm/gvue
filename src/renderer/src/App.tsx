@@ -174,11 +174,14 @@ export default function App(): JSX.Element {
   // profil, charger un espace de travail. Les stores sont (ré)initialisés si
   // l'action arrive avant leur chargement (fenêtre fraîchement ouverte).
   useEffect(() => {
-    const offOpen = window.api.tray.onOpenPath((path) => {
+    // Tolère un preload plus ancien (décalage HMR en dev) : pas de plantage.
+    const tray = window.api.tray
+    if (!tray) return
+    const offOpen = tray.onOpenPath((path) => {
       useSearchStore.getState().close()
       void useNavStore.getState().navigate(path)
     })
-    const offRun = window.api.tray.onRunTask(async (id) => {
+    const offRun = tray.onRunTask(async (id) => {
       let r = useRunnerStore.getState()
       if (!r.tasks.length && !r.profiles.length) {
         await r.init()
@@ -187,7 +190,7 @@ export default function App(): JSX.Element {
       if (r.tasks.some((t) => t.id === id)) void r.runTask(id)
       else if (r.profiles.some((p) => p.id === id)) void r.runProfile(id)
     })
-    const offWs = window.api.tray.onLoadWorkspace(async (name) => {
+    const offWs = tray.onLoadWorkspace(async (name) => {
       let w = useWorkspaceStore.getState()
       if (!w.workspaces[name]) {
         await w.init()
