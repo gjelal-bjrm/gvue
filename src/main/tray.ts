@@ -46,6 +46,7 @@ function sendToWindow(channel: string, payload: string): void {
 function buildMenu(): Menu {
   const folderFreq = getConfig('folderFreq')
   const projectRoots = getConfig('projectRoots')
+  const projectLaunch = getConfig('projectLaunch')
   const tasks = getConfig('runnerTasks')
   const profiles = getConfig('runnerProfiles')
   const workspaces = getConfig('workspaces')
@@ -65,11 +66,25 @@ function buildMenu(): Menu {
     click: () => sendToWindow(IPC.trayOpenPath, p)
   })
 
+  // Un projet : ouvrir le dossier, et lancer sa commande ▶ si elle est définie.
+  const projectItem = (root: string): Electron.MenuItemConstructorOptions => {
+    const cmd = projectLaunch[root]
+    if (!cmd) return folderItem(root)
+    return {
+      label: basename(root) || root,
+      toolTip: root,
+      submenu: [
+        { label: 'Ouvrir le dossier', click: () => sendToWindow(IPC.trayOpenPath, root) },
+        { label: `Lancer : ${cmd}`, click: () => sendToWindow(IPC.trayRunProject, root) }
+      ]
+    }
+  }
+
   return Menu.buildFromTemplate([
     { label: 'Ouvrir GVue', click: () => showWindow() },
     { type: 'separator' },
     { label: 'Accès rapide', submenu: orEmpty(topFolders.map(folderItem)) },
-    { label: 'Projets', submenu: orEmpty(projectRoots.map(folderItem)) },
+    { label: 'Projets', submenu: orEmpty(projectRoots.map(projectItem)) },
     {
       label: 'Lancements',
       submenu: orEmpty([

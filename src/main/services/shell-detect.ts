@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs'
 import * as os from 'node:os'
+import * as path from 'node:path'
 import type { ShellInfo } from '@shared/types'
 
 /**
@@ -9,6 +10,18 @@ import type { ShellInfo } from '@shared/types'
 
 function firstExisting(paths: string[]): string | null {
   return paths.find((p) => existsSync(p)) ?? null
+}
+
+/** Cherche le premier exécutable trouvé dans le PATH (ordre des noms = priorité). */
+function findOnPath(names: string[]): string | null {
+  const dirs = (process.env.PATH ?? '').split(path.delimiter).filter(Boolean)
+  for (const name of names) {
+    for (const dir of dirs) {
+      const full = path.join(dir, name)
+      if (existsSync(full)) return full
+    }
+  }
+  return null
 }
 
 function detectWindows(): ShellInfo[] {
@@ -46,6 +59,11 @@ function detectWindows(): ShellInfo[] {
   const wsl = `${sysRoot}\\System32\\wsl.exe`
   if (existsSync(wsl)) shells.push({ id: 'wsl', label: 'WSL', path: wsl, args: [] })
 
+  // Python (REPL) — via le lanceur « py » (fiable) ou « python » dans le PATH.
+  // « py » d'abord pour éviter le stub Windows Store de python.exe.
+  const python = findOnPath(['py.exe', 'python.exe', 'python3.exe'])
+  if (python) shells.push({ id: 'python', label: 'Python', path: python, args: [] })
+
   return shells
 }
 
@@ -66,6 +84,9 @@ function detectUnix(): ShellInfo[] {
       shells.push({ ...c, args: [] })
     }
   }
+  // Python (REPL) si présent dans le PATH.
+  const python = findOnPath(['python3', 'python'])
+  if (python) shells.push({ id: 'python', label: 'Python', path: python, args: [] })
   return shells
 }
 

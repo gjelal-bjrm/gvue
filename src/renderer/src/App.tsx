@@ -21,7 +21,7 @@ import { useRunnerStore } from './state/useRunnerStore'
 import { useAppearanceStore } from './state/useAppearanceStore'
 import { useUiStore } from './state/useUiStore'
 import { useSearchStore } from './state/useSearchStore'
-import { pathKey } from './lib/format'
+import { pathKey, baseName } from './lib/format'
 import { clipFiles, pasteInto } from './lib/fileActions'
 
 export default function App(): JSX.Element {
@@ -190,6 +190,14 @@ export default function App(): JSX.Element {
       if (r.tasks.some((t) => t.id === id)) void r.runTask(id)
       else if (r.profiles.some((p) => p.id === id)) void r.runProfile(id)
     })
+    const offRunProj = tray.onRunProject(async (root) => {
+      let r = useRunnerStore.getState()
+      if (!Object.keys(r.projectLaunch).length) {
+        await r.init()
+        r = useRunnerStore.getState()
+      }
+      void r.runProject(root, baseName(root))
+    })
     const offWs = tray.onLoadWorkspace(async (name) => {
       let w = useWorkspaceStore.getState()
       if (!w.workspaces[name]) {
@@ -201,6 +209,7 @@ export default function App(): JSX.Element {
     return () => {
       offOpen()
       offRun()
+      offRunProj()
       offWs()
     }
   }, [])

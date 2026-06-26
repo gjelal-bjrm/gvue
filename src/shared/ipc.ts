@@ -74,6 +74,7 @@ export const IPC = {
   // Plateau système (tray) → actions rapides
   trayOpenPath: 'tray:openPath',
   trayRunTask: 'tray:runTask',
+  trayRunProject: 'tray:runProject',
   trayLoadWorkspace: 'tray:loadWorkspace'
 } as const
 

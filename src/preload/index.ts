@@ -216,6 +216,11 @@ const api = {
       ipcRenderer.on(IPC.trayRunTask, listener)
       return () => ipcRenderer.removeListener(IPC.trayRunTask, listener)
     },
+    onRunProject: (cb: (root: string) => void): (() => void) => {
+      const listener = (_e: unknown, root: string): void => cb(root)
+      ipcRenderer.on(IPC.trayRunProject, listener)
+      return () => ipcRenderer.removeListener(IPC.trayRunProject, listener)
+    },
     onLoadWorkspace: (cb: (name: string) => void): (() => void) => {
       const listener = (_e: unknown, name: string): void => cb(name)
       ipcRenderer.on(IPC.trayLoadWorkspace, listener)
