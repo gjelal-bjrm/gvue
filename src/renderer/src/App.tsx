@@ -11,6 +11,7 @@ import AppearancePanel from './components/AppearancePanel'
 import PreviewPanel from './components/PreviewPanel'
 import TerminalPanel from './components/TerminalPanel'
 import CommandPalette from './components/CommandPalette'
+import UpdateBanner from './components/UpdateBanner'
 import { useNavStore, activePane } from './state/useNavStore'
 import { useGitStore } from './state/useGitStore'
 import { useFavoritesStore } from './state/useFavoritesStore'
@@ -21,6 +22,7 @@ import { useRunnerStore } from './state/useRunnerStore'
 import { useAppearanceStore } from './state/useAppearanceStore'
 import { useUiStore } from './state/useUiStore'
 import { useSearchStore } from './state/useSearchStore'
+import { useUpdateStore } from './state/useUpdateStore'
 import { pathKey, baseName } from './lib/format'
 import { clipFiles, pasteInto } from './lib/fileActions'
 
@@ -214,6 +216,11 @@ export default function App(): JSX.Element {
     }
   }, [])
 
+  // Système de mise à jour : statut courant + abonnement aux changements.
+  useEffect(() => {
+    return useUpdateStore.getState().init()
+  }, [])
+
   // Surveillance disque : rafraîchit chaque volet affichant le dossier changé.
   useEffect(() => {
     return window.api.fs.onChange((changedDir) => {
@@ -240,6 +247,7 @@ export default function App(): JSX.Element {
       <TitleBar />
       <Toolbar />
       <CommandBar />
+      <UpdateBanner />
       <CommandPalette />
 
       <div className="min-h-0 flex-1">

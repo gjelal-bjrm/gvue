@@ -23,7 +23,8 @@ import type {
   SearchOptions,
   SearchResultEvent,
   SearchDoneEvent,
-  NavCommand
+  NavCommand,
+  UpdateStatus
 } from '@shared/types'
 
 /**
@@ -225,6 +226,17 @@ const api = {
       const listener = (_e: unknown, name: string): void => cb(name)
       ipcRenderer.on(IPC.trayLoadWorkspace, listener)
       return () => ipcRenderer.removeListener(IPC.trayLoadWorkspace, listener)
+    }
+  },
+  update: {
+    check: (): Promise<void> => ipcRenderer.invoke(IPC.updateCheck),
+    install: (): Promise<void> => ipcRenderer.invoke(IPC.updateInstall),
+    get: (): Promise<{ status: UpdateStatus; version: string }> =>
+      ipcRenderer.invoke(IPC.updateGet),
+    onStatus: (cb: (status: UpdateStatus) => void): (() => void) => {
+      const listener = (_e: unknown, status: UpdateStatus): void => cb(status)
+      ipcRenderer.on(IPC.updateStatus, listener)
+      return () => ipcRenderer.removeListener(IPC.updateStatus, listener)
     }
   }
 }

@@ -8,6 +8,7 @@ import { registerTerminalHandlers } from './ipc/terminal'
 import { registerSearchHandlers } from './ipc/search'
 import { registerGitHandlers } from './ipc/git'
 import { registerAppsHandlers } from './ipc/apps'
+import { registerUpdateHandlers, initAutoUpdate } from './services/updater'
 import { killAll } from './services/pty-manager'
 import { killAllSearches } from './services/search'
 import { closeWatch } from './services/fs-watch'
@@ -24,6 +25,7 @@ function registerIpc(): void {
   registerSearchHandlers()
   registerGitHandlers()
   registerAppsHandlers()
+  registerUpdateHandlers()
 }
 
 // Verrou d'instance unique : un seul *processus* GVue (les fenêtres multiples
@@ -42,6 +44,7 @@ if (!gotLock) {
     registerIpc()
     createTray()
     createWindow()
+    initAutoUpdate()
 
     app.on('activate', () => {
       // macOS : recrée une fenêtre si le dock est cliqué sans fenêtre ouverte.

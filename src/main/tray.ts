@@ -4,6 +4,7 @@ import { IPC } from '@shared/ipc'
 import { getConfig } from './services/config-store'
 import { createWindow } from './window'
 import { appIconPath } from './icon'
+import { checkForUpdates } from './services/updater'
 
 /**
  * Plateau système (tray) : permet à GVue de rester en arrière-plan (fenêtre
@@ -111,6 +112,9 @@ function buildMenu(): Menu {
         }))
       )
     },
+    { type: 'separator' },
+    { label: 'Vérifier les mises à jour', click: () => checkForUpdates(true) },
+    { label: `Version ${app.getVersion()}`, enabled: false },
     { type: 'separator' },
     { label: 'Quitter GVue', click: () => app.quit() }
   ])

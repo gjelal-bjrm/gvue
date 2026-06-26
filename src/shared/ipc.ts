@@ -75,7 +75,13 @@ export const IPC = {
   trayOpenPath: 'tray:openPath',
   trayRunTask: 'tray:runTask',
   trayRunProject: 'tray:runProject',
-  trayLoadWorkspace: 'tray:loadWorkspace'
+  trayLoadWorkspace: 'tray:loadWorkspace',
+
+  // Mises à jour automatiques
+  updateCheck: 'update:check',
+  updateInstall: 'update:install',
+  updateGet: 'update:get',
+  updateStatus: 'update:onStatus'
 } as const
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC]

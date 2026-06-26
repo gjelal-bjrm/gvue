@@ -186,6 +186,17 @@ export interface AppConfig {
   hideGitIgnored: boolean
 }
 
+/** État du système de mise à jour automatique (electron-updater). */
+export type UpdateStatus =
+  | { state: 'idle' }
+  | { state: 'checking' }
+  | { state: 'available'; version: string }
+  | { state: 'none'; version: string }
+  | { state: 'downloading'; percent: number }
+  | { state: 'ready'; version: string }
+  | { state: 'error'; message: string }
+  | { state: 'unsupported' }
+
 /** Données de la page « Accès rapide » (dossiers fréquents + fichiers récents). */
 export interface QuickAccessData {
   frequent: DirEntry[]

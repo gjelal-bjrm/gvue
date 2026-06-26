@@ -204,6 +204,29 @@ install si besoin, `npm run dist`, puis ouverture du dossier `dist/`). Au premie
 build, electron-builder télécharge ses outils (NSIS) ; l'app n'étant pas signée,
 Windows SmartScreen peut afficher un avertissement au premier lancement.
 
+### Mises à jour automatiques
+
+GVue intègre **electron-updater** (flux **GitHub Releases**) : l'app installée
+**vérifie au démarrage** (puis toutes les 6 h) s'il existe une version plus récente,
+la **télécharge** et propose **« Redémarrer et installer »** (bandeau en haut). On
+peut aussi vérifier à la demande via la **palette** ou le **plateau système**. En
+dev (non empaqueté) ou si la dépendance est absente, l'auto-update est simplement
+inactif — l'app fonctionne normalement.
+
+**Publier une mise à jour** (une seule fois par version, plus besoin de réinstaller
+manuellement sur chaque machine) :
+
+```bash
+npm install                       # récupère electron-updater (1re fois)
+# bump du numéro de version dans package.json (ex. 0.1.1)
+set GH_TOKEN=<token GitHub>        # PowerShell : $env:GH_TOKEN="<token>"
+npm run publish                   # build + téléverse l'installeur + latest.yml
+                                  #   sur une release GitHub (gjelal-bjrm/gvue)
+```
+
+Les apps déjà installées détecteront la nouvelle release et se mettront à jour
+seules. (Le `GH_TOKEN` est un *personal access token* avec le scope `repo`.)
+
 ---
 
 ## Terminal natif (node-pty)
