@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LayoutGrid, Save, Trash2 } from 'lucide-react'
+import { LayoutGrid, Save, Trash2, SaveAll, Check } from 'lucide-react'
 import { useWorkspaceStore } from '../state/useWorkspaceStore'
 
 /**
@@ -13,8 +13,15 @@ export default function WorkspaceMenu(): JSX.Element {
   const remove = useWorkspaceStore((s) => s.remove)
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
+  const [saved, setSaved] = useState<string | null>(null)
 
   const names = Object.keys(workspaces)
+  // Réenregistre la disposition actuelle dans un espace existant (écrase).
+  const onOverwrite = (n: string): void => {
+    save(n)
+    setSaved(n)
+    setTimeout(() => setSaved((s) => (s === n ? null : s)), 1200)
+  }
   const onSave = (): void => {
     if (!name.trim()) return
     save(name)
@@ -57,6 +64,13 @@ export default function WorkspaceMenu(): JSX.Element {
                       className="min-w-0 flex-1 truncate px-2 py-1.5 text-left text-fg-secondary hover:text-fg"
                     >
                       {n}
+                    </button>
+                    <button
+                      onClick={() => onOverwrite(n)}
+                      title="Réenregistrer (écraser avec la disposition actuelle)"
+                      className="grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted opacity-0 hover:bg-bg-hover hover:text-accent group-hover:opacity-100"
+                    >
+                      {saved === n ? <Check size={13} className="text-accent" /> : <SaveAll size={13} />}
                     </button>
                     <button
                       onClick={() => remove(n)}
