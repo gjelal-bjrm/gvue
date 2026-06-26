@@ -2,10 +2,12 @@ appId: com.gvue.app
 productName: GVue
 
 # Flux de mise à jour (electron-updater lit la même config) : releases GitHub.
+# releaseType: release -> la release est publiée directement (pas de brouillon).
 publish:
   provider: github
   owner: gjelal-bjrm
   repo: gvue
+  releaseType: release
 
 directories:
   output: dist
