@@ -4,7 +4,6 @@ import {
   Monitor,
   Download,
   FileText,
-  HardDrive,
   Star,
   FolderGit2,
   X,
@@ -163,22 +162,6 @@ export default function Sidebar(): JSX.Element {
     },
     drives: {
       title: 'Lecteurs',
-      body: (
-        <>
-          {locations?.drives.map((d) => (
-            <Item
-              key={d.path}
-              icon={HardDrive}
-              label={d.label}
-              active={isActive(d.path)}
-              onClick={() => navigate(d.path)}
-            />
-          ))}
-        </>
-      )
-    },
-    tree: {
-      title: 'Dossiers',
       body: <FolderTree />
     },
     favorites: {

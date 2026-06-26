@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 
 /** Clés des sections réordonnables/repliables de la sidebar. */
-export const SIDEBAR_SECTIONS = ['thispc', 'drives', 'tree', 'favorites', 'projects'] as const
+export const SIDEBAR_SECTIONS = ['thispc', 'drives', 'favorites', 'projects'] as const
 export type SidebarSection = (typeof SIDEBAR_SECTIONS)[number]
 
 /**
