@@ -1,8 +1,20 @@
 import { useEffect, useState } from 'react'
-import { Rocket, Play, Square, Plus, Trash2, Layers, FileCode, FolderGit2, Tag } from 'lucide-react'
+import {
+  Rocket,
+  Play,
+  Square,
+  Plus,
+  Trash2,
+  Layers,
+  FileCode,
+  FolderGit2,
+  FolderOpen,
+  Tag
+} from 'lucide-react'
 import { useRunnerStore } from '../state/useRunnerStore'
 import { useNavStore, activePane } from '../state/useNavStore'
 import { baseName } from '../lib/format'
+import { commandForFile, joinWin } from '../lib/runfile'
 import type { GitProject } from '@shared/types'
 
 /**
@@ -24,6 +36,7 @@ export default function LauncherPanel(): JSX.Element {
   const [project, setProject] = useState('')
   const [category, setCategory] = useState('')
   const [scripts, setScripts] = useState<string[]>([])
+  const [files, setFiles] = useState<string[]>([])
   const [projects, setProjects] = useState<GitProject[]>([])
 
   const [profileName, setProfileName] = useState('')
@@ -41,17 +54,29 @@ export default function LauncherPanel(): JSX.Element {
     }
   }, [])
 
-  // Scripts package.json détectés pour le dossier saisi.
+  // Scripts package.json et fichiers exécutables détectés pour le dossier saisi.
   useEffect(() => {
     let alive = true
-    window.api.fs
-      .packageScripts(cwd)
-      .then((s) => alive && setScripts(s))
-      .catch(() => alive && setScripts([]))
+    void Promise.all([
+      window.api.fs.packageScripts(cwd),
+      window.api.fs.runnableFiles(cwd)
+    ]).then(([s, f]) => {
+      if (!alive) return
+      setScripts(s)
+      setFiles(f)
+    })
     return () => {
       alive = false
     }
   }, [cwd])
+
+  // Parcourir un fichier exécutable → commande adaptée (et nom si vide).
+  const browse = async (): Promise<void> => {
+    const file = await window.api.fs.pickFile(cwd)
+    if (!file) return
+    setCommand(commandForFile(file))
+    if (!name.trim()) setName(baseName(file))
+  }
 
   const submitTask = (): void => {
     if (!name.trim() || !command.trim() || !cwd.trim()) return
@@ -164,7 +189,35 @@ export default function LauncherPanel(): JSX.Element {
           <div className="flex flex-col gap-1.5">
             <Input value={name} onChange={setName} placeholder="Nom (ex. Front dev)" />
             <Input value={cwd} onChange={setCwd} placeholder="Dossier (cwd)" mono />
-            <Input value={command} onChange={setCommand} placeholder="Commande (ex. npm run dev)" mono />
+            <div className="flex gap-1.5">
+              <div className="min-w-0 flex-1">
+                <Input value={command} onChange={setCommand} placeholder="Commande (ex. npm run dev)" mono />
+              </div>
+              <button
+                onClick={() => void browse()}
+                title="Choisir un fichier à lancer (.bat, .ps1, .exe…)"
+                className="flex shrink-0 items-center gap-1 rounded-app border border-border px-2 text-[12px] text-fg-secondary hover:bg-bg-hover"
+              >
+                <FolderOpen size={13} /> Fichier…
+              </button>
+            </div>
+            {files.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] text-fg-muted">Fichiers :</span>
+                {files.map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => {
+                      setCommand(commandForFile(joinWin(cwd, f)))
+                      if (!name.trim()) setName(f)
+                    }}
+                    className="flex items-center gap-1 rounded-app border border-border px-1.5 py-0.5 text-[11px] text-fg-secondary hover:bg-bg-hover"
+                  >
+                    <Play size={10} /> {f}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="flex gap-1.5">
               <select
                 value={project}

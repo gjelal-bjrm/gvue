@@ -15,7 +15,8 @@ import {
   ChevronRight,
   ChevronDown,
   Tag,
-  FileCode
+  FileCode,
+  FolderOpen
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useNavStore, activePane } from '../state/useNavStore'
@@ -24,6 +25,7 @@ import { useFavoritesStore } from '../state/useFavoritesStore'
 import { useRunnerStore, projKey } from '../state/useRunnerStore'
 import type { GitProject, RunnerTask } from '@shared/types'
 import { pathKey, baseName } from '../lib/format'
+import { commandForFile, joinWin } from '../lib/runfile'
 
 /**
  * Sidebar : lanceur, accès rapide, lecteurs, favoris et projets.
@@ -394,17 +396,28 @@ function LaunchConfigDialog(props: { root: string; name: string; onClose: () => 
 
   const [command, setCommand] = useState(projectLaunch[props.root] ?? '')
   const [scripts, setScripts] = useState<string[]>([])
+  const [files, setFiles] = useState<string[]>([])
 
   useEffect(() => {
     let alive = true
-    window.api.fs
-      .packageScripts(props.root)
-      .then((s) => alive && setScripts(s))
-      .catch(() => alive && setScripts([]))
+    void Promise.all([
+      window.api.fs.packageScripts(props.root),
+      window.api.fs.runnableFiles(props.root)
+    ]).then(([s, f]) => {
+      if (!alive) return
+      setScripts(s)
+      setFiles(f)
+    })
     return () => {
       alive = false
     }
   }, [props.root])
+
+  // Parcourir un fichier exécutable n'importe où → commande adaptée.
+  const browse = async (): Promise<void> => {
+    const file = await window.api.fs.pickFile(props.root)
+    if (file) setCommand(commandForFile(file))
+  }
 
   const save = (run: boolean): void => {
     setProjectCommand(props.root, command)
@@ -427,21 +440,45 @@ function LaunchConfigDialog(props: { root: string; name: string; onClose: () => 
           Commande exécutée d'un clic sur ▶, dans le dossier du projet.
         </p>
 
-        <input
-          value={command}
-          onChange={(e) => setCommand(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') save(true)
-            else if (e.key === 'Escape') props.onClose()
-          }}
-          autoFocus
-          spellCheck={false}
-          placeholder="ex. npm run dev"
-          className="w-full rounded-app border border-border bg-bg px-2 py-1.5 font-mono text-[12px] text-fg outline-none placeholder:text-fg-muted focus:border-accent"
-        />
+        <div className="flex gap-1.5">
+          <input
+            value={command}
+            onChange={(e) => setCommand(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') save(true)
+              else if (e.key === 'Escape') props.onClose()
+            }}
+            autoFocus
+            spellCheck={false}
+            placeholder="ex. npm run dev"
+            className="min-w-0 flex-1 rounded-app border border-border bg-bg px-2 py-1.5 font-mono text-[12px] text-fg outline-none placeholder:text-fg-muted focus:border-accent"
+          />
+          <button
+            onClick={() => void browse()}
+            title="Choisir un fichier à lancer (.bat, .ps1, .exe…)"
+            className="flex shrink-0 items-center gap-1 rounded-app border border-border px-2 text-[12px] text-fg-secondary hover:bg-bg-hover"
+          >
+            <FolderOpen size={13} /> Fichier…
+          </button>
+        </div>
+
+        {files.length > 0 && (
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            <span className="text-[11px] text-fg-muted">Fichiers :</span>
+            {files.map((f) => (
+              <button
+                key={f}
+                onClick={() => setCommand(commandForFile(joinWin(props.root, f)))}
+                className="flex items-center gap-1 rounded-app border border-border px-1.5 py-0.5 text-[11px] text-fg-secondary hover:bg-bg-hover"
+              >
+                <Play size={10} /> {f}
+              </button>
+            ))}
+          </div>
+        )}
 
         {scripts.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1.5">
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
             <span className="text-[11px] text-fg-muted">Scripts :</span>
             {scripts.map((s) => (
               <button

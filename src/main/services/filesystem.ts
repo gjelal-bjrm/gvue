@@ -134,6 +134,26 @@ export async function packageScripts(input: string): Promise<string[]> {
   }
 }
 
+/** Extensions de fichiers directement « lançables » (pour le lanceur). */
+const RUNNABLE_EXT = new Set(['.bat', '.cmd', '.ps1', '.sh', '.exe', '.py', '.js'])
+
+/**
+ * Noms des fichiers exécutables (run.bat, script.ps1, app.exe…) présents
+ * directement dans un dossier, triés. Sert à proposer un fichier à lancer.
+ */
+export async function runnableFiles(input: string): Promise<string[]> {
+  try {
+    const dir = assertAbsolute(input)
+    const items = await fs.readdir(dir, { withFileTypes: true })
+    return items
+      .filter((d) => d.isFile() && RUNNABLE_EXT.has(path.extname(d.name).toLowerCase()))
+      .map((d) => d.name)
+      .sort((a, b) => a.localeCompare(b))
+  } catch {
+    return []
+  }
+}
+
 /**
  * Sonde un chemin saisi à la main : renvoie « directory », « file » ou
  * « missing ». Sert à valider la barre d'adresse avant de naviguer.
