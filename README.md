@@ -36,10 +36,10 @@ milliers d'entrées, tri par colonne (nom, taille, date), dates relatives
 (« hier », « lun. »), bascule des éléments masqués.
 
 **Terminal intégré** — pseudo-terminal réel (`node-pty` + `xterm`), détection
-dynamique des shells (PowerShell, PowerShell 7, cmd, Git Bash, WSL), **plusieurs
-onglets** ou affichage **côte à côte** (colonnes redimensionnables), panneau
-réductible qui **préserve l'historique**, barre de commande qui exécute une
-commande dans le terminal actif.
+dynamique des shells (PowerShell, PowerShell 7, cmd, Git Bash, WSL) avec **shell
+par défaut configurable** (★ dans les sélecteurs), **plusieurs onglets** ou affichage
+**côte à côte** (colonnes redimensionnables), panneau réductible qui **préserve
+l'historique**, barre de commande qui exécute une commande dans le terminal actif.
 
 **Lanceur** — définis des **lancements** (commande + dossier, avec un **projet** et/ou
 une **catégorie**, ou un script `package.json` auto-détecté) et des **profils** (groupes

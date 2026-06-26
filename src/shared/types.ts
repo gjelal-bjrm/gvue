@@ -181,6 +181,8 @@ export interface AppConfig {
   sidebarCollapsed: Record<string, boolean>
   /** Développer l'arbre des dossiers jusqu'au dossier ouvert. */
   treeExpandToCurrent: boolean
+  /** Identifiant du shell par défaut (vide = premier détecté). */
+  defaultShell: string
   hideGitIgnored: boolean
 }
 

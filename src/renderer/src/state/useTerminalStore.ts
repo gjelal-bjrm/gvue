@@ -19,8 +19,12 @@ interface TerminalState {
   tabs: TermTab[]
   activeId: string | null
   error: string | null
+  /** Shell par défaut (id) ; vide = premier détecté. */
+  defaultShellId: string
 
   loadShells: () => Promise<void>
+  /** Définit le shell par défaut (persisté). */
+  setDefaultShell: (id: string) => void
   openTab: (shellId?: string) => Promise<void>
   /** Ouvre un onglet pour une tâche (cwd/titre/commande) et renvoie son ptyId. */
   openTaskTab: (opts: { cwd: string; title: string; command: string }) => Promise<string | null>
@@ -40,21 +44,35 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
   tabs: [],
   activeId: null,
   error: null,
+  defaultShellId: '',
 
   loadShells: async () => {
     try {
-      const shells = await window.api.terminal.shells()
-      set({ shells })
+      const [shells, defaultShell] = await Promise.all([
+        window.api.terminal.shells(),
+        window.api.config.get('defaultShell')
+      ])
+      // Ne garde le défaut que s'il correspond encore à un shell détecté.
+      const valid = shells.some((s) => s.id === defaultShell) ? defaultShell : ''
+      set({ shells, defaultShellId: valid })
     } catch (e) {
       set({ error: e instanceof Error ? e.message : String(e) })
     }
+  },
+
+  setDefaultShell: (id) => {
+    set({ defaultShellId: id })
+    void window.api.config.set('defaultShell', id)
   },
 
   openTab: async (shellId) => {
     const { shells } = get()
     if (shells.length === 0) await get().loadShells()
     const list = get().shells
-    const shell = list.find((s) => s.id === shellId) ?? list[0]
+    const def = get().defaultShellId
+    // Priorité : shell explicitement demandé → shell par défaut → premier détecté.
+    const shell =
+      list.find((s) => s.id === shellId) ?? list.find((s) => s.id === def) ?? list[0]
     if (!shell) {
       set({ error: 'Aucun shell disponible.' })
       return
@@ -86,7 +104,8 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
 
   openTaskTab: async ({ cwd, title, command }) => {
     if (get().shells.length === 0) await get().loadShells()
-    const shell = get().shells[0]
+    const list = get().shells
+    const shell = list.find((s) => s.id === get().defaultShellId) ?? list[0]
     if (!shell) {
       set({ error: 'Aucun shell disponible.' })
       return null

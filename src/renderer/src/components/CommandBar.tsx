@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ChevronDown, TerminalSquare } from 'lucide-react'
+import { ChevronDown, TerminalSquare, Star } from 'lucide-react'
 import { useUiStore } from '../state/useUiStore'
 import { useTerminalStore } from '../state/useTerminalStore'
 
@@ -10,6 +10,8 @@ import { useTerminalStore } from '../state/useTerminalStore'
 export default function CommandBar(): JSX.Element {
   const { terminalOpen, toggleTerminal, openTerminalLarge } = useUiStore()
   const { shells, loadShells } = useTerminalStore()
+  const defaultShellId = useTerminalStore((s) => s.defaultShellId)
+  const setDefaultShell = useTerminalStore((s) => s.setDefaultShell)
   const [shellId, setShellId] = useState<string>('')
   const [menuOpen, setMenuOpen] = useState(false)
   const [command, setCommand] = useState('')
@@ -18,10 +20,10 @@ export default function CommandBar(): JSX.Element {
     void loadShells()
   }, [loadShells])
 
-  // Sélectionne le premier shell détecté par défaut.
+  // Sélectionne le shell par défaut (ou le premier détecté) au démarrage.
   useEffect(() => {
-    if (!shellId && shells.length > 0) setShellId(shells[0].id)
-  }, [shells, shellId])
+    if (!shellId && shells.length > 0) setShellId(defaultShellId || shells[0].id)
+  }, [shells, shellId, defaultShellId])
 
   const currentLabel = shells.find((s) => s.id === shellId)?.label ?? 'Shell'
 
@@ -52,20 +54,45 @@ export default function CommandBar(): JSX.Element {
           <ChevronDown size={13} />
         </button>
         {menuOpen && shells.length > 0 && (
-          <div className="absolute left-0 top-full z-20 mt-1 w-44 overflow-hidden rounded-app border border-border bg-bg-secondary py-1 shadow-lg">
+          <div className="absolute left-0 top-full z-20 mt-1 w-52 overflow-hidden rounded-app border border-border bg-bg-secondary py-1 shadow-lg">
+            <div className="px-3 py-1 text-[10px] uppercase tracking-wider text-fg-muted">
+              ★ = shell par défaut
+            </div>
             {shells.map((s) => (
-              <button
+              <div
                 key={s.id}
-                onMouseDown={() => {
-                  setShellId(s.id)
-                  setMenuOpen(false)
-                }}
-                className={`block w-full px-3 py-1.5 text-left text-[12px] hover:bg-bg-hover ${
-                  s.id === shellId ? 'text-accent' : 'text-fg-secondary'
-                }`}
+                className="group flex items-center pr-1 hover:bg-bg-hover"
               >
-                {s.label}
-              </button>
+                <button
+                  onMouseDown={() => {
+                    setShellId(s.id)
+                    setMenuOpen(false)
+                  }}
+                  className={`min-w-0 flex-1 px-3 py-1.5 text-left text-[12px] ${
+                    s.id === shellId ? 'text-accent' : 'text-fg-secondary'
+                  }`}
+                >
+                  {s.label}
+                </button>
+                <button
+                  onMouseDown={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setDefaultShell(s.id === defaultShellId ? '' : s.id)
+                  }}
+                  title={
+                    s.id === defaultShellId
+                      ? 'Shell par défaut (cliquer pour retirer)'
+                      : 'Définir comme shell par défaut'
+                  }
+                  className="grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted hover:text-accent"
+                >
+                  <Star
+                    size={12}
+                    className={s.id === defaultShellId ? 'fill-accent text-accent' : ''}
+                  />
+                </button>
+              </div>
             ))}
           </div>
         )}

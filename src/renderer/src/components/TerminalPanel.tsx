@@ -11,7 +11,8 @@ import {
   Copy,
   Check,
   Columns2,
-  Square
+  Square,
+  Star
 } from 'lucide-react'
 import { useUiStore } from '../state/useUiStore'
 import { useTerminalStore } from '../state/useTerminalStore'
@@ -29,6 +30,8 @@ export default function TerminalPanel(): JSX.Element {
   const toggleSplit = useUiStore((s) => s.toggleTerminalSplit)
   const { shells, tabs, activeId, error, loadShells, openTab, ensureTab, closeTab, setActive } =
     useTerminalStore()
+  const defaultShellId = useTerminalStore((s) => s.defaultShellId)
+  const setDefaultShell = useTerminalStore((s) => s.setDefaultShell)
   const [menuOpen, setMenuOpen] = useState(false)
   const [copied, setCopied] = useState(false)
 
@@ -98,18 +101,40 @@ export default function TerminalPanel(): JSX.Element {
               <ChevronDown size={11} />
             </button>
             {menuOpen && (
-              <div className="absolute left-0 top-full z-30 mt-1 w-44 overflow-hidden rounded-app border border-border bg-bg-secondary py-1 shadow-lg">
+              <div className="absolute left-0 top-full z-30 mt-1 w-52 overflow-hidden rounded-app border border-border bg-bg-secondary py-1 shadow-lg">
+                <div className="px-3 py-1 text-[10px] uppercase tracking-wider text-fg-muted">
+                  ★ = shell par défaut
+                </div>
                 {shells.map((s) => (
-                  <button
-                    key={s.id}
-                    onMouseDown={() => {
-                      setMenuOpen(false)
-                      void openTab(s.id)
-                    }}
-                    className="block w-full px-3 py-1.5 text-left text-[12px] text-fg-secondary hover:bg-bg-hover hover:text-fg"
-                  >
-                    {s.label}
-                  </button>
+                  <div key={s.id} className="group flex items-center pr-1 hover:bg-bg-hover">
+                    <button
+                      onMouseDown={() => {
+                        setMenuOpen(false)
+                        void openTab(s.id)
+                      }}
+                      className="min-w-0 flex-1 px-3 py-1.5 text-left text-[12px] text-fg-secondary hover:text-fg"
+                    >
+                      {s.label}
+                    </button>
+                    <button
+                      onMouseDown={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        setDefaultShell(s.id === defaultShellId ? '' : s.id)
+                      }}
+                      title={
+                        s.id === defaultShellId
+                          ? 'Shell par défaut (cliquer pour retirer)'
+                          : 'Définir comme shell par défaut'
+                      }
+                      className="grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted hover:text-accent"
+                    >
+                      <Star
+                        size={12}
+                        className={s.id === defaultShellId ? 'fill-accent text-accent' : ''}
+                      />
+                    </button>
+                  </div>
                 ))}
               </div>
             )}

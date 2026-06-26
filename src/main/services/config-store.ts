@@ -39,6 +39,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   sidebarOrder: ['thispc', 'drives', 'tree', 'favorites', 'projects'],
   sidebarCollapsed: {},
   treeExpandToCurrent: true,
+  defaultShell: '',
   hideGitIgnored: true
 }
 
