@@ -29,6 +29,7 @@ import type { GitProject, RunnerTask } from '@shared/types'
 import { pathKey, baseName } from '../lib/format'
 import { commandForFile, joinWin } from '../lib/runfile'
 import FilePickerDialog from './FilePickerDialog'
+import FolderTree from './FolderTree'
 
 /**
  * Sidebar : lanceur, accès rapide, lecteurs, favoris et projets.
@@ -175,6 +176,10 @@ export default function Sidebar(): JSX.Element {
           ))}
         </>
       )
+    },
+    tree: {
+      title: 'Dossiers',
+      body: <FolderTree />
     },
     favorites: {
       title: 'Favoris',

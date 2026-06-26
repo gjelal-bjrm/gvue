@@ -179,6 +179,8 @@ export interface AppConfig {
   sidebarOrder: string[]
   /** Sections de la sidebar repliées (clé → replié). */
   sidebarCollapsed: Record<string, boolean>
+  /** Développer l'arbre des dossiers jusqu'au dossier ouvert. */
+  treeExpandToCurrent: boolean
   hideGitIgnored: boolean
 }
 

@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 
 /** Clés des sections réordonnables/repliables de la sidebar. */
-export const SIDEBAR_SECTIONS = ['thispc', 'drives', 'favorites', 'projects'] as const
+export const SIDEBAR_SECTIONS = ['thispc', 'drives', 'tree', 'favorites', 'projects'] as const
 export type SidebarSection = (typeof SIDEBAR_SECTIONS)[number]
 
 /**
@@ -11,8 +11,11 @@ export type SidebarSection = (typeof SIDEBAR_SECTIONS)[number]
 interface SidebarState {
   order: string[]
   collapsed: Record<string, boolean>
+  /** Développer l'arbre des dossiers jusqu'au dossier ouvert. */
+  treeExpand: boolean
   init: () => Promise<void>
   toggleCollapsed: (key: string) => void
+  toggleTreeExpand: () => void
   /** Déplace la section `from` à la position de la section `to`. */
   reorder: (from: string, to: string) => void
 }
@@ -28,16 +31,18 @@ function normalizeOrder(stored: string[] | undefined): string[] {
 export const useSidebarStore = create<SidebarState>((set, get) => ({
   order: [...SIDEBAR_SECTIONS],
   collapsed: {},
+  treeExpand: true,
 
   init: async () => {
     try {
-      const [order, collapsed] = await Promise.all([
+      const [order, collapsed, treeExpand] = await Promise.all([
         window.api.config.get('sidebarOrder'),
-        window.api.config.get('sidebarCollapsed')
+        window.api.config.get('sidebarCollapsed'),
+        window.api.config.get('treeExpandToCurrent')
       ])
-      set({ order: normalizeOrder(order), collapsed: collapsed ?? {} })
+      set({ order: normalizeOrder(order), collapsed: collapsed ?? {}, treeExpand: treeExpand ?? true })
     } catch {
-      set({ order: [...SIDEBAR_SECTIONS], collapsed: {} })
+      set({ order: [...SIDEBAR_SECTIONS], collapsed: {}, treeExpand: true })
     }
   },
 
@@ -45,6 +50,12 @@ export const useSidebarStore = create<SidebarState>((set, get) => ({
     const collapsed = { ...get().collapsed, [key]: !get().collapsed[key] }
     set({ collapsed })
     void window.api.config.set('sidebarCollapsed', collapsed)
+  },
+
+  toggleTreeExpand: () => {
+    const treeExpand = !get().treeExpand
+    set({ treeExpand })
+    void window.api.config.set('treeExpandToCurrent', treeExpand)
   },
 
   reorder: (from, to) => {

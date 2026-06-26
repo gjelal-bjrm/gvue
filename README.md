@@ -93,8 +93,11 @@ compact), coins (arrondis / carrés), police et taille. Tout est peint via des
 la fenêtre sont également mémorisées.
 
 **Sidebar** — accès rapide (accueil, téléchargements), lecteurs détectés, favoris.
-Les sections (Ce PC, Lecteurs, Favoris, Projets) sont **repliables** et **réordonnables**
-par glisser-déposer (ordre et repli mémorisés).
+Les sections (Ce PC, Lecteurs, **Dossiers**, Favoris, Projets) sont **repliables** et
+**réordonnables** par glisser-déposer (ordre et repli mémorisés). La section **Dossiers**
+est un **arbre** (lecteurs → sous-dossiers chargés à la demande) avec une option
+**« Suivre le dossier ouvert »** qui déplie automatiquement jusqu'au dossier du volet
+actif (activable/désactivable, mémorisée).
 
 ---
 

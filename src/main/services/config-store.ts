@@ -36,8 +36,9 @@ export const DEFAULT_CONFIG: AppConfig = {
   runnerTasks: [],
   runnerProfiles: [],
   projectLaunch: {},
-  sidebarOrder: ['thispc', 'drives', 'favorites', 'projects'],
+  sidebarOrder: ['thispc', 'drives', 'tree', 'favorites', 'projects'],
   sidebarCollapsed: {},
+  treeExpandToCurrent: true,
   hideGitIgnored: true
 }
 
