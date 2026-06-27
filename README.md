@@ -249,7 +249,9 @@ GVue intègre **electron-updater** (flux **GitHub Releases**) : l'app installée
 la **télécharge** et propose **« Redémarrer et installer »** (bandeau en haut). On
 peut aussi vérifier à la demande via la **palette** ou le **plateau système**. En
 dev (non empaqueté) ou si la dépendance est absente, l'auto-update est simplement
-inactif — l'app fonctionne normalement.
+inactif — l'app fonctionne normalement. Après une mise à jour, une **pop-up
+« Nouveautés »** s'affiche **une seule fois** (notes de version depuis
+`src/renderer/src/data/whatsNew.ts`) ; réaccessible via la palette.
 
 **Publier une mise à jour** — le plus simple : double-clic sur **`publish.bat`**
 (assistant guidé : choix de la version, build, téléversement de la release GitHub).

@@ -40,6 +40,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   sidebarCollapsed: {},
   treeExpandToCurrent: true,
   defaultShell: '',
+  lastSeenVersion: '',
   hideGitIgnored: true
 }
 

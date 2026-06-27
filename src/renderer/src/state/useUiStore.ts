@@ -28,6 +28,8 @@ interface UiState {
   diskUsagePath: string | null
   /** Créateur de dossiers en lot ouvert ? */
   folderCreatorOpen: boolean
+  /** Pop-up « Nouveautés » : version depuis laquelle montrer les notes (null = fermée). */
+  whatsNewSince: string | null
   /** Terminaux affichés côte à côte (sinon en onglets, un seul visible). */
   terminalSplit: boolean
   /** Vue Git détaillée (façon GitHub Desktop) affichée à la place des volets ? */
@@ -50,6 +52,7 @@ interface UiState {
   setFileFinder: (v: boolean) => void
   setDiskUsage: (path: string | null) => void
   setFolderCreator: (v: boolean) => void
+  setWhatsNew: (since: string | null) => void
   togglePreview: () => void
   setPreviewOpen: (v: boolean) => void
   setClipboard: (c: FileClipboard | null) => void
@@ -65,6 +68,7 @@ export const useUiStore = create<UiState>((set) => ({
   fileFinderOpen: false,
   diskUsagePath: null,
   folderCreatorOpen: false,
+  whatsNewSince: null,
   terminalSplit: false,
   gitViewOpen: false,
   clipboard: null,
@@ -88,6 +92,7 @@ export const useUiStore = create<UiState>((set) => ({
   setFileFinder: (v) => set({ fileFinderOpen: v }),
   setDiskUsage: (path) => set({ diskUsagePath: path }),
   setFolderCreator: (v) => set({ folderCreatorOpen: v }),
+  setWhatsNew: (since) => set({ whatsNewSince: since }),
   togglePreview: () => set((s) => ({ previewOpen: !s.previewOpen })),
   setPreviewOpen: (v) => set({ previewOpen: v }),
   setClipboard: (c) => set({ clipboard: c })

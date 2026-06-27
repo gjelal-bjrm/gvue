@@ -14,6 +14,7 @@ import CommandPalette from './components/CommandPalette'
 import FileFinder from './components/FileFinder'
 import DiskUsage from './components/DiskUsage'
 import FolderCreator from './components/FolderCreator'
+import WhatsNew from './components/WhatsNew'
 import GitPanel from './components/GitPanel'
 import UpdateBanner from './components/UpdateBanner'
 import { useNavStore, activePane } from './state/useNavStore'
@@ -229,6 +230,16 @@ export default function App(): JSX.Element {
     return useUpdateStore.getState().init()
   }, [])
 
+  // Pop-up « Nouveautés » : une seule fois après une mise à jour (version changée).
+  useEffect(() => {
+    void (async () => {
+      const { version } = await window.api.update.get()
+      const last = await window.api.config.get('lastSeenVersion')
+      if (last && last !== version) useUiStore.getState().setWhatsNew(last)
+      if (last !== version) void window.api.config.set('lastSeenVersion', version)
+    })()
+  }, [])
+
   // Surveillance disque : rafraîchit chaque volet affichant le dossier changé.
   useEffect(() => {
     return window.api.fs.onChange((changedDir) => {
@@ -260,6 +271,7 @@ export default function App(): JSX.Element {
       <FileFinder />
       <DiskUsage />
       <FolderCreator />
+      <WhatsNew />
 
       <div className="min-h-0 flex-1">
         <PanelGroup key={vKey} autoSaveId="gvue:vertical" direction="vertical">

@@ -211,6 +211,8 @@ export interface AppConfig {
   treeExpandToCurrent: boolean
   /** Identifiant du shell par défaut (vide = premier détecté). */
   defaultShell: string
+  /** Dernière version dont les « nouveautés » ont été vues (pour la pop-up de MAJ). */
+  lastSeenVersion: string
   hideGitIgnored: boolean
 }
 
