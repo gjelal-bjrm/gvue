@@ -1,6 +1,6 @@
 import { promises as fs } from 'node:fs'
 import * as path from 'node:path'
-import { assertAbsolute } from './filesystem'
+import { assertAbsolute, normalize } from './filesystem'
 
 /**
  * Opérations sur fichiers (copier / déplacer) pour le glisser-déposer et le
@@ -12,6 +12,8 @@ import { assertAbsolute } from './filesystem'
 export interface FileOpResult {
   ok: number
   errors: string[]
+  /** Couples source→cible réellement effectués (pour l'annulation). */
+  ops?: { from: string; to: string }[]
 }
 
 /** Résultat d'une création/renommage : chemin produit, ou erreur. */
@@ -113,7 +115,7 @@ async function eachInto(
   sameDirIsNoop: boolean
 ): Promise<FileOpResult> {
   const destDir = assertAbsolute(destDirInput)
-  const res: FileOpResult = { ok: 0, errors: [] }
+  const res: FileOpResult = { ok: 0, errors: [], ops: [] }
   for (const raw of paths) {
     try {
       const src = assertAbsolute(raw)
@@ -127,9 +129,35 @@ async function eachInto(
       }
       const target = await uniqueTarget(destDir, path.basename(src))
       await op(src, target)
+      res.ops?.push({ from: src, to: target })
       res.ok++
     } catch (e) {
       res.errors.push(e instanceof Error ? e.message : String(e))
+    }
+  }
+  return res
+}
+
+/**
+ * Renomme une liste d'éléments en une seule opération (renommage en masse) :
+ * applique chaque (chemin → nouveau nom) séquentiellement et renvoie les couples
+ * réellement effectués (source→cible) pour permettre une annulation groupée.
+ * S'arrête à la première erreur, en conservant ce qui a déjà été fait.
+ */
+export async function renameMany(
+  paths: string[],
+  newNames: string[]
+): Promise<FileOpResult> {
+  const res: FileOpResult = { ok: 0, errors: [], ops: [] }
+  for (let i = 0; i < paths.length; i++) {
+    const from = paths[i]
+    const r = await rename(from, newNames[i])
+    if (r.ok && r.path && r.path !== normalize(from)) {
+      res.ops?.push({ from: normalize(from), to: r.path })
+      res.ok++
+    } else if (!r.ok) {
+      res.errors.push(`${path.basename(from)} : ${r.error ?? 'échec'}`)
+      break
     }
   }
   return res

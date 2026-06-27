@@ -28,8 +28,9 @@ import { useAppearanceStore } from './state/useAppearanceStore'
 import { useUiStore } from './state/useUiStore'
 import { useSearchStore } from './state/useSearchStore'
 import { useUpdateStore } from './state/useUpdateStore'
+import Toast from './components/Toast'
 import { pathKey, baseName } from './lib/format'
-import { clipFiles, pasteInto } from './lib/fileActions'
+import { clipFiles, pasteInto, undoLastOp } from './lib/fileActions'
 
 export default function App(): JSX.Element {
   const initNav = useNavStore((s) => s.init)
@@ -132,6 +133,14 @@ export default function App(): JSX.Element {
     const onKey = (e: KeyboardEvent): void => {
       const t = e.target as HTMLElement | null
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
+
+      // Annuler la dernière opération sur fichiers (global, même en Accès rapide).
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'z') {
+        e.preventDefault()
+        void undoLastOp()
+        return
+      }
+
       const s = useNavStore.getState()
       const pane = activePane(s)
       if (pane.quickAccess) return
@@ -272,6 +281,7 @@ export default function App(): JSX.Element {
       <DiskUsage />
       <FolderCreator />
       <WhatsNew />
+      <Toast />
 
       <div className="min-h-0 flex-1">
         <PanelGroup key={vKey} autoSaveId="gvue:vertical" direction="vertical">

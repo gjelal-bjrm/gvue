@@ -36,6 +36,12 @@ interface UiState {
   gitViewOpen: boolean
   /** Fichiers coupés/copiés en attente de collage. */
   clipboard: FileClipboard | null
+  /** Message éphémère (toast) en bas de l'écran, ou null. */
+  toast: string | null
+  /** Jeton incrémenté à chaque toast pour relancer la temporisation de masquage. */
+  toastSeq: number
+  showToast: (message: string) => void
+  clearToast: () => void
   toggleTerminal: () => void
   toggleTerminalSplit: () => void
   setTerminalSplit: (v: boolean) => void
@@ -72,6 +78,10 @@ export const useUiStore = create<UiState>((set) => ({
   terminalSplit: false,
   gitViewOpen: false,
   clipboard: null,
+  toast: null,
+  toastSeq: 0,
+  showToast: (message) => set((s) => ({ toast: message, toastSeq: s.toastSeq + 1 })),
+  clearToast: () => set({ toast: null }),
   toggleTerminal: () => set((s) => ({ terminalOpen: !s.terminalOpen })),
   toggleTerminalSplit: () => set((s) => ({ terminalSplit: !s.terminalSplit })),
   setTerminalSplit: (v) => set({ terminalSplit: v }),

@@ -49,13 +49,19 @@ export default function BulkRenameDialog(props: {
     setBusy(true)
     setError(null)
     try {
+      // N'envoie que les éléments réellement modifiés → une seule opération
+      // annulable (Ctrl+Z) côté processus principal.
+      const paths: string[] = []
+      const targets: string[] = []
       for (let i = 0; i < props.paths.length; i++) {
         if (newNames[i] === names[i]) continue
-        const res = await window.api.fs.rename(props.paths[i], newNames[i])
-        if (!res.ok) {
-          setError(`Échec sur « ${names[i]} » : ${res.error ?? 'erreur'}`)
-          break
-        }
+        paths.push(props.paths[i])
+        targets.push(newNames[i])
+      }
+      const res = await window.api.fs.renameMany(paths, targets)
+      if (res.errors.length > 0) {
+        setError(res.errors[0])
+        return
       }
     } finally {
       setBusy(false)

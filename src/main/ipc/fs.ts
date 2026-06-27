@@ -7,6 +7,7 @@ import * as fileops from '../services/fileops'
 import { readPreview } from '../services/preview'
 import { pushRecent, pushRecentFile, getConfig } from '../services/config-store'
 import { watchDir } from '../services/fs-watch'
+import { pushUndo, undoLast, peekUndo } from '../services/undo-stack'
 
 // Icône minimale pour le glisser-déposer natif (startDrag exige une icône non vide).
 const DRAG_ICON = nativeImage
@@ -133,7 +134,9 @@ export function registerFsHandlers(): void {
   })
 
   ipcMain.handle(IPC.fsMakeDirs, async (_e, baseDir: string, rels: string[]) => {
-    return filesystem.makeDirs(baseDir, rels)
+    const res = await filesystem.makeDirs(baseDir, rels)
+    pushUndo({ kind: 'create', label: `Création de ${res.created} dossier(s)`, paths: res.paths })
+    return res
   })
 
   ipcMain.handle(IPC.fsTrash, async (_e, targetPath: string) => {
@@ -151,24 +154,55 @@ export function registerFsHandlers(): void {
   })
 
   ipcMain.handle(IPC.fsCopy, async (_e, paths: string[], destDir: string) => {
-    return fileops.copy(paths, destDir)
+    const res = await fileops.copy(paths, destDir)
+    pushUndo({
+      kind: 'copy',
+      label: `Copie de ${res.ok} élément(s)`,
+      paths: (res.ops ?? []).map((o) => o.to)
+    })
+    return res
   })
 
   ipcMain.handle(IPC.fsMove, async (_e, paths: string[], destDir: string) => {
-    return fileops.move(paths, destDir)
+    const res = await fileops.move(paths, destDir)
+    pushUndo({ kind: 'move', label: `Déplacement de ${res.ok} élément(s)`, pairs: res.ops ?? [] })
+    return res
   })
 
   ipcMain.handle(IPC.fsRename, async (_e, targetPath: string, newName: string) => {
-    return fileops.rename(targetPath, newName)
+    const res = await fileops.rename(targetPath, newName)
+    const from = filesystem.normalize(targetPath)
+    if (res.ok && res.path && res.path !== from) {
+      pushUndo({
+        kind: 'rename',
+        label: `Renommage de « ${basename(from)} »`,
+        pairs: [{ from, to: res.path }]
+      })
+    }
+    return res
+  })
+
+  ipcMain.handle(IPC.fsRenameMany, async (_e, paths: string[], newNames: string[]) => {
+    const res = await fileops.renameMany(paths, newNames)
+    pushUndo({ kind: 'rename', label: `Renommage de ${res.ok} élément(s)`, pairs: res.ops ?? [] })
+    return res
   })
 
   ipcMain.handle(IPC.fsCreateFile, async (_e, dir: string, base: string) => {
-    return fileops.createFile(dir, base)
+    const res = await fileops.createFile(dir, base)
+    if (res.ok && res.path) pushUndo({ kind: 'create', label: 'Nouveau fichier', paths: [res.path] })
+    return res
   })
 
   ipcMain.handle(IPC.fsCreateDir, async (_e, dir: string, base: string) => {
-    return fileops.createDir(dir, base)
+    const res = await fileops.createDir(dir, base)
+    if (res.ok && res.path) pushUndo({ kind: 'create', label: 'Nouveau dossier', paths: [res.path] })
+    return res
   })
+
+  ipcMain.handle(IPC.fsUndo, async () => undoLast())
+
+  ipcMain.handle(IPC.fsUndoPeek, async () => peekUndo())
 
   // Raccourci Windows (.lnk) vers l'élément, dans son dossier (ou un dossier cible).
   ipcMain.handle(IPC.fsCreateShortcut, async (_e, targetPath: string, destDir?: string) => {

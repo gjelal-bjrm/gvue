@@ -28,7 +28,9 @@ import type {
   SearchDoneEvent,
   NavCommand,
   UpdateStatus,
-  RendererErrorReport
+  RendererErrorReport,
+  UndoInfo,
+  UndoResult
 } from '@shared/types'
 
 /**
@@ -92,6 +94,10 @@ const api = {
       ipcRenderer.invoke(IPC.fsMove, paths, destDir),
     rename: (path: string, newName: string): Promise<CreateResult> =>
       ipcRenderer.invoke(IPC.fsRename, path, newName),
+    renameMany: (paths: string[], newNames: string[]): Promise<FileOpResult> =>
+      ipcRenderer.invoke(IPC.fsRenameMany, paths, newNames),
+    undo: (): Promise<UndoResult> => ipcRenderer.invoke(IPC.fsUndo),
+    undoPeek: (): Promise<UndoInfo> => ipcRenderer.invoke(IPC.fsUndoPeek),
     createFile: (dir: string, base: string): Promise<CreateResult> =>
       ipcRenderer.invoke(IPC.fsCreateFile, dir, base),
     createDir: (dir: string, base: string): Promise<CreateResult> =>

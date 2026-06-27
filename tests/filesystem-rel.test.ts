@@ -2,7 +2,12 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { promises as fs } from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
-import { cleanRel, isSafeRel, makeDirs } from '../src/main/services/filesystem'
+import {
+  cleanRel,
+  isSafeRel,
+  makeDirs,
+  dedupeNestedPaths
+} from '../src/main/services/filesystem'
 
 describe('cleanRel', () => {
   it('unifie les séparateurs et nettoie les bords', () => {
@@ -71,5 +76,38 @@ describe('makeDirs', () => {
     const res = await makeDirs('relative/path', ['x'])
     expect(res.created).toBe(0)
     expect(res.errors.length).toBe(1)
+  })
+
+  it('renvoie la racine réellement créée (ancêtre le plus haut)', async () => {
+    const res = await makeDirs(base, ['a/b/c'])
+    const norm = res.paths.map((p) => p.replace(/\\/g, '/'))
+    expect(norm).toEqual([path.join(base, 'a').replace(/\\/g, '/')])
+  })
+
+  it('ne signale pas comme créée une racine préexistante', async () => {
+    await fs.mkdir(path.join(base, 'pre'))
+    const res = await makeDirs(base, ['pre/sub'])
+    const norm = res.paths.map((p) => p.replace(/\\/g, '/'))
+    // « pre » existait : la racine créée est « pre/sub », pas « pre ».
+    expect(norm).toEqual([path.join(base, 'pre', 'sub').replace(/\\/g, '/')])
+  })
+})
+
+describe('dedupeNestedPaths', () => {
+  it('retire les descendants', () => {
+    expect(dedupeNestedPaths(['/a', '/a/b', '/a/b/c'])).toEqual(['/a'])
+  })
+  it('retire les doublons exacts (garde le premier)', () => {
+    expect(dedupeNestedPaths(['/a', '/a'])).toEqual(['/a'])
+  })
+  it('conserve les chemins frères', () => {
+    expect(dedupeNestedPaths(['/a', '/b'])).toEqual(['/a', '/b'])
+  })
+  it('gère les séparateurs Windows', () => {
+    expect(dedupeNestedPaths(['C:\\x', 'C:\\x\\y'])).toEqual(['C:\\x'])
+  })
+  it('ne confond pas les préfixes partiels', () => {
+    // « /ab » n'est pas sous « /a ».
+    expect(dedupeNestedPaths(['/a', '/ab'])).toEqual(['/a', '/ab'])
   })
 })

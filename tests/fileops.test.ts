@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { promises as fs } from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
-import { freeName, rename, copy, move } from '../src/main/services/fileops'
+import { freeName, rename, copy, move, renameMany } from '../src/main/services/fileops'
 
 let dir = ''
 
@@ -73,6 +73,46 @@ describe('rename', () => {
     await touch(f)
     const res = await rename(f, 'a.txt')
     expect(res.ok).toBe(true)
+  })
+})
+
+describe('renameMany', () => {
+  it('renomme une série et renvoie les couples source→cible', async () => {
+    const a = path.join(dir, 'a.txt')
+    const b = path.join(dir, 'b.txt')
+    await touch(a)
+    await touch(b)
+    const res = await renameMany([a, b], ['x.txt', 'y.txt'])
+    expect(res.ok).toBe(2)
+    expect(res.errors).toEqual([])
+    expect(res.ops).toHaveLength(2)
+    expect(res.ops?.map((o) => path.basename(o.to))).toEqual(['x.txt', 'y.txt'])
+    expect(await exists(path.join(dir, 'x.txt'))).toBe(true)
+    expect(await exists(path.join(dir, 'y.txt'))).toBe(true)
+  })
+
+  it('s’arrête à la première erreur en conservant ce qui a été fait', async () => {
+    const a = path.join(dir, 'a.txt')
+    const b = path.join(dir, 'b.txt')
+    await touch(a)
+    await touch(b)
+    await touch(path.join(dir, 'c.txt')) // occupe la cible du 2e renommage
+    // a→z réussit ; b→c échoue (c.txt existe) → on garde le 1er renommage.
+    const res = await renameMany([a, b], ['z.txt', 'c.txt'])
+    expect(res.ok).toBe(1)
+    expect(res.errors.length).toBe(1)
+    expect(res.ops).toHaveLength(1)
+    expect(await exists(path.join(dir, 'z.txt'))).toBe(true)
+  })
+
+  it('les couples permettent de défaire (rename inverse)', async () => {
+    const a = path.join(dir, 'a.txt')
+    await touch(a)
+    const res = await renameMany([a], ['b.txt'])
+    // Simule l'annulation : remet la cible vers la source.
+    for (const op of res.ops ?? []) await fs.rename(op.to, op.from)
+    expect(await exists(a)).toBe(true)
+    expect(await exists(path.join(dir, 'b.txt'))).toBe(false)
   })
 })
 

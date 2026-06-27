@@ -28,7 +28,8 @@ import {
   PieChart,
   FolderPlus,
   Sparkles,
-  FileText
+  FileText,
+  Undo2
 } from 'lucide-react'
 import { useUiStore } from '../state/useUiStore'
 import { useNavStore, activePane } from '../state/useNavStore'
@@ -39,6 +40,7 @@ import { useGitStore } from '../state/useGitStore'
 import { useSearchStore } from '../state/useSearchStore'
 import { useTerminalStore } from '../state/useTerminalStore'
 import { useAppearanceStore } from '../state/useAppearanceStore'
+import { undoLastOp } from '../lib/fileActions'
 import type { GitProject } from '@shared/types'
 
 interface Command {
@@ -159,6 +161,7 @@ export default function CommandPalette(): JSX.Element | null {
       { id: 'make-folders', title: 'Créer des dossiers…', icon: <FolderPlus size={15} />, run: () => ui().setFolderCreator(true) },
       { id: 'check-update', title: 'Vérifier les mises à jour', icon: <DownloadCloud size={15} />, run: () => useUpdateStore.getState().check() },
       { id: 'whats-new', title: 'Nouveautés…', icon: <Sparkles size={15} />, run: () => ui().setWhatsNew('') },
+      { id: 'undo', title: 'Annuler la dernière opération', hint: 'Ctrl+Z', icon: <Undo2 size={15} />, run: () => void undoLastOp() },
       { id: 'open-log', title: 'Ouvrir le journal de diagnostic', icon: <FileText size={15} />, run: () => void window.api.log.path().then((p) => window.api.fs.reveal(p)) },
       { id: 'split', title: 'Diviser — nouveau volet', icon: <Columns2 size={15} />, run: () => void nav().addPane() },
       { id: 'preview', title: "Panneau d'aperçu", icon: <PanelRight size={15} />, run: () => ui().togglePreview() },

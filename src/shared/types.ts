@@ -50,6 +50,29 @@ export interface UsageEntry {
 export interface FileOpResult {
   ok: number
   errors: string[]
+  /** Couples source→cible réellement effectués (pour l'annulation). */
+  ops?: { from: string; to: string }[]
+}
+
+/** Résultat d'une création de dossiers en lot (avec les racines créées). */
+export interface MakeDirsResult {
+  created: number
+  errors: string[]
+  /** Racines réellement créées (ancêtre le plus haut), pour l'annulation. */
+  paths: string[]
+}
+
+/** État de la pile d'annulation, pour l'UI (libellé de la prochaine annulation). */
+export interface UndoInfo {
+  canUndo: boolean
+  label?: string
+}
+
+/** Résultat d'une annulation. */
+export interface UndoResult {
+  ok: boolean
+  label?: string
+  error?: string
 }
 
 /** Résultat d'une création/renommage : chemin produit, ou erreur. */

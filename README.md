@@ -73,8 +73,12 @@ instances de GVue** et **depuis/vers l'explorateur Windows** (drag de sortie via
 `webContents.startDrag`, drop entrant via `webUtils`). Maj = déplacer, sinon
 copier. **Couper / copier / coller** (Ctrl+X/C/V ou menu contextuel). Menu sur la
 **zone vide** (nouveau fichier/dossier, coller, actualiser). Jamais d'écrasement :
-collision → « nom (copie) ». Suppression vers la corbeille (Suppr). **Renommage en
-masse** (rechercher/remplacer + regex, préfixe/suffixe, numérotation, avec aperçu).
+collision → « nom (copie) ». Suppression vers la corbeille (Suppr). **Annuler la
+dernière opération** (**Ctrl+Z** ou palette) : renommage (simple ou en masse),
+déplacement, copie et création de dossiers/fichiers reviennent en arrière (les
+créations/copies repartent à la corbeille), avec confirmation par message éphémère.
+**Renommage en masse** (rechercher/remplacer + regex, préfixe/suffixe,
+numérotation, avec aperçu).
 **Analyse de l'espace disque** : tailles des dossiers calculées récursivement, triées,
 avec barres proportionnelles et descente dans l'arborescence (menu dossier ou palette).
 **Création de dossiers en lot** : motif avec jetons (`{n}` numéro, `{name}` depuis une

@@ -241,23 +241,49 @@ export async function complete(input: string, token: string, sep: string): Promi
   }
 }
 
+/** Élimine les chemins qui sont des descendants (ou doublons) d'un autre. */
+export function dedupeNestedPaths(paths: string[]): string[] {
+  const norm = (p: string): string => p.replace(/\\/g, '/').replace(/\/+$/, '')
+  const all = paths.map(norm)
+  const isUnder = (a: string, b: string): boolean => a !== b && (a + '/').startsWith(b + '/')
+  const keep: string[] = []
+  for (let i = 0; i < paths.length; i++) {
+    const p = all[i]
+    const covered = all.some((q, j) => j !== i && (isUnder(p, q) || (p === q && j < i)))
+    if (!covered) keep.push(paths[i])
+  }
+  return keep
+}
+
+async function pathExists(p: string): Promise<boolean> {
+  try {
+    await fs.access(p)
+    return true
+  } catch {
+    return false
+  }
+}
+
 /**
  * Crée en lot des dossiers (chemins relatifs, récursifs façon « mkdir -p ») sous
  * `baseInput`. Refuse toute remontée hors du dossier de base. Renvoie le nombre
- * créé et les erreurs éventuelles.
+ * créé, les erreurs, et les **racines réellement créées** (l'ancêtre le plus haut
+ * qui n'existait pas) — ce qui permet une annulation propre sans toucher à
+ * d'éventuels dossiers préexistants.
  */
 export async function makeDirs(
   baseInput: string,
   rels: string[]
-): Promise<{ created: number; errors: string[] }> {
+): Promise<{ created: number; errors: string[]; paths: string[] }> {
   let base: string
   try {
     base = assertAbsolute(baseInput)
   } catch {
-    return { created: 0, errors: ['Dossier de base invalide.'] }
+    return { created: 0, errors: ['Dossier de base invalide.'], paths: [] }
   }
   let created = 0
   const errors: string[] = []
+  const roots: string[] = []
   for (const rel of rels) {
     const clean = cleanRel(rel)
     if (!clean) continue
@@ -266,13 +292,25 @@ export async function makeDirs(
       continue
     }
     try {
+      // Repère l'ancêtre le plus haut qui n'existe pas encore : c'est lui qu'on
+      // créera réellement (et qu'il faudra retirer pour annuler).
+      let createdRoot: string | null = null
+      let acc = base
+      for (const seg of clean.split('/')) {
+        acc = path.join(acc, seg)
+        if (!(await pathExists(acc))) {
+          createdRoot = acc
+          break
+        }
+      }
       await fs.mkdir(path.join(base, clean), { recursive: true })
       created++
+      if (createdRoot) roots.push(createdRoot)
     } catch (e) {
       errors.push(`${rel} : ${e instanceof Error ? e.message : String(e)}`)
     }
   }
-  return { created, errors }
+  return { created, errors, paths: dedupeNestedPaths(roots) }
 }
 
 /** Taille récursive d'un dossier (en octets). Ne suit pas les liens symboliques. */
