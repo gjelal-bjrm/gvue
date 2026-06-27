@@ -28,6 +28,7 @@ import {
   FolderInput,
   TerminalSquare,
   Filter,
+  PieChart,
   X
 } from 'lucide-react'
 import { useNavStore, type SortKey } from '../state/useNavStore'
@@ -536,6 +537,11 @@ export default function FileList(props: { paneId: string }): JSX.Element {
               label: 'Ouvrir un terminal ici',
               icon: <TerminalSquare size={14} />,
               onClick: () => openTerminalHere(entry.path)
+            } as MenuEntry,
+            {
+              label: "Analyser l'espace disque",
+              icon: <PieChart size={14} />,
+              onClick: () => useUiStore.getState().setDiskUsage(entry.path)
             } as MenuEntry
           ]
         : []),

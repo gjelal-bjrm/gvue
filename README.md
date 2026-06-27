@@ -73,7 +73,10 @@ instances de GVue** et **depuis/vers l'explorateur Windows** (drag de sortie via
 `webContents.startDrag`, drop entrant via `webUtils`). Maj = déplacer, sinon
 copier. **Couper / copier / coller** (Ctrl+X/C/V ou menu contextuel). Menu sur la
 **zone vide** (nouveau fichier/dossier, coller, actualiser). Jamais d'écrasement :
-collision → « nom (copie) ». Suppression vers la corbeille (Suppr).
+collision → « nom (copie) ». Suppression vers la corbeille (Suppr). **Renommage en
+masse** (rechercher/remplacer + regex, préfixe/suffixe, numérotation, avec aperçu).
+**Analyse de l'espace disque** : tailles des dossiers calculées récursivement, triées,
+avec barres proportionnelles et descente dans l'arborescence (menu dossier ou palette).
 
 **Recherche** — recherche de contenu via **ripgrep** (`@vscode/ripgrep`), lancée
 depuis la barre d'outils sur le dossier courant : bascules casse / mot entier /
@@ -292,7 +295,7 @@ Pour l'activer (si la recompilation a échoué) : installer les *Build Tools* pu
 | **3. Recherche** | ✅ **Fait** | `@vscode/ripgrep`, recherche contenu streamée, résultats cliquables groupés par fichier |
 | **4. Git** | ✅ **Fait** | Badges par fichier, branche + avance/retard, commit/pull/push, menu contextuel, masquage `.gitignore`, détection des dépôts |
 | **5. Personnalisation** | ✅ **Fait** | Apparence, presets nommés, opacité réelle, tailles de zones mémorisées |
-| **6. Pro** | 🟡 **Partiel** | Palette, aperçu, multi-volets, intégrations, espaces de travail enrichis, Lanceur, multi-fenêtres, plateau système, packaging + auto-update faits ; reste : commandes perso, barre IA, carte disque, SSH/SFTP |
+| **6. Pro** | 🟡 **Partiel** | Palette, aperçu, multi-volets, intégrations, espaces de travail enrichis, Lanceur, multi-fenêtres, plateau système, packaging + auto-update, renommage en masse, analyse d'espace disque faits ; reste : commandes perso, barre IA, SSH/SFTP |
 
 ### ✅ Ce qui est fait
 
@@ -349,11 +352,10 @@ Pour l'activer (si la recompilation a échoué) : installer les *Build Tools* pu
 ### ⏳ Ce qu'il reste à faire
 
 - **Phase 6 — Pro (reliquat)** : commandes personnalisées, barre IA (Ollama,
-  commande validée avant exécution), carte de l'espace disque, renommage en masse,
-  accès SSH/SFTP.
+  commande validée avant exécution), accès SSH/SFTP.
 - **Affinages possibles** : taille des zones **par espace de travail** (aujourd'hui
   globale), surveillance disque temps réel via `chokidar` (au lieu de `fs.watch`),
-  navigation clavier dans la liste, signature de code (supprimer l'avertissement
+  treemap visuel pour l'espace disque, signature de code (supprimer l'avertissement
   SmartScreen), tests automatisés des services purs.
 
 ---

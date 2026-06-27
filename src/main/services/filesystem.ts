@@ -1,7 +1,7 @@
 import { promises as fs, constants as fsConstants } from 'node:fs'
 import * as path from 'node:path'
 import * as os from 'node:os'
-import type { DirEntry, ListResult, DriveInfo, PathKind, TreeEntry } from '@shared/types'
+import type { DirEntry, ListResult, DriveInfo, PathKind, TreeEntry, UsageEntry } from '@shared/types'
 
 /**
  * Service système de fichiers — logique pure, sans Electron.
@@ -222,6 +222,69 @@ export async function complete(input: string, token: string, sep: string): Promi
   } catch {
     return []
   }
+}
+
+/** Taille récursive d'un dossier (en octets). Ne suit pas les liens symboliques. */
+async function dirSizeRec(dir: string): Promise<number> {
+  let items: import('node:fs').Dirent[]
+  try {
+    items = await fs.readdir(dir, { withFileTypes: true })
+  } catch {
+    return 0
+  }
+  const sizes = await Promise.all(
+    items.map(async (it) => {
+      const full = path.join(dir, it.name)
+      if (it.isDirectory()) return dirSizeRec(full)
+      if (it.isFile()) {
+        try {
+          return (await fs.stat(full)).size
+        } catch {
+          return 0
+        }
+      }
+      return 0
+    })
+  )
+  return sizes.reduce((a, b) => a + b, 0)
+}
+
+/**
+ * Analyse de l'espace disque d'un dossier : ses enfants directs avec leur taille
+ * (récursive pour les dossiers), triés du plus gros au plus petit.
+ */
+export async function usage(input: string): Promise<UsageEntry[]> {
+  let root: string
+  try {
+    root = assertAbsolute(input)
+  } catch {
+    return []
+  }
+  let items: import('node:fs').Dirent[]
+  try {
+    items = await fs.readdir(root, { withFileTypes: true })
+  } catch {
+    return []
+  }
+  const out = await Promise.all(
+    items.map(async (it): Promise<UsageEntry | null> => {
+      const full = path.join(root, it.name)
+      if (it.isDirectory()) {
+        return { name: it.name, path: full.replace(/\\/g, '/'), dir: true, size: await dirSizeRec(full) }
+      }
+      if (it.isFile()) {
+        let size = 0
+        try {
+          size = (await fs.stat(full)).size
+        } catch {
+          /* ignore */
+        }
+        return { name: it.name, path: full.replace(/\\/g, '/'), dir: false, size }
+      }
+      return null // liens/spéciaux ignorés
+    })
+  )
+  return out.filter((e): e is UsageEntry => e !== null).sort((a, b) => b.size - a.size)
 }
 
 /**

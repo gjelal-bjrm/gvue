@@ -12,6 +12,7 @@ import PreviewPanel from './components/PreviewPanel'
 import TerminalPanel from './components/TerminalPanel'
 import CommandPalette from './components/CommandPalette'
 import FileFinder from './components/FileFinder'
+import DiskUsage from './components/DiskUsage'
 import GitPanel from './components/GitPanel'
 import UpdateBanner from './components/UpdateBanner'
 import { useNavStore, activePane } from './state/useNavStore'
@@ -256,6 +257,7 @@ export default function App(): JSX.Element {
       <UpdateBanner />
       <CommandPalette />
       <FileFinder />
+      <DiskUsage />
 
       <div className="min-h-0 flex-1">
         <PanelGroup key={vKey} autoSaveId="gvue:vertical" direction="vertical">

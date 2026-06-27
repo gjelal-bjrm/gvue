@@ -29,6 +29,14 @@ export interface TreeEntry {
   dir: boolean
 }
 
+/** Taille (récursive pour les dossiers) d'un enfant — analyse d'espace disque. */
+export interface UsageEntry {
+  name: string
+  path: string
+  dir: boolean
+  size: number
+}
+
 /** Résultat d'une opération copier/déplacer : nombre traité + erreurs. */
 export interface FileOpResult {
   ok: number

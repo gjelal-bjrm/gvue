@@ -12,6 +12,7 @@ export const IPC = {
   fsRunnableFiles: 'fs:runnableFiles',
   fsComplete: 'fs:complete',
   fsListTree: 'fs:listTree',
+  fsUsage: 'fs:usage',
   fsTrash: 'fs:trash',
   fsPreview: 'fs:preview',
   fsIcon: 'fs:icon',
