@@ -16,6 +16,7 @@ personnalisable. 100 % local, aucun appel réseau sortant hors fonctions explici
 ## Sommaire
 
 - [Aperçu des fonctionnalités](#aperçu-des-fonctionnalités)
+- [Téléchargement et installation](#téléchargement-et-installation)
 - [Stack technique](#stack-technique)
 - [Architecture](#architecture)
 - [Structure du projet](#structure-du-projet)
@@ -127,6 +128,21 @@ par glisser-déposer (ordre et repli mémorisés). La section **Lecteurs** est u
 (lecteurs → sous-dossiers chargés à la demande) avec une option **« Suivre le dossier
 ouvert »** qui déplie automatiquement jusqu'au dossier du volet actif (activable/
 désactivable, mémorisée).
+
+---
+
+## Téléchargement et installation
+
+Les versions de GVue sont publiées sur la page
+**[Releases](https://github.com/gjelal-bjrm/gvue/releases)** (installeur Windows
+`GVue-Setup-*.exe`).
+
+Les installeurs Windows sont **signés numériquement** grâce à un certificat fourni
+gratuitement par **[SignPath Foundation](https://signpath.org/)**, dans le cadre de
+son programme pour les projets open-source ; la signature est assurée par la CI
+(voir [SIGNING.md](SIGNING.md)). Tant que cette mise en place est en cours, les
+installeurs ne sont pas encore signés — vérifiez alors l'intégrité via les sommes
+**SHA-256** publiées sur la release.
 
 ---
 
