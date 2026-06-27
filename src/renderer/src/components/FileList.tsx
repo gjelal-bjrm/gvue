@@ -26,6 +26,7 @@ import {
   FileDown,
   AppWindow,
   FolderInput,
+  TerminalSquare,
   X
 } from 'lucide-react'
 import { useNavStore, type SortKey } from '../state/useNavStore'
@@ -33,6 +34,7 @@ import { useAppearanceStore } from '../state/useAppearanceStore'
 import { useGitStore } from '../state/useGitStore'
 import type { DirEntry, GitCategory, GitFileChange } from '@shared/types'
 import { useUiStore } from '../state/useUiStore'
+import { useTerminalStore } from '../state/useTerminalStore'
 import { formatSize, formatRelativeDate, formatDate, pathKey } from '../lib/format'
 import { fileIconSpec } from '../lib/fileIcon'
 import { useOsIcon } from '../lib/osIcons'
@@ -246,6 +248,12 @@ export default function FileList(props: { paneId: string }): JSX.Element {
     }
   }
 
+  // Ouvre un terminal intégré directement dans un dossier donné.
+  const openTerminalHere = (dir: string): void => {
+    useUiStore.getState().setTerminalOpen(true)
+    void useTerminalStore.getState().openTab(undefined, dir)
+  }
+
   // Rafraîchit statut Git + liste après une action (stage/discard/corbeille…).
   const refreshAfter = async (): Promise<void> => {
     await useGitStore.getState().refresh(path)
@@ -430,6 +438,11 @@ export default function FileList(props: { paneId: string }): JSX.Element {
     },
     { label: 'Actualiser', icon: <RefreshCw size={14} />, onClick: () => useNavStore.getState().refresh() },
     {
+      label: 'Ouvrir un terminal ici',
+      icon: <TerminalSquare size={14} />,
+      onClick: () => openTerminalHere(path)
+    },
+    {
       label: "Ouvrir dans l'explorateur",
       icon: <ExternalLink size={14} />,
       onClick: () => void window.api.fs.reveal(path)
@@ -499,6 +512,15 @@ export default function FileList(props: { paneId: string }): JSX.Element {
         icon: <ExternalLink size={14} />,
         onClick: () => void window.api.fs.reveal(entry.path)
       },
+      ...(entry.kind === 'directory'
+        ? [
+            {
+              label: 'Ouvrir un terminal ici',
+              icon: <TerminalSquare size={14} />,
+              onClick: () => openTerminalHere(entry.path)
+            } as MenuEntry
+          ]
+        : []),
       {
         label: 'Créer un raccourci',
         icon: <Link2 size={14} />,

@@ -27,7 +27,7 @@ interface TerminalState {
   loadShells: () => Promise<void>
   /** Définit le shell par défaut (persisté). */
   setDefaultShell: (id: string) => void
-  openTab: (shellId?: string) => Promise<void>
+  openTab: (shellId?: string, cwd?: string) => Promise<void>
   /** Ouvre un onglet pour une tâche (cwd/titre/commande) et renvoie son ptyId. */
   openTaskTab: (opts: { cwd: string; title: string; command: string }) => Promise<string | null>
   ensureTab: () => Promise<void>
@@ -69,7 +69,7 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
     void window.api.config.set('defaultShell', id)
   },
 
-  openTab: async (shellId) => {
+  openTab: async (shellId, explicitCwd) => {
     const { shells } = get()
     if (shells.length === 0) await get().loadShells()
     const list = get().shells
@@ -81,7 +81,7 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
       set({ error: 'Aucun shell disponible.' })
       return
     }
-    const cwd = activePane(useNavStore.getState()).path || shell.path
+    const cwd = explicitCwd || activePane(useNavStore.getState()).path || shell.path
     try {
       const ptyId = await window.api.terminal.create({
         shellPath: shell.path,
