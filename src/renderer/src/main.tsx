@@ -1,9 +1,27 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { applyAppearance } from './theme/applyTheme'
 import '@xterm/xterm/css/xterm.css'
 import './styles/global.css'
+
+// Remonte au journal du processus principal toute erreur/rejet non interceptés
+// côté renderer (en plus de l'ErrorBoundary qui couvre le rendu React).
+window.addEventListener('error', (e) => {
+  void window.api?.log?.report({
+    scope: 'window.error',
+    message: e.message,
+    stack: e.error?.stack
+  })
+})
+window.addEventListener('unhandledrejection', (e) => {
+  void window.api?.log?.report({
+    scope: 'unhandledrejection',
+    message: String(e.reason?.message ?? e.reason),
+    stack: e.reason?.stack
+  })
+})
 
 /**
  * Démarrage du renderer.
@@ -20,7 +38,9 @@ async function bootstrap(): Promise<void> {
 
   ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
     <React.StrictMode>
-      <App />
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
     </React.StrictMode>
   )
 }

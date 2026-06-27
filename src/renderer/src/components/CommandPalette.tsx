@@ -27,7 +27,8 @@ import {
   DownloadCloud,
   PieChart,
   FolderPlus,
-  Sparkles
+  Sparkles,
+  FileText
 } from 'lucide-react'
 import { useUiStore } from '../state/useUiStore'
 import { useNavStore, activePane } from '../state/useNavStore'
@@ -158,6 +159,7 @@ export default function CommandPalette(): JSX.Element | null {
       { id: 'make-folders', title: 'Créer des dossiers…', icon: <FolderPlus size={15} />, run: () => ui().setFolderCreator(true) },
       { id: 'check-update', title: 'Vérifier les mises à jour', icon: <DownloadCloud size={15} />, run: () => useUpdateStore.getState().check() },
       { id: 'whats-new', title: 'Nouveautés…', icon: <Sparkles size={15} />, run: () => ui().setWhatsNew('') },
+      { id: 'open-log', title: 'Ouvrir le journal de diagnostic', icon: <FileText size={15} />, run: () => void window.api.log.path().then((p) => window.api.fs.reveal(p)) },
       { id: 'split', title: 'Diviser — nouveau volet', icon: <Columns2 size={15} />, run: () => void nav().addPane() },
       { id: 'preview', title: "Panneau d'aperçu", icon: <PanelRight size={15} />, run: () => ui().togglePreview() },
       { id: 'appearance', title: "Panneau d'apparence", icon: <Palette size={15} />, run: () => ui().toggleAppearance() },

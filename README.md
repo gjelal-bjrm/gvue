@@ -387,6 +387,11 @@ Garde-fous Electron non négociables, en place dès le départ :
 - Content-Security-Policy stricte côté renderer.
 - Validation des chemins côté services (chemins absolus contrôlés).
 - Liens externes ouverts dans le navigateur système, jamais dans la fenêtre app.
+- **Garde-fous anti-crash** : `ErrorBoundary` React (écran de repli + « Recharger »
+  au lieu d'une fenêtre blanche) et handlers globaux du processus principal
+  (`uncaughtException` / `unhandledRejection` / `render-process-gone`). Tout est
+  journalisé dans `userData/logs/gvue.log` (ouvrable via la palette → « Ouvrir le
+  journal de diagnostic »).
 
 ---
 

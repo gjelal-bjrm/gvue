@@ -3,6 +3,15 @@
 
 export type DirEntryKind = 'file' | 'directory'
 
+/** Rapport d'erreur remonté du renderer vers le journal du processus principal. */
+export interface RendererErrorReport {
+  /** Origine (ex. « react », « bootstrap »). */
+  scope?: string
+  message: string
+  stack?: string
+  componentStack?: string
+}
+
 export interface DirEntry {
   /** Nom affiché (basename). */
   name: string

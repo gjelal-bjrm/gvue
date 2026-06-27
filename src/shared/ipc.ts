@@ -94,7 +94,11 @@ export const IPC = {
   updateCheck: 'update:check',
   updateInstall: 'update:install',
   updateGet: 'update:get',
-  updateStatus: 'update:onStatus'
+  updateStatus: 'update:onStatus',
+
+  // Journalisation / diagnostic
+  logReport: 'log:report',
+  logPath: 'log:path'
 } as const
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC]

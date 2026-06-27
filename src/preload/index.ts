@@ -27,7 +27,8 @@ import type {
   SearchResultEvent,
   SearchDoneEvent,
   NavCommand,
-  UpdateStatus
+  UpdateStatus,
+  RendererErrorReport
 } from '@shared/types'
 
 /**
@@ -266,6 +267,11 @@ const api = {
       ipcRenderer.on(IPC.updateStatus, listener)
       return () => ipcRenderer.removeListener(IPC.updateStatus, listener)
     }
+  },
+  log: {
+    report: (report: RendererErrorReport): Promise<void> =>
+      ipcRenderer.invoke(IPC.logReport, report),
+    path: (): Promise<string> => ipcRenderer.invoke(IPC.logPath)
   }
 }
 

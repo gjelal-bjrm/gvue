@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, dialog } from 'electron'
 import { createWindow } from './window'
 import { createTray, trayActive } from './tray'
 import { registerFsHandlers } from './ipc/fs'
@@ -8,10 +8,32 @@ import { registerTerminalHandlers } from './ipc/terminal'
 import { registerSearchHandlers } from './ipc/search'
 import { registerGitHandlers } from './ipc/git'
 import { registerAppsHandlers } from './ipc/apps'
+import { registerLogHandlers } from './ipc/log'
 import { registerUpdateHandlers, initAutoUpdate } from './services/updater'
+import { logInfo, logError, getLogPath } from './services/logger'
 import { killAll } from './services/pty-manager'
 import { killAllSearches } from './services/search'
 import { closeWatch } from './services/fs-watch'
+
+/**
+ * Garde-fous globaux : une erreur non interceptée ne doit pas tuer l'app en
+ * silence. On journalise tout dans le fichier de log, et en production on
+ * informe l'utilisateur (sans quitter) plutôt que de laisser une fenêtre figée.
+ */
+process.on('uncaughtException', (err) => {
+  logError('uncaughtException', err)
+  if (app.isPackaged) {
+    dialog.showErrorBox(
+      'GVue — erreur inattendue',
+      `Une erreur est survenue mais l'application reste ouverte.\n\n` +
+        `${err?.message ?? err}\n\nDétails : ${getLogPath()}`
+    )
+  }
+})
+
+process.on('unhandledRejection', (reason) => {
+  logError('unhandledRejection', reason)
+})
 
 /**
  * Bootstrap de l'application.
@@ -26,6 +48,7 @@ function registerIpc(): void {
   registerGitHandlers()
   registerAppsHandlers()
   registerUpdateHandlers()
+  registerLogHandlers()
 }
 
 // Verrou d'instance unique : un seul *processus* GVue (les fenêtres multiples
@@ -41,10 +64,19 @@ if (!gotLock) {
   })
 
   app.whenReady().then(() => {
+    logInfo('app', `GVue ${app.getVersion()} démarré (packagé: ${app.isPackaged}).`)
     registerIpc()
     createTray()
     createWindow()
     initAutoUpdate()
+
+    // Mort d'un process de rendu (page blanche) : on journalise pour diagnostic.
+    app.on('render-process-gone', (_e, _wc, details) => {
+      logError('render-process-gone', JSON.stringify(details))
+    })
+    app.on('child-process-gone', (_e, details) => {
+      logError('child-process-gone', JSON.stringify(details))
+    })
 
     app.on('activate', () => {
       // macOS : recrée une fenêtre si le dock est cliqué sans fenêtre ouverte.
