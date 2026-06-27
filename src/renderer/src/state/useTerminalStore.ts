@@ -109,7 +109,14 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
   openTaskTab: async ({ cwd, title, command }) => {
     if (get().shells.length === 0) await get().loadShells()
     const list = get().shells
-    const shell = list.find((s) => s.id === get().defaultShellId) ?? list[0]
+    // Une commande « cmd /c … » (ex. lancer un .bat/.exe) doit tourner dans cmd :
+    // Git Bash casse « cmd /c » (MSYS convertit le /c → cmd s'ouvre en interactif).
+    // Les autres commandes (npm, node, python, bash…) restent dans le shell par défaut.
+    const needsCmd = /^\s*cmd\s+\/\/?c\b/i.test(command)
+    const shell =
+      (needsCmd ? list.find((s) => s.id === 'cmd') : undefined) ??
+      list.find((s) => s.id === get().defaultShellId) ??
+      list[0]
     if (!shell) {
       set({ error: 'Aucun shell disponible.' })
       return null
