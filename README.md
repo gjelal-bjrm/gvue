@@ -88,8 +88,9 @@ dans la sidebar (section Projets, branche + indicateur de modifications).
 **Vue Git détaillée** (façon GitHub Desktop, en plein centre) : barre de branche
 (**changer / créer de branche**, **fetch**, pull/push), liste des fichiers **indexés /
 modifiés** avec statut coloré (A/M/D/U…), **indexer/désindexer** par fichier ou en bloc,
-**annuler** (discard), **diff coloré** (lignes + en vert / − en rouge) du fichier
-sélectionné, et zone de commit (depuis l'indicateur Git ou la palette).
+**annuler** (discard), **cases à cocher par fichier** (cochée = indexée = sera commitée,
++ case maître), **diff façon GitHub Desktop** (numéros de ligne ancien/nouveau + fonds
+vert/rouge) du fichier sélectionné, et zone de commit (depuis l'indicateur Git ou la palette).
 **Multi-sélection** (Ctrl/Maj+clic) et **menu contextuel** par fichier(s) : indexer/
 désindexer, annuler, **ignorer** (fichier / dossier / `*.ext` → `.gitignore`), copier
 le chemin (absolu/relatif), révéler dans l'explorateur, ouvrir avec VS Code / par défaut.
