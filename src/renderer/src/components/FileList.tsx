@@ -27,6 +27,7 @@ import {
   AppWindow,
   FolderInput,
   TerminalSquare,
+  Filter,
   X
 } from 'lucide-react'
 import { useNavStore, type SortKey } from '../state/useNavStore'
@@ -105,6 +106,8 @@ export default function FileList(props: { paneId: string }): JSX.Element {
     null
   )
   const clipboard = useUiStore((s) => s.clipboard)
+  const [filter, setFilter] = useState('')
+  const [filterOn, setFilterOn] = useState(false)
   const parentRef = useRef<HTMLDivElement>(null)
   const anchorRef = useRef<number | null>(null)
   const renameTimer = useRef<number | null>(null)
@@ -138,8 +141,16 @@ export default function FileList(props: { paneId: string }): JSX.Element {
     if (hideGitIgnored && ignored.size > 0) {
       v = v.filter((e) => !ignored.has(pathKey(e.path)))
     }
+    const q = filterOn ? filter.trim().toLowerCase() : ''
+    if (q) v = v.filter((e) => e.name.toLowerCase().includes(q))
     return v
-  }, [entries, showHidden, hideGitIgnored, ignored])
+  }, [entries, showHidden, hideGitIgnored, ignored, filter, filterOn])
+
+  // Réinitialise le filtre en changeant de dossier.
+  useEffect(() => {
+    setFilter('')
+    setFilterOn(false)
+  }, [path])
 
   const rowVirtualizer = useVirtualizer({
     count: visible.length,
@@ -174,6 +185,11 @@ export default function FileList(props: { paneId: string }): JSX.Element {
       const t = e.target as HTMLElement | null
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
       if (renaming) return
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'f' || e.key === 'F')) {
+        e.preventDefault()
+        setFilterOn((o) => !o)
+        return
+      }
       if (e.ctrlKey || e.metaKey || e.altKey) return // laisse Ctrl+A/C/X/V à App
       const len = visible.length
       if (len === 0) return
@@ -624,6 +640,39 @@ export default function FileList(props: { paneId: string }): JSX.Element {
   return (
     <div className="flex h-full flex-col bg-bg">
       <ColumnHeader sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
+
+      {filterOn && (
+        <div className="flex shrink-0 items-center gap-2 border-b border-border px-3 py-1.5">
+          <Filter size={13} className="shrink-0 text-fg-muted" />
+          <input
+            autoFocus
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                setFilter('')
+                setFilterOn(false)
+              } else if (e.key === 'Enter' && visible.length) {
+                onActivate(visible[0])
+              }
+            }}
+            placeholder="Filtrer ce dossier…"
+            spellCheck={false}
+            className="min-w-0 flex-1 bg-transparent text-[12px] text-fg outline-none placeholder:text-fg-muted"
+          />
+          <span className="shrink-0 text-[11px] text-fg-muted tabular-nums">{visible.length}</span>
+          <button
+            onClick={() => {
+              setFilter('')
+              setFilterOn(false)
+            }}
+            title="Fermer le filtre (Échap)"
+            className="grid h-5 w-5 shrink-0 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg"
+          >
+            <X size={13} />
+          </button>
+        </div>
+      )}
 
       {error && (
         <div className="m-3 rounded-app border border-danger-fg bg-danger-bg p-3 text-[13px] text-danger-fg">
