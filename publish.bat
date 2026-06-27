@@ -42,7 +42,12 @@ echo.
 echo === Construction + publication de GVue v!FINAL! sur GitHub ===
 echo.
 
-REM --- 3) Build + televersement de la release ---
+REM --- 3) Generer les notes "Nouveautes" depuis les messages de commit ---
+echo Generation des notes de version...
+call node scripts\gen-whatsnew.cjs
+echo.
+
+REM --- 4) Build + televersement de la release ---
 call npm run publish
 if errorlevel 1 (
   echo.
@@ -63,8 +68,8 @@ echo   (Cela cree le tag ; ensuite les apps installees se
 echo    mettront a jour automatiquement.)
 echo ===============================================
 echo.
-echo Pense a committer le changement de version :
-echo   git add package.json package-lock.json
+echo Pense a committer le changement de version + les notes :
+echo   git add package.json package-lock.json src/renderer/src/data/whatsNew.json
 echo   git commit -m "GVue v!FINAL!"
 echo   git push
 echo.

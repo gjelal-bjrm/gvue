@@ -8,3 +8,4 @@ out
 .env
 .vite
 .claude
+scripts/.last-release
