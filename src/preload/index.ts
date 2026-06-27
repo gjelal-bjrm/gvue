@@ -30,7 +30,8 @@ import type {
   UpdateStatus,
   RendererErrorReport,
   UndoInfo,
-  UndoResult
+  UndoResult,
+  CopyProgress
 } from '@shared/types'
 
 /**
@@ -98,6 +99,12 @@ const api = {
       ipcRenderer.invoke(IPC.fsRenameMany, paths, newNames),
     undo: (): Promise<UndoResult> => ipcRenderer.invoke(IPC.fsUndo),
     undoPeek: (): Promise<UndoInfo> => ipcRenderer.invoke(IPC.fsUndoPeek),
+    cancelCopy: (): void => ipcRenderer.send(IPC.fsCancelCopy),
+    onCopyProgress: (cb: (p: CopyProgress | null) => void): (() => void) => {
+      const listener = (_e: unknown, p: CopyProgress | null): void => cb(p)
+      ipcRenderer.on(IPC.fsOnCopyProgress, listener)
+      return () => ipcRenderer.removeListener(IPC.fsOnCopyProgress, listener)
+    },
     createFile: (dir: string, base: string): Promise<CreateResult> =>
       ipcRenderer.invoke(IPC.fsCreateFile, dir, base),
     createDir: (dir: string, base: string): Promise<CreateResult> =>

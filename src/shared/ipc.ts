@@ -23,6 +23,8 @@ export const IPC = {
   fsRenameMany: 'fs:renameMany',
   fsUndo: 'fs:undo',
   fsUndoPeek: 'fs:undoPeek',
+  fsCancelCopy: 'fs:cancelCopy',
+  fsOnCopyProgress: 'fs:onCopyProgress',
   fsCreateFile: 'fs:createFile',
   fsCreateDir: 'fs:createDir',
   fsCreateShortcut: 'fs:createShortcut',

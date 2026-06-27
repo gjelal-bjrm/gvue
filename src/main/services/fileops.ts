@@ -14,7 +14,20 @@ export interface FileOpResult {
   errors: string[]
   /** Couples source→cible réellement effectués (pour l'annulation). */
   ops?: { from: string; to: string }[]
+  /** Vrai si l'opération a été interrompue par l'utilisateur. */
+  cancelled?: boolean
 }
+
+/** Au-delà de ce volume, une copie remonte sa progression (sinon trop rapide). */
+export const COPY_PROGRESS_MIN = 20 * 1024 * 1024 // 20 Mo
+
+// Drapeau d'annulation de la copie en cours (une copie à la fois côté UI).
+let cancelCopyFlag = false
+export function requestCancelCopy(): void {
+  cancelCopyFlag = true
+}
+
+class CopyCancelled extends Error {}
 
 /** Résultat d'une création/renommage : chemin produit, ou erreur. */
 export interface CreateResult {
@@ -163,9 +176,97 @@ export async function renameMany(
   return res
 }
 
-/** Copie (récursive) une liste de chemins dans un dossier. */
-export function copy(paths: string[], destDir: string): Promise<FileOpResult> {
-  return eachInto(paths, destDir, (src, target) => fs.cp(src, target, { recursive: true }), false)
+/** Taille récursive (octets) d'un chemin, tolérante aux erreurs. */
+async function treeBytes(p: string): Promise<number> {
+  let total = 0
+  try {
+    const st = await fs.lstat(p)
+    if (st.isSymbolicLink()) return 0
+    if (st.isDirectory()) {
+      for (const e of await fs.readdir(p)) total += await treeBytes(path.join(p, e))
+    } else if (st.isFile()) {
+      total += st.size
+    }
+  } catch {
+    /* chemin illisible : ignoré */
+  }
+  return total
+}
+
+/** Copie récursive avec rapport d'octets et prise en compte de l'annulation. */
+async function copyInto(
+  src: string,
+  dest: string,
+  onByte: (n: number, name: string) => void
+): Promise<void> {
+  if (cancelCopyFlag) throw new CopyCancelled()
+  const st = await fs.lstat(src)
+  if (st.isDirectory()) {
+    await fs.mkdir(dest, { recursive: true })
+    for (const e of await fs.readdir(src)) {
+      await copyInto(path.join(src, e), path.join(dest, e), onByte)
+    }
+  } else {
+    await fs.copyFile(src, dest)
+    onByte(st.isFile() ? st.size : 0, path.basename(src))
+    if (cancelCopyFlag) throw new CopyCancelled()
+  }
+}
+
+/**
+ * Copie (récursive) une liste de chemins dans un dossier, sans écrasement.
+ * Au-delà de COPY_PROGRESS_MIN, remonte la progression via `onProgress` et peut
+ * être interrompue (requestCancelCopy) : le dossier partiellement copié est
+ * alors retiré et `cancelled` est positionné.
+ */
+export async function copy(
+  paths: string[],
+  destDirInput: string,
+  onProgress?: (p: { done: number; total: number; name: string }) => void
+): Promise<FileOpResult> {
+  cancelCopyFlag = false
+  const destDir = assertAbsolute(destDirInput)
+  const res: FileOpResult = { ok: 0, errors: [], ops: [] }
+
+  const total = (await Promise.all(paths.map((p) => treeBytes(p)))).reduce((a, b) => a + b, 0)
+  const report = onProgress && total > COPY_PROGRESS_MIN ? onProgress : undefined
+  let done = 0
+
+  for (const raw of paths) {
+    if (cancelCopyFlag) {
+      res.cancelled = true
+      break
+    }
+    let src: string
+    try {
+      src = assertAbsolute(raw)
+    } catch (e) {
+      res.errors.push(e instanceof Error ? e.message : String(e))
+      continue
+    }
+    if (isInside(destDir, src)) {
+      res.errors.push(`« ${path.basename(src)} » ne peut pas être placé dans lui-même.`)
+      continue
+    }
+    const target = await uniqueTarget(destDir, path.basename(src))
+    try {
+      await copyInto(src, target, (n, name) => {
+        done += n
+        report?.({ done, total, name })
+      })
+      res.ops?.push({ from: src, to: target })
+      res.ok++
+    } catch (e) {
+      if (e instanceof CopyCancelled) {
+        // Retire la copie partielle (n'a jamais existé pour l'utilisateur).
+        await fs.rm(target, { recursive: true, force: true }).catch(() => {})
+        res.cancelled = true
+        break
+      }
+      res.errors.push(e instanceof Error ? e.message : String(e))
+    }
+  }
+  return res
 }
 
 /** Déplace une liste de chemins dans un dossier (rename, repli copie+suppr inter-volumes). */

@@ -153,8 +153,18 @@ export function registerFsHandlers(): void {
     return getFileIconUrl(targetPath)
   })
 
-  ipcMain.handle(IPC.fsCopy, async (_e, paths: string[], destDir: string) => {
-    const res = await fileops.copy(paths, destDir)
+  ipcMain.handle(IPC.fsCopy, async (e, paths: string[], destDir: string) => {
+    const wc = e.sender
+    let last = 0
+    const res = await fileops.copy(paths, destDir, (p) => {
+      // Throttle ~12 fps pour ne pas inonder l'IPC sur les gros transferts.
+      const now = Date.now()
+      if (now - last < 80 && p.done < p.total) return
+      last = now
+      if (!wc.isDestroyed()) wc.send(IPC.fsOnCopyProgress, p)
+    })
+    // Fin de copie : efface la barre côté renderer.
+    if (!wc.isDestroyed()) wc.send(IPC.fsOnCopyProgress, null)
     pushUndo({
       kind: 'copy',
       label: `Copie de ${res.ok} élément(s)`,
@@ -162,6 +172,8 @@ export function registerFsHandlers(): void {
     })
     return res
   })
+
+  ipcMain.on(IPC.fsCancelCopy, () => fileops.requestCancelCopy())
 
   ipcMain.handle(IPC.fsMove, async (_e, paths: string[], destDir: string) => {
     const res = await fileops.move(paths, destDir)

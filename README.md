@@ -71,7 +71,8 @@ travail** ; clic gauche pour rouvrir ; « Quitter GVue » pour fermer réellemen
 **renommer** en place (F2), **glisser-déposer natif** : entre volets, **entre
 instances de GVue** et **depuis/vers l'explorateur Windows** (drag de sortie via
 `webContents.startDrag`, drop entrant via `webUtils`). Maj = déplacer, sinon
-copier. **Couper / copier / coller** (Ctrl+X/C/V ou menu contextuel). Menu sur la
+copier. Les **copies volumineuses** (> 20 Mo) affichent une **barre de
+progression annulable**. **Couper / copier / coller** (Ctrl+X/C/V ou menu contextuel). Menu sur la
 **zone vide** (nouveau fichier/dossier, coller, actualiser). Jamais d'écrasement :
 collision → « nom (copie) ». Suppression vers la corbeille (Suppr). **Annuler la
 dernière opération** (**Ctrl+Z** ou palette) : renommage (simple ou en masse),

@@ -117,6 +117,20 @@ describe('renameMany', () => {
 })
 
 describe('copy', () => {
+  it('n’émet pas de progression sous le seuil (petite copie)', async () => {
+    const src = path.join(dir, 'f.txt')
+    const dest = path.join(dir, 'dest')
+    await touch(src)
+    await fs.mkdir(dest)
+    let calls = 0
+    const res = await copy([src], dest, () => {
+      calls++
+    })
+    expect(res.ok).toBe(1)
+    expect(calls).toBe(0) // < 20 Mo : pas de remontée de progression
+    expect(await exists(path.join(dest, 'f.txt'))).toBe(true)
+  })
+
   it('ne jamais écraser : génère « (copie) »', async () => {
     const src = path.join(dir, 'sub')
     const dest = path.join(dir, 'dest')

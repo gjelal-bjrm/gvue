@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import type { CopyProgress } from '@shared/types'
 
 /** Presse-papiers de fichiers interne (entre volets d'une même fenêtre). */
 export interface FileClipboard {
@@ -42,6 +43,9 @@ interface UiState {
   toastSeq: number
   showToast: (message: string) => void
   clearToast: () => void
+  /** Progression de la copie en cours (null = aucune). */
+  copyProgress: CopyProgress | null
+  setCopyProgress: (p: CopyProgress | null) => void
   toggleTerminal: () => void
   toggleTerminalSplit: () => void
   setTerminalSplit: (v: boolean) => void
@@ -82,6 +86,8 @@ export const useUiStore = create<UiState>((set) => ({
   toastSeq: 0,
   showToast: (message) => set((s) => ({ toast: message, toastSeq: s.toastSeq + 1 })),
   clearToast: () => set({ toast: null }),
+  copyProgress: null,
+  setCopyProgress: (p) => set({ copyProgress: p }),
   toggleTerminal: () => set((s) => ({ terminalOpen: !s.terminalOpen })),
   toggleTerminalSplit: () => set((s) => ({ terminalSplit: !s.terminalSplit })),
   setTerminalSplit: (v) => set({ terminalSplit: v }),

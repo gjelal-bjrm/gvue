@@ -29,6 +29,7 @@ import { useUiStore } from './state/useUiStore'
 import { useSearchStore } from './state/useSearchStore'
 import { useUpdateStore } from './state/useUpdateStore'
 import Toast from './components/Toast'
+import CopyProgress from './components/CopyProgress'
 import { pathKey, baseName } from './lib/format'
 import { clipFiles, pasteInto, undoLastOp } from './lib/fileActions'
 
@@ -249,6 +250,11 @@ export default function App(): JSX.Element {
     })()
   }, [])
 
+  // Progression des copies longues : alimente la barre (null = terminé).
+  useEffect(() => {
+    return window.api.fs.onCopyProgress((p) => useUiStore.getState().setCopyProgress(p))
+  }, [])
+
   // Surveillance disque : rafraîchit chaque volet affichant le dossier changé.
   useEffect(() => {
     return window.api.fs.onChange((changedDir) => {
@@ -282,6 +288,7 @@ export default function App(): JSX.Element {
       <FolderCreator />
       <WhatsNew />
       <Toast />
+      <CopyProgress />
 
       <div className="min-h-0 flex-1">
         <PanelGroup key={vKey} autoSaveId="gvue:vertical" direction="vertical">

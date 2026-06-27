@@ -52,6 +52,15 @@ export interface FileOpResult {
   errors: string[]
   /** Couples source→cible réellement effectués (pour l'annulation). */
   ops?: { from: string; to: string }[]
+  /** Vrai si l'opération a été interrompue par l'utilisateur. */
+  cancelled?: boolean
+}
+
+/** Progression d'une copie longue (octets copiés / total + élément courant). */
+export interface CopyProgress {
+  done: number
+  total: number
+  name: string
 }
 
 /** Résultat d'une création de dossiers en lot (avec les racines créées). */
