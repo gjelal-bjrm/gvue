@@ -30,6 +30,10 @@ function detectWindows(): ShellInfo[] {
   const programFiles = process.env.ProgramFiles ?? 'C:\\Program Files'
   const localAppData = process.env.LOCALAPPDATA ?? ''
 
+  // cmd.exe en premier → shell par défaut de repli (cf. demande utilisateur).
+  const cmd = process.env.ComSpec ?? `${sysRoot}\\System32\\cmd.exe`
+  if (existsSync(cmd)) shells.push({ id: 'cmd', label: 'Invite de commandes', path: cmd, args: [] })
+
   // Windows PowerShell (toujours présent)
   const powershell = `${sysRoot}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe`
   if (existsSync(powershell)) {
@@ -42,10 +46,6 @@ function detectWindows(): ShellInfo[] {
     `${programFiles}\\PowerShell\\7-preview\\pwsh.exe`
   ])
   if (pwsh) shells.push({ id: 'pwsh', label: 'PowerShell 7', path: pwsh, args: ['-NoLogo'] })
-
-  // cmd.exe
-  const cmd = process.env.ComSpec ?? `${sysRoot}\\System32\\cmd.exe`
-  if (existsSync(cmd)) shells.push({ id: 'cmd', label: 'Invite de commandes', path: cmd, args: [] })
 
   // Git Bash
   const gitBash = firstExisting([
