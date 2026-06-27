@@ -105,7 +105,12 @@ function buildMenu(): Menu {
       toolTip: root,
       submenu: [
         { label: 'Ouvrir le dossier', click: () => sendToWindow(IPC.trayOpenPath, root) },
-        { label: 'Lancer', toolTip: cmd, click: () => void runExternal(cmd, root, `GVue — ${basename(root)}`) }
+        {
+          label: 'Démarrer',
+          toolTip: cmd,
+          click: () => void runExternal(cmd, root, `GVue — ${basename(root)}`)
+        },
+        { label: 'Démarrer dans GVue', toolTip: cmd, click: () => sendToWindow(IPC.trayRunProject, root) }
       ]
     }
   }
