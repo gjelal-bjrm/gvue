@@ -54,9 +54,13 @@ if errorlevel 1 (
 
 echo.
 echo ===============================================
-echo   v!FINAL! publiee avec succes.
-echo   Les apps GVue installees se mettront a jour
-echo   automatiquement (au lancement / toutes les 6h).
+echo   Build v!FINAL! televerse en BROUILLON sur GitHub.
+echo.
+echo   DERNIERE ETAPE (1 clic) :
+echo   GitHub -^> Releases -^> ouvre le brouillon v!FINAL!
+echo   -^> bouton "Publish release".
+echo   (Cela cree le tag ; ensuite les apps installees se
+echo    mettront a jour automatiquement.)
 echo ===============================================
 echo.
 echo Pense a committer le changement de version :

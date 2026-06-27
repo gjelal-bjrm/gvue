@@ -2,12 +2,13 @@ appId: com.gvue.app
 productName: GVue
 
 # Flux de mise à jour (electron-updater lit la même config) : releases GitHub.
-# releaseType: release -> la release est publiée directement (pas de brouillon).
+# La release est créée en BROUILLON (défaut) : GitHub refuse une release publiée
+# si le tag n'existe pas encore. On publie le brouillon en un clic sur GitHub
+# (cela crée le tag) ; ensuite l'auto-update voit la version.
 publish:
   provider: github
   owner: gjelal-bjrm
   repo: gvue
-  releaseType: release
 
 directories:
   output: dist
