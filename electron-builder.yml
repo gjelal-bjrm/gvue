@@ -27,6 +27,8 @@ files:
   - '!**/{README.md,CHANGELOG.md}'
   - '!**/{.env,.env.*,.npmrc}'
   - '!build/**'
+  - '!*.zip'
+  - '!*.bat'
 
 # Icône embarquée hors asar (utilisée par le plateau système au runtime ;
 # `build/` est exclu des fichiers de l'app).
