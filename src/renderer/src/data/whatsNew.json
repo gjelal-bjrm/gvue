@@ -1,5 +1,11 @@
 [
   {
+    "version": "0.1.9",
+    "notes": [
+      "Notes « Nouveautes » auto-generees depuis les commits (publish.bat)"
+    ]
+  },
+  {
     "version": "0.1.8",
     "notes": [
       "Pop-up « Nouveautés » affichée une seule fois après une mise à jour.",

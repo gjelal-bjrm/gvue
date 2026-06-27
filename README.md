@@ -182,6 +182,8 @@ gvue/
 ├─ run.bat                      # lancement guidé (vérif Node, install, rebuild, dev)
 ├─ build.bat                    # build de l'installeur Windows
 ├─ publish.bat                  # assistant de publication d'une mise à jour
+├─ scripts/
+│  └─ gen-whatsnew.cjs          # génère les notes « Nouveautés » depuis les commits
 ├─ build/icon.png               # icône de l'app (badge circulaire)
 ├─ src/
 │  ├─ main/
@@ -250,13 +252,16 @@ la **télécharge** et propose **« Redémarrer et installer »** (bandeau en ha
 peut aussi vérifier à la demande via la **palette** ou le **plateau système**. En
 dev (non empaqueté) ou si la dépendance est absente, l'auto-update est simplement
 inactif — l'app fonctionne normalement. Après une mise à jour, une **pop-up
-« Nouveautés »** s'affiche **une seule fois** (notes de version depuis
-`src/renderer/src/data/whatsNew.ts`) ; réaccessible via la palette.
+« Nouveautés »** s'affiche **une seule fois** ; réaccessible via la palette. Les
+notes de version (`src/renderer/src/data/whatsNew.json`) sont **générées
+automatiquement** à partir des messages de commit lors du `publish` (voir
+ci-dessous) — pas besoin de les écrire à la main.
 
 **Publier une mise à jour** — le plus simple : double-clic sur **`publish.bat`**
-(assistant guidé : choix de la version, build, téléversement de la release GitHub).
-Il lit le token depuis la variable `GH_TOKEN` (sinon il le demande). Pour ne plus
-jamais le saisir, enregistre-le une fois :
+(assistant guidé : choix de la version, **génération des notes « Nouveautés »**,
+build, téléversement de la release GitHub). Il lit le token depuis la variable
+`GH_TOKEN` (sinon il le demande). Pour ne plus jamais le saisir, enregistre-le une
+fois :
 
 ```cmd
 setx GH_TOKEN <ton_token_github>   :: token = PAT GitHub avec le scope repo
@@ -271,11 +276,19 @@ npm run publish                    # build + téléverse installeur + latest.yml
                                    #   sur une release GitHub (gjelal-bjrm/gvue)
 ```
 
-La release est publiée directement (`releaseType: release`). Les apps déjà installées
-**en version auto-update** détectent la nouvelle release et se mettent à jour seules.
-⚠️ La **toute première** installation doit se faire à la main (une version sans
-auto-update ne peut pas se mettre à jour toute seule). Ne mets **jamais** le token
-dans un fichier versionné.
+Le build est téléversé en **brouillon** sur GitHub ; dernière étape (1 clic) :
+ouvrir le brouillon dans **Releases** → **« Publish release »** (cela crée le tag).
+Les apps déjà installées **en version auto-update** détectent alors la nouvelle
+release et se mettent à jour seules. ⚠️ La **toute première** installation doit se
+faire à la main (une version sans auto-update ne peut pas se mettre à jour toute
+seule). Ne mets **jamais** le token dans un fichier versionné.
+
+**Notes de version automatiques** — `publish.bat` lance `scripts/gen-whatsnew.cjs`,
+qui collecte les messages de commit **depuis la dernière publication** (repère dans
+`scripts/.last-release`, non versionné), les nettoie et écrit l'entrée de la nouvelle
+version dans `whatsNew.json`. Tes commits *sont* donc les notes affichées dans la
+pop-up : garde des messages clairs. Tu peux aussi éditer `whatsNew.json` à la main
+avant de publier pour curer le résultat.
 
 ---
 
