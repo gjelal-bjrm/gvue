@@ -77,6 +77,9 @@ collision → « nom (copie) ». Suppression vers la corbeille (Suppr). **Renomm
 masse** (rechercher/remplacer + regex, préfixe/suffixe, numérotation, avec aperçu).
 **Analyse de l'espace disque** : tailles des dossiers calculées récursivement, triées,
 avec barres proportionnelles et descente dans l'arborescence (menu dossier ou palette).
+**Création de dossiers en lot** : motif avec jetons (`{n}` numéro, `{name}` depuis une
+liste, `{date}`, `{i}`) + numérotation + **sous-structure répliquée** (sous-dossiers),
+avec aperçu (menu de la zone vide ou palette).
 
 **Recherche** — recherche de contenu via **ripgrep** (`@vscode/ripgrep`), lancée
 depuis la barre d'outils sur le dossier courant : bascules casse / mot entier /

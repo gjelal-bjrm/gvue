@@ -80,6 +80,8 @@ const api = {
     listTree: (dir: string, max?: number): Promise<TreeEntry[]> =>
       ipcRenderer.invoke(IPC.fsListTree, dir, max),
     usage: (dir: string): Promise<UsageEntry[]> => ipcRenderer.invoke(IPC.fsUsage, dir),
+    makeDirs: (baseDir: string, rels: string[]): Promise<{ created: number; errors: string[] }> =>
+      ipcRenderer.invoke(IPC.fsMakeDirs, baseDir, rels),
     trash: (path: string): Promise<void> => ipcRenderer.invoke(IPC.fsTrash, path),
     preview: (path: string): Promise<PreviewData> => ipcRenderer.invoke(IPC.fsPreview, path),
     icon: (path: string): Promise<string> => ipcRenderer.invoke(IPC.fsIcon, path),

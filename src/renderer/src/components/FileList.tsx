@@ -442,6 +442,11 @@ export default function FileList(props: { paneId: string }): JSX.Element {
       icon: <FilePlus size={14} />,
       onClick: () => void createThen(window.api.fs.createFile, 'Nouveau fichier.txt')
     },
+    {
+      label: 'Créer des dossiers… (en lot)',
+      icon: <FolderPlus size={14} />,
+      onClick: () => useUiStore.getState().setFolderCreator(true)
+    },
     { type: 'sep' },
     {
       label: 'Coller',

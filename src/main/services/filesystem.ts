@@ -224,6 +224,40 @@ export async function complete(input: string, token: string, sep: string): Promi
   }
 }
 
+/**
+ * Crée en lot des dossiers (chemins relatifs, récursifs façon « mkdir -p ») sous
+ * `baseInput`. Refuse toute remontée hors du dossier de base. Renvoie le nombre
+ * créé et les erreurs éventuelles.
+ */
+export async function makeDirs(
+  baseInput: string,
+  rels: string[]
+): Promise<{ created: number; errors: string[] }> {
+  let base: string
+  try {
+    base = assertAbsolute(baseInput)
+  } catch {
+    return { created: 0, errors: ['Dossier de base invalide.'] }
+  }
+  let created = 0
+  const errors: string[] = []
+  for (const rel of rels) {
+    const clean = rel.replace(/\\+/g, '/').replace(/^\/+|\/+$/g, '').trim()
+    if (!clean) continue
+    if (clean.split('/').some((seg) => seg === '..' || seg === '' || seg === '.')) {
+      errors.push(`Chemin invalide : ${rel}`)
+      continue
+    }
+    try {
+      await fs.mkdir(path.join(base, clean), { recursive: true })
+      created++
+    } catch (e) {
+      errors.push(`${rel} : ${e instanceof Error ? e.message : String(e)}`)
+    }
+  }
+  return { created, errors }
+}
+
 /** Taille récursive d'un dossier (en octets). Ne suit pas les liens symboliques. */
 async function dirSizeRec(dir: string): Promise<number> {
   let items: import('node:fs').Dirent[]

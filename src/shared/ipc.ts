@@ -13,6 +13,7 @@ export const IPC = {
   fsComplete: 'fs:complete',
   fsListTree: 'fs:listTree',
   fsUsage: 'fs:usage',
+  fsMakeDirs: 'fs:makeDirs',
   fsTrash: 'fs:trash',
   fsPreview: 'fs:preview',
   fsIcon: 'fs:icon',

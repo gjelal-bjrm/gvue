@@ -26,6 +26,8 @@ interface UiState {
   fileFinderOpen: boolean
   /** Dossier analysé pour l'espace disque (null = panneau fermé). */
   diskUsagePath: string | null
+  /** Créateur de dossiers en lot ouvert ? */
+  folderCreatorOpen: boolean
   /** Terminaux affichés côte à côte (sinon en onglets, un seul visible). */
   terminalSplit: boolean
   /** Vue Git détaillée (façon GitHub Desktop) affichée à la place des volets ? */
@@ -47,6 +49,7 @@ interface UiState {
   toggleFileFinder: () => void
   setFileFinder: (v: boolean) => void
   setDiskUsage: (path: string | null) => void
+  setFolderCreator: (v: boolean) => void
   togglePreview: () => void
   setPreviewOpen: (v: boolean) => void
   setClipboard: (c: FileClipboard | null) => void
@@ -61,6 +64,7 @@ export const useUiStore = create<UiState>((set) => ({
   paletteOpen: false,
   fileFinderOpen: false,
   diskUsagePath: null,
+  folderCreatorOpen: false,
   terminalSplit: false,
   gitViewOpen: false,
   clipboard: null,
@@ -83,6 +87,7 @@ export const useUiStore = create<UiState>((set) => ({
   toggleFileFinder: () => set((s) => ({ fileFinderOpen: !s.fileFinderOpen })),
   setFileFinder: (v) => set({ fileFinderOpen: v }),
   setDiskUsage: (path) => set({ diskUsagePath: path }),
+  setFolderCreator: (v) => set({ folderCreatorOpen: v }),
   togglePreview: () => set((s) => ({ previewOpen: !s.previewOpen })),
   setPreviewOpen: (v) => set({ previewOpen: v }),
   setClipboard: (c) => set({ clipboard: c })
