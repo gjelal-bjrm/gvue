@@ -291,6 +291,12 @@ release et se mettent à jour seules. ⚠️ La **toute première** installation
 faire à la main (une version sans auto-update ne peut pas se mettre à jour toute
 seule). Ne mets **jamais** le token dans un fichier versionné.
 
+**Publication par CI (GitHub Actions)** — pousser un tag `vX.Y.Z` (correspondant à
+la version de `package.json`) déclenche [`release.yml`](.github/workflows/release.yml)
+qui construit, teste et publie l'installeur. C'est aussi le **socle de la signature
+de code** : SignPath Foundation (gratuit pour l'open-source) ne signe que des
+artefacts produits par une CI vérifiée — voir [SIGNING.md](SIGNING.md).
+
 **Notes de version automatiques** — `publish.bat` lance `scripts/gen-whatsnew.cjs`,
 qui collecte les messages de commit **depuis la dernière publication** (repère dans
 `scripts/.last-release`, non versionné), les nettoie et écrit l'entrée de la nouvelle

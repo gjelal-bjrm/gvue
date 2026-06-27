@@ -1,0 +1,89 @@
+name: Release
+
+# Construit l'installeur Windows et le publie sur GitHub Releases.
+# Déclenché en poussant un tag « vX.Y.Z » (qui DOIT correspondre à la version de
+# package.json). En exécution manuelle, l'installeur est seulement archivé comme
+# artefact (pas de publication).
+#
+# Ce workflow est aussi le socle de la signature de code (SignPath Foundation,
+# gratuit pour l'open-source) : SignPath ne signe que des artefacts produits par
+# une CI vérifiée. L'étape de signature est préparée plus bas (voir TODO) ; elle
+# s'activera une fois le projet approuvé par SignPath.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write # nécessaire pour créer la Release et y téléverser les fichiers
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Tests
+        run: npm test
+
+      - name: Build (renderer + main + preload)
+        run: npm run build
+
+      # Produit l'installeur NSIS + latest.yml + .blockmap dans dist/.
+      # --publish always : crée/maj la Release GitHub (brouillon) uniquement sur un tag.
+      - name: Package & publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder --win --publish ${{ startsWith(github.ref, 'refs/tags/v') && 'always' || 'never' }}
+
+      # Archive l'installeur comme artefact de workflow. Utile pour les exécutions
+      # manuelles, et c'est précisément ce que consomme SignPath pour la signature.
+      - name: Upload installer artifact
+        id: unsigned-installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: gvue-windows-installer
+          path: |
+            dist/*.exe
+            dist/latest.yml
+            dist/*.blockmap
+          if-no-files-found: error
+
+      # ───────────────────────────────────────────────────────────────────────
+      # TODO (après approbation SignPath Foundation) : signature du code.
+      # Renseigner les 4 identifiants ci-dessous (organization-id, project-slug,
+      # signing-policy-slug, et le secret SIGNPATH_API_TOKEN dans les secrets du
+      # dépôt), puis décommenter. Voir SIGNING.md.
+      #
+      # IMPORTANT auto-update : signer l'installeur APRÈS coup change son hash, ce
+      # qui périme latest.yml/.blockmap. Il faudra donc, à cette étape :
+      #   1) construire avec --publish never (au lieu de always ci-dessus),
+      #   2) signer l'installeur via SignPath (étape ci-dessous),
+      #   3) régénérer latest.yml + .blockmap pour le fichier SIGNÉ,
+      #   4) publier (gh release upload) l'installeur signé + métadonnées à jour.
+      #
+      # - name: Sign with SignPath
+      #   uses: signpath/github-action-submit-signing-request@v2
+      #   with:
+      #     api-token: '${{ secrets.SIGNPATH_API_TOKEN }}'
+      #     organization-id: '<organization-id>'
+      #     project-slug: 'gvue'
+      #     signing-policy-slug: 'release-signing'
+      #     github-artifact-id: '${{ steps.unsigned-installer.outputs.artifact-id }}'
+      #     wait-for-completion: true
+      #     output-artifact-directory: 'dist-signed'
+      # ───────────────────────────────────────────────────────────────────────
