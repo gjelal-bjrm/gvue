@@ -1,53 +1,36 @@
 import Store from 'electron-store'
 import * as os from 'node:os'
 import type { AppConfig } from '@shared/types'
+import { DEFAULT_CONFIG, sanitizeConfig } from './config-schema'
 
 /**
  * Store de configuration persistée (electron-store → JSON local).
  * Les valeurs par défaut définissent l'objet `appearance` appliqué au
  * démarrage. Le thème lui-même est appliqué côté renderer via variables CSS.
+ * Le schéma et l'assainissement vivent dans `config-schema.ts` (pur, testé).
  */
 
-export const DEFAULT_CONFIG: AppConfig = {
-  appearance: {
-    accent: '#D85A30',
-    theme: 'auto',
-    density: 'comfortable',
-    corners: 'rounded',
-    fontFamily: "'Inter', system-ui, sans-serif",
-    fontSize: 14,
-    windowOpacity: 1,
-    titleCursor: true,
-    presets: {}
-  },
-  window: {
-    width: 1200,
-    height: 800,
-    maximized: false
-  },
-  favorites: [],
-  shortcuts: [],
-  recents: [],
-  recentFiles: [],
-  folderFreq: {},
-  projectRoots: [],
-  openWith: {},
-  workspaces: {},
-  runnerTasks: [],
-  runnerProfiles: [],
-  projectLaunch: {},
-  sidebarOrder: ['thispc', 'drives', 'favorites', 'projects'],
-  sidebarCollapsed: {},
-  treeExpandToCurrent: true,
-  defaultShell: '',
-  lastSeenVersion: '',
-  hideGitIgnored: true
-}
+export { DEFAULT_CONFIG }
 
 const store = new Store<AppConfig>({
   name: 'gvue-config',
-  defaults: DEFAULT_CONFIG
+  defaults: DEFAULT_CONFIG,
+  // JSON illisible/corrompu → réinitialise au lieu de planter au démarrage.
+  clearInvalidConfig: true
 })
+
+// Auto-réparation au démarrage : normalise la config chargée (clés présentes,
+// types corrects) pour qu'une config partielle ou abîmée ne provoque jamais une
+// fenêtre blanche. On ne réécrit le disque que si quelque chose a changé.
+try {
+  const current = store.store
+  const healed = sanitizeConfig(current)
+  if (JSON.stringify(current) !== JSON.stringify(healed)) {
+    store.store = healed
+  }
+} catch {
+  store.store = DEFAULT_CONFIG
+}
 
 export function getConfig<K extends keyof AppConfig>(key: K): AppConfig[K] {
   return store.get(key)

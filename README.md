@@ -393,6 +393,9 @@ Garde-fous Electron non négociables, en place dès le départ :
   (`uncaughtException` / `unhandledRejection` / `render-process-gone`). Tout est
   journalisé dans `userData/logs/gvue.log` (ouvrable via la palette → « Ouvrir le
   journal de diagnostic »).
+- **Config auto-réparée** : au démarrage, la configuration est assainie (clés
+  manquantes complétées, types invalides rejetés, JSON corrompu réinitialisé via
+  `clearInvalidConfig`) — une config abîmée ne peut donc pas figer l'app.
 
 ---
 
