@@ -32,10 +32,19 @@ function broadcast(status: UpdateStatus): void {
 function reportError(e: unknown): void {
   const msg = e instanceof Error ? e.message : String(e)
   const noRelease = /no published versions|not found|404|cannot find|latest\.yml/i.test(msg)
+  if (!manualCheck) {
+    // Vérification automatique en arrière-plan : on reste silencieux.
+    broadcast({ state: 'idle' })
+    return
+  }
   if (noRelease) {
-    broadcast(manualCheck ? { state: 'none', version: app.getVersion() } : { state: 'idle' })
+    // Distinct de « à jour » : aucune release exploitable n'a été trouvée.
+    broadcast({
+      state: 'error',
+      message: 'Aucune release exploitable trouvée sur GitHub (latest.yml manquant ou release absente).'
+    })
   } else {
-    broadcast(manualCheck ? { state: 'error', message: msg } : { state: 'idle' })
+    broadcast({ state: 'error', message: msg })
   }
 }
 
