@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { basename } from 'node:path'
+import { basename, join } from 'node:path'
+import { promises as fsp } from 'node:fs'
 import { assertAbsolute } from './filesystem'
 import type {
   GitStatus,
@@ -314,6 +315,30 @@ export async function stageAll(dir: string): Promise<GitActionResult> {
 export async function unstageAll(dir: string): Promise<GitActionResult> {
   try {
     return run(['reset'], assertAbsolute(dir))
+  } catch (e) {
+    return { ok: false, output: e instanceof Error ? e.message : String(e) }
+  }
+}
+
+/** Ajoute des motifs au .gitignore du dépôt (sans doublons). */
+export async function ignore(dir: string, patterns: string[]): Promise<GitActionResult> {
+  try {
+    const root = assertAbsolute(dir)
+    const file = join(root, '.gitignore')
+    let existing = ''
+    try {
+      existing = await fsp.readFile(file, 'utf8')
+    } catch {
+      /* pas encore de .gitignore */
+    }
+    const present = new Set(
+      existing.split(/\r?\n/).map((s) => s.trim()).filter(Boolean)
+    )
+    const toAdd = patterns.map((p) => p.trim()).filter((p) => p && !present.has(p))
+    if (toAdd.length === 0) return { ok: true, output: 'Déjà dans .gitignore.' }
+    const lead = existing && !existing.endsWith('\n') ? '\n' : ''
+    await fsp.appendFile(file, lead + toAdd.join('\n') + '\n', 'utf8')
+    return { ok: true, output: `Ajouté à .gitignore : ${toAdd.join(', ')}` }
   } catch (e) {
     return { ok: false, output: e instanceof Error ? e.message : String(e) }
   }

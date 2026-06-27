@@ -90,6 +90,9 @@ dans la sidebar (section Projets, branche + indicateur de modifications).
 modifiés** avec statut coloré (A/M/D/U…), **indexer/désindexer** par fichier ou en bloc,
 **annuler** (discard), **diff coloré** (lignes + en vert / − en rouge) du fichier
 sélectionné, et zone de commit (depuis l'indicateur Git ou la palette).
+**Multi-sélection** (Ctrl/Maj+clic) et **menu contextuel** par fichier(s) : indexer/
+désindexer, annuler, **ignorer** (fichier / dossier / `*.ext` → `.gitignore`), copier
+le chemin (absolu/relatif), révéler dans l'explorateur, ouvrir avec VS Code / par défaut.
 
 **Accès rapide** — page d'accueil façon explorateur Windows : **dossiers
 fréquents** et **fichiers récents**, alimentés automatiquement au fil de l'usage.

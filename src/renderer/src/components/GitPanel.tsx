@@ -13,12 +13,18 @@ import {
   X,
   ChevronDown,
   Loader2,
-  Check
+  Check,
+  Ban,
+  Copy,
+  ExternalLink,
+  Code2
 } from 'lucide-react'
 import { useGitStore } from '../state/useGitStore'
 import { useUiStore } from '../state/useUiStore'
+import { useAppsStore } from '../state/useAppsStore'
 import { useNavStore, activePane } from '../state/useNavStore'
 import { pathKey } from '../lib/format'
+import ContextMenu, { type MenuEntry } from './ContextMenu'
 import type { GitActionResult, GitCategory, GitFileChange } from '@shared/types'
 
 /** Lettre + couleur du statut d'un fichier (façon GitHub Desktop). */
@@ -62,7 +68,10 @@ export default function GitPanel(): JSX.Element {
   const setGitView = useUiStore((s) => s.setGitView)
   const path = useNavStore((s) => activePane(s).path)
 
+  const apps = useAppsStore((s) => s.apps)
   const [selPath, setSelPath] = useState<string | null>(null)
+  const [sel, setSel] = useState<Set<string>>(new Set())
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
   const [diff, setDiff] = useState('')
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
@@ -74,6 +83,12 @@ export default function GitPanel(): JSX.Element {
 
   const staged = useMemo(() => files.filter((f) => f.staged), [files])
   const unstaged = useMemo(() => files.filter((f) => !f.staged), [files])
+  // Ordre d'affichage (indexés puis modifications), pour la sélection par plage.
+  const order = useMemo(() => [...staged, ...unstaged], [staged, unstaged])
+  const selectedFiles = useMemo(
+    () => order.filter((f) => sel.has(pathKey(f.path))),
+    [order, sel]
+  )
   const selected = useMemo(
     () => (selPath ? files.find((f) => pathKey(f.path) === pathKey(selPath)) ?? null : null),
     [files, selPath]
@@ -120,6 +135,164 @@ export default function GitPanel(): JSX.Element {
     }
   }
 
+  const relOf = (p: string): string =>
+    repo && p.startsWith(repo.root + '/') ? p.slice(repo.root.length + 1) : p
+
+  // Sélection : clic = simple, Ctrl = bascule, Maj = plage. selPath = diff affiché.
+  const onRowClick = (e: React.MouseEvent, f: GitFileChange): void => {
+    const key = pathKey(f.path)
+    if (e.ctrlKey || e.metaKey) {
+      setSel((prev) => {
+        const n = new Set(prev)
+        n.has(key) ? n.delete(key) : n.add(key)
+        return n
+      })
+    } else if (e.shiftKey && selPath) {
+      const a = order.findIndex((x) => pathKey(x.path) === pathKey(selPath))
+      const b = order.findIndex((x) => pathKey(x.path) === key)
+      if (a >= 0 && b >= 0) {
+        const [lo, hi] = a < b ? [a, b] : [b, a]
+        setSel(new Set(order.slice(lo, hi + 1).map((x) => pathKey(x.path))))
+      }
+    } else {
+      setSel(new Set([key]))
+    }
+    setSelPath(f.path)
+  }
+
+  const onRowContext = (e: React.MouseEvent, f: GitFileChange): void => {
+    e.preventDefault()
+    const key = pathKey(f.path)
+    if (!sel.has(key)) {
+      setSel(new Set([key]))
+      setSelPath(f.path)
+    }
+    setMenu({ x: e.clientX, y: e.clientY })
+  }
+
+  const discardTargets = (targets: GitFileChange[]): void =>
+    void act(async () => {
+      for (const f of targets) {
+        if (f.category === 'untracked') {
+          try {
+            await window.api.fs.trash(f.path)
+          } catch {
+            /* ignore */
+          }
+        } else await window.api.git.discard(root, f.path)
+      }
+      return { ok: true, output: 'OK' }
+    })
+
+  const buildMenu = (): MenuEntry[] => {
+    const targets = selectedFiles
+    if (!targets.length) return []
+    const n = targets.length
+    const paths = targets.map((f) => f.path)
+    const rels = targets.map((f) => relOf(f.path))
+    const folders = [
+      ...new Set(
+        rels
+          .map((r) => {
+            const i = r.lastIndexOf('/')
+            return i >= 0 ? r.slice(0, i) + '/' : ''
+          })
+          .filter(Boolean)
+      )
+    ]
+    const exts = [
+      ...new Set(
+        targets
+          .map((f) => {
+            const i = f.path.lastIndexOf('.')
+            const s = f.path.lastIndexOf('/')
+            return i > s ? f.path.slice(i) : ''
+          })
+          .filter(Boolean)
+      )
+    ]
+    const suffix = n > 1 ? ` (${n})` : ''
+    const entries: MenuEntry[] = []
+    if (targets.some((f) => !f.staged))
+      entries.push({
+        label: `Indexer${suffix}`,
+        icon: <Plus size={14} />,
+        onClick: () =>
+          void act(async () => {
+            for (const f of targets) if (!f.staged) await window.api.git.stage(root, f.path)
+            return { ok: true, output: 'OK' }
+          })
+      })
+    if (targets.some((f) => f.staged))
+      entries.push({
+        label: `Désindexer${suffix}`,
+        icon: <Minus size={14} />,
+        onClick: () =>
+          void act(async () => {
+            for (const f of targets) if (f.staged) await window.api.git.unstage(root, f.path)
+            return { ok: true, output: 'OK' }
+          })
+      })
+    entries.push({
+      label: `Annuler les modifications${suffix}…`,
+      icon: <Undo2 size={14} />,
+      danger: true,
+      onClick: () => discardTargets(targets)
+    })
+    entries.push({ type: 'sep' })
+    entries.push({
+      label: n > 1 ? `Ignorer ces ${n} fichiers (.gitignore)` : 'Ignorer ce fichier (.gitignore)',
+      icon: <Ban size={14} />,
+      onClick: () => void act(() => window.api.git.ignore(root, rels))
+    })
+    if (folders.length)
+      entries.push({
+        label: folders.length > 1 ? 'Ignorer ces dossiers (.gitignore)' : 'Ignorer ce dossier (.gitignore)',
+        icon: <Ban size={14} />,
+        onClick: () => void act(() => window.api.git.ignore(root, folders))
+      })
+    if (exts.length)
+      entries.push({
+        label:
+          exts.length === 1
+            ? `Ignorer tous les ${exts[0]} (.gitignore)`
+            : `Ignorer ${exts.map((e) => '*' + e).join(', ')}`,
+        icon: <Ban size={14} />,
+        onClick: () => void act(() => window.api.git.ignore(root, exts.map((e) => '*' + e)))
+      })
+    entries.push({ type: 'sep' })
+    entries.push({
+      label: 'Copier le chemin',
+      icon: <Copy size={14} />,
+      onClick: () => void navigator.clipboard?.writeText(paths.join('\n'))
+    })
+    entries.push({
+      label: 'Copier le chemin relatif',
+      icon: <Copy size={14} />,
+      onClick: () => void navigator.clipboard?.writeText(rels.join('\n'))
+    })
+    entries.push({ type: 'sep' })
+    entries.push({
+      label: "Révéler dans l'explorateur",
+      icon: <ExternalLink size={14} />,
+      onClick: () => void window.api.fs.reveal(paths[0])
+    })
+    if (apps.vscode)
+      entries.push({
+        label: 'Ouvrir avec VS Code',
+        icon: <Code2 size={14} />,
+        onClick: () => window.api.apps.openWith('vscode', paths)
+      })
+    entries.push({
+      label: 'Ouvrir (programme par défaut)',
+      icon: <ExternalLink size={14} />,
+      onClick: () => {
+        for (const p of paths) void window.api.fs.open(p)
+      }
+    })
+    return entries
+  }
+
   if (!repo) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 bg-bg p-6 text-center">
@@ -137,15 +310,17 @@ export default function GitPanel(): JSX.Element {
 
   const fileRow = (f: GitFileChange): JSX.Element => {
     const b = badge(f.category)
-    const rel = f.path.startsWith(repo.root + '/') ? f.path.slice(repo.root.length + 1) : f.path
-    const isSel = selPath != null && pathKey(f.path) === pathKey(selPath)
+    const rel = relOf(f.path)
+    const isSel = sel.has(pathKey(f.path))
+    const isLead = selPath != null && pathKey(f.path) === pathKey(selPath)
     return (
       <div
         key={f.path}
-        onClick={() => setSelPath(f.path)}
+        onClick={(e) => onRowClick(e, f)}
+        onContextMenu={(e) => onRowContext(e, f)}
         className={`group flex cursor-pointer items-center gap-1.5 rounded-app px-1.5 py-1 ${
           isSel ? 'bg-accent-soft' : 'hover:bg-bg-hover'
-        }`}
+        } ${isLead ? 'ring-1 ring-inset ring-accent' : ''}`}
       >
         <span className={`w-3 shrink-0 text-center font-mono text-[11px] font-bold ${b.cls}`}>
           {b.letter}
@@ -390,6 +565,10 @@ export default function GitPanel(): JSX.Element {
           </div>
         </Panel>
       </PanelGroup>
+
+      {menu && (
+        <ContextMenu x={menu.x} y={menu.y} entries={buildMenu()} onClose={() => setMenu(null)} />
+      )}
     </div>
   )
 }

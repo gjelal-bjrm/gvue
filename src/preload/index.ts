@@ -140,7 +140,9 @@ const api = {
     unstageAll: (dir: string): Promise<GitActionResult> =>
       ipcRenderer.invoke(IPC.gitUnstageAll, dir),
     commitStaged: (dir: string, message: string): Promise<GitActionResult> =>
-      ipcRenderer.invoke(IPC.gitCommitStaged, dir, message)
+      ipcRenderer.invoke(IPC.gitCommitStaged, dir, message),
+    ignore: (dir: string, patterns: string[]): Promise<GitActionResult> =>
+      ipcRenderer.invoke(IPC.gitIgnore, dir, patterns)
   },
   nav: {
     onCommand: (cb: (cmd: NavCommand) => void): (() => void) => {

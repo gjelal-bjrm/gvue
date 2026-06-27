@@ -74,4 +74,8 @@ export function registerGitHandlers(): void {
   ipcMain.handle(IPC.gitCommitStaged, async (_e, dir: string, message: string) => {
     return git.commitStaged(dir, message)
   })
+
+  ipcMain.handle(IPC.gitIgnore, async (_e, dir: string, patterns: string[]) => {
+    return git.ignore(dir, patterns)
+  })
 }
