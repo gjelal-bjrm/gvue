@@ -24,11 +24,15 @@ interface UiState {
   paletteOpen: boolean
   /** Terminaux affichés côte à côte (sinon en onglets, un seul visible). */
   terminalSplit: boolean
+  /** Vue Git détaillée (façon GitHub Desktop) affichée à la place des volets ? */
+  gitViewOpen: boolean
   /** Fichiers coupés/copiés en attente de collage. */
   clipboard: FileClipboard | null
   toggleTerminal: () => void
   toggleTerminalSplit: () => void
   setTerminalSplit: (v: boolean) => void
+  toggleGitView: () => void
+  setGitView: (v: boolean) => void
   setTerminalOpen: (v: boolean) => void
   /** Ouvre le terminal et l'affiche en grand (exécution d'une commande). */
   openTerminalLarge: () => void
@@ -49,10 +53,13 @@ export const useUiStore = create<UiState>((set) => ({
   terminalGrow: 0,
   paletteOpen: false,
   terminalSplit: false,
+  gitViewOpen: false,
   clipboard: null,
   toggleTerminal: () => set((s) => ({ terminalOpen: !s.terminalOpen })),
   toggleTerminalSplit: () => set((s) => ({ terminalSplit: !s.terminalSplit })),
   setTerminalSplit: (v) => set({ terminalSplit: v }),
+  toggleGitView: () => set((s) => ({ gitViewOpen: !s.gitViewOpen })),
+  setGitView: (v) => set({ gitViewOpen: v }),
   setTerminalOpen: (v) => set({ terminalOpen: v }),
   openTerminalLarge: () =>
     set((s) => ({

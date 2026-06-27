@@ -11,6 +11,7 @@ import AppearancePanel from './components/AppearancePanel'
 import PreviewPanel from './components/PreviewPanel'
 import TerminalPanel from './components/TerminalPanel'
 import CommandPalette from './components/CommandPalette'
+import GitPanel from './components/GitPanel'
 import UpdateBanner from './components/UpdateBanner'
 import { useNavStore, activePane } from './state/useNavStore'
 import { useGitStore } from './state/useGitStore'
@@ -40,6 +41,7 @@ export default function App(): JSX.Element {
   const terminalGrow = useUiStore((s) => s.terminalGrow)
   const appearanceOpen = useUiStore((s) => s.appearanceOpen)
   const previewOpen = useUiStore((s) => s.previewOpen)
+  const gitViewOpen = useUiStore((s) => s.gitViewOpen)
   const searchActive = useSearchStore((s) => s.active)
   const panes = useNavStore((s) => s.panes)
   const terminalPanelRef = useRef<ImperativePanelHandle>(null)
@@ -260,7 +262,9 @@ export default function App(): JSX.Element {
               <PanelResizeHandle className="w-px bg-border transition-colors hover:bg-accent" />
 
               <Panel minSize={30}>
-                {searchActive ? (
+                {gitViewOpen ? (
+                  <GitPanel />
+                ) : searchActive ? (
                   <SearchPanel />
                 ) : (
                   <PanelGroup key={`panes-${panes.length}`} autoSaveId="gvue:panes" direction="horizontal">

@@ -1,6 +1,8 @@
 import { useState } from 'react'
-import { GitBranch, GitCommit, ArrowUp, ArrowDown, Loader2 } from 'lucide-react'
+import { GitBranch, GitCommit, ArrowUp, ArrowDown, Loader2, PanelsTopLeft } from 'lucide-react'
 import { useGitStore } from '../state/useGitStore'
+import { useUiStore } from '../state/useUiStore'
+import { useSearchStore } from '../state/useSearchStore'
 import { useNavStore, activePane } from '../state/useNavStore'
 import type { GitActionResult } from '@shared/types'
 
@@ -75,6 +77,18 @@ export default function GitWidget(): JSX.Element | null {
                 · {changes} changement{changes > 1 ? 's' : ''}
               </span>
             </div>
+
+            <button
+              onClick={() => {
+                setOpen(false)
+                useSearchStore.getState().close()
+                useUiStore.getState().setGitView(true)
+              }}
+              className="mb-2 flex w-full items-center justify-center gap-1.5 rounded-app border border-border px-2 py-1.5 text-[12px] text-fg-secondary hover:bg-bg-hover hover:text-fg"
+            >
+              <PanelsTopLeft size={14} />
+              Vue détaillée (fichiers + diff)
+            </button>
 
             <textarea
               value={message}

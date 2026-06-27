@@ -280,6 +280,12 @@ export interface GitActionResult {
   output: string
 }
 
+/** Branches locales d'un dépôt + branche courante. */
+export interface GitBranches {
+  current: string
+  all: string[]
+}
+
 export interface GitStatus {
   /** Le dossier interrogé est-il dans un dépôt Git ? */
   isRepo: boolean

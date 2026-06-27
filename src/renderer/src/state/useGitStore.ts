@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { GitFileChange } from '@shared/types'
+import type { GitFileChange, GitBranches } from '@shared/types'
 import { pathKey } from '../lib/format'
 
 /**
@@ -20,11 +20,16 @@ interface GitState {
   repo: GitRepo | null
   /** Changements indexés par clé de chemin (pathKey). */
   statusByPath: Record<string, GitFileChange>
+  /** Liste des changements (hors ignorés), pour la vue Git détaillée. */
+  files: GitFileChange[]
   /** Clés des dossiers contenant au moins un changement (hors ignorés). */
   dirtyDirs: Set<string>
   /** Clés des chemins ignorés par .gitignore (fichiers et dossiers regroupés). */
   ignored: Set<string>
+  /** Branches locales (chargées à la demande pour la vue Git). */
+  branches: GitBranches
   refresh: (dir: string) => Promise<void>
+  loadBranches: (dir: string) => Promise<void>
   clear: () => void
 }
 
@@ -34,13 +39,22 @@ function parentOf(p: string): string {
   return i > 0 ? p.slice(0, i) : ''
 }
 
-const EMPTY = { repo: null, statusByPath: {}, dirtyDirs: new Set<string>(), ignored: new Set<string>() }
+const EMPTY = {
+  repo: null,
+  statusByPath: {},
+  files: [] as GitFileChange[],
+  dirtyDirs: new Set<string>(),
+  ignored: new Set<string>()
+}
+const NO_BRANCHES: GitBranches = { current: '', all: [] }
 
 export const useGitStore = create<GitState>((set) => ({
   repo: null,
   statusByPath: {},
+  files: [],
   dirtyDirs: new Set(),
   ignored: new Set(),
+  branches: NO_BRANCHES,
 
   refresh: async (dir) => {
     let s
@@ -56,6 +70,7 @@ export const useGitStore = create<GitState>((set) => ({
     }
 
     const statusByPath: Record<string, GitFileChange> = {}
+    const files: GitFileChange[] = []
     const dirtyDirs = new Set<string>()
     const ignored = new Set<string>()
     const rootKey = pathKey(s.root)
@@ -67,6 +82,7 @@ export const useGitStore = create<GitState>((set) => ({
         ignored.add(key)
         continue // les ignorés ne « salissent » pas leurs dossiers parents
       }
+      files.push(f)
       // Marque chaque dossier ancêtre jusqu'à la racine du dépôt.
       let cur = f.path
       for (;;) {
@@ -82,10 +98,19 @@ export const useGitStore = create<GitState>((set) => ({
     set({
       repo: { root: s.root, branch: s.branch, ahead: s.ahead, behind: s.behind },
       statusByPath,
+      files,
       dirtyDirs,
       ignored
     })
   },
 
-  clear: () => set(EMPTY)
+  loadBranches: async (dir) => {
+    try {
+      set({ branches: await window.api.git.branches(dir) })
+    } catch {
+      set({ branches: NO_BRANCHES })
+    }
+  },
+
+  clear: () => set({ ...EMPTY, branches: NO_BRANCHES })
 }))

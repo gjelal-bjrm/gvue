@@ -82,6 +82,11 @@ retour de git), **menu contextuel** par fichier (indexer / désindexer / annuler
 ouvrir, révéler, copier le chemin, **corbeille**). **Masquage** des fichiers
 ignorés par `.gitignore` (bascule persistée) et **détection des dépôts** visités
 dans la sidebar (section Projets, branche + indicateur de modifications).
+**Vue Git détaillée** (façon GitHub Desktop, en plein centre) : barre de branche
+(**changer / créer de branche**, **fetch**, pull/push), liste des fichiers **indexés /
+modifiés** avec statut coloré (A/M/D/U…), **indexer/désindexer** par fichier ou en bloc,
+**annuler** (discard), **diff coloré** (lignes + en vert / − en rouge) du fichier
+sélectionné, et zone de commit (depuis l'indicateur Git ou la palette).
 
 **Accès rapide** — page d'accueil façon explorateur Windows : **dossiers
 fréquents** et **fichiers récents**, alimentés automatiquement au fil de l'usage.

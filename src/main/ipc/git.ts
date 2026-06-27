@@ -39,4 +39,39 @@ export function registerGitHandlers(): void {
   ipcMain.handle(IPC.gitDiscard, async (_e, dir: string, file: string) => {
     return git.discard(dir, file)
   })
+
+  ipcMain.handle(
+    IPC.gitDiff,
+    async (_e, dir: string, file: string, opts: { staged?: boolean; untracked?: boolean }) => {
+      return git.diff(dir, file, opts)
+    }
+  )
+
+  ipcMain.handle(IPC.gitBranches, async (_e, dir: string) => {
+    return git.branches(dir)
+  })
+
+  ipcMain.handle(IPC.gitCheckout, async (_e, dir: string, branch: string) => {
+    return git.checkout(dir, branch)
+  })
+
+  ipcMain.handle(IPC.gitCreateBranch, async (_e, dir: string, name: string) => {
+    return git.createBranch(dir, name)
+  })
+
+  ipcMain.handle(IPC.gitFetch, async (_e, dir: string) => {
+    return git.fetch(dir)
+  })
+
+  ipcMain.handle(IPC.gitStageAll, async (_e, dir: string) => {
+    return git.stageAll(dir)
+  })
+
+  ipcMain.handle(IPC.gitUnstageAll, async (_e, dir: string) => {
+    return git.unstageAll(dir)
+  })
+
+  ipcMain.handle(IPC.gitCommitStaged, async (_e, dir: string, message: string) => {
+    return git.commitStaged(dir, message)
+  })
 }

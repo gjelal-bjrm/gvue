@@ -174,6 +174,15 @@ export default function CommandPalette(): JSX.Element | null {
         nav().refresh()
       }
       list.push({
+        id: 'git-view',
+        title: 'Git : vue détaillée (fichiers + diff)',
+        icon: <FolderGit2 size={15} />,
+        run: () => {
+          useSearchStore.getState().close()
+          ui().setGitView(true)
+        }
+      })
+      list.push({
         id: 'git-pull',
         title: 'Git : Pull',
         hint: repo.behind > 0 ? `↓${repo.behind}` : undefined,

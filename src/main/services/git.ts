@@ -7,7 +7,8 @@ import type {
   GitFileChange,
   GitCategory,
   GitActionResult,
-  GitProject
+  GitProject,
+  GitBranches
 } from '@shared/types'
 
 /**
@@ -226,6 +227,103 @@ export async function unstage(dir: string, file: string): Promise<GitActionResul
 export async function discard(dir: string, file: string): Promise<GitActionResult> {
   try {
     return run(['restore', '--source=HEAD', '--staged', '--worktree', '--', file], assertAbsolute(dir))
+  } catch (e) {
+    return { ok: false, output: e instanceof Error ? e.message : String(e) }
+  }
+}
+
+/** Capture la sortie d'une commande git même si elle renvoie un code non nul. */
+async function capture(args: string[], cwd: string): Promise<string> {
+  try {
+    const { stdout } = await exec('git', args, { cwd, windowsHide: true, maxBuffer: 32 * 1024 * 1024 })
+    return stdout
+  } catch (e) {
+    // `git diff` (et --no-index) sortent en code 1 quand il y a des différences.
+    return (e as { stdout?: string }).stdout ?? ''
+  }
+}
+
+/** Diff unifié d'un fichier : indexé (--cached), suivi, ou nouveau (--no-index). */
+export async function diff(
+  dir: string,
+  file: string,
+  opts: { staged?: boolean; untracked?: boolean }
+): Promise<string> {
+  let cwd: string
+  try {
+    cwd = assertAbsolute(dir)
+  } catch {
+    return ''
+  }
+  if (opts.untracked) return capture(['diff', '--no-index', '--', '/dev/null', file], cwd)
+  if (opts.staged) return capture(['diff', '--cached', '--', file], cwd)
+  return capture(['diff', '--', file], cwd)
+}
+
+/** Liste des branches locales + branche courante. */
+export async function branches(dir: string): Promise<GitBranches> {
+  try {
+    const cwd = assertAbsolute(dir)
+    const current = (await git(['rev-parse', '--abbrev-ref', 'HEAD'], cwd)).trim()
+    const out = await git(['branch', '--list', '--format=%(refname:short)'], cwd)
+    const all = out.split('\n').map((s) => s.trim()).filter(Boolean)
+    return { current, all }
+  } catch {
+    return { current: '', all: [] }
+  }
+}
+
+/** Bascule sur une branche existante. */
+export async function checkout(dir: string, branch: string): Promise<GitActionResult> {
+  try {
+    return run(['checkout', branch], assertAbsolute(dir))
+  } catch (e) {
+    return { ok: false, output: e instanceof Error ? e.message : String(e) }
+  }
+}
+
+/** Crée une branche et bascule dessus. */
+export async function createBranch(dir: string, name: string): Promise<GitActionResult> {
+  if (!name.trim()) return { ok: false, output: 'Nom de branche vide.' }
+  try {
+    return run(['checkout', '-b', name.trim()], assertAbsolute(dir))
+  } catch (e) {
+    return { ok: false, output: e instanceof Error ? e.message : String(e) }
+  }
+}
+
+/** Récupère les changements distants (sans fusionner). */
+export async function fetch(dir: string): Promise<GitActionResult> {
+  try {
+    return run(['fetch', '--prune'], assertAbsolute(dir))
+  } catch (e) {
+    return { ok: false, output: e instanceof Error ? e.message : String(e) }
+  }
+}
+
+/** Indexe tout (git add -A). */
+export async function stageAll(dir: string): Promise<GitActionResult> {
+  try {
+    return run(['add', '-A'], assertAbsolute(dir))
+  } catch (e) {
+    return { ok: false, output: e instanceof Error ? e.message : String(e) }
+  }
+}
+
+/** Désindexe tout (git reset). */
+export async function unstageAll(dir: string): Promise<GitActionResult> {
+  try {
+    return run(['reset'], assertAbsolute(dir))
+  } catch (e) {
+    return { ok: false, output: e instanceof Error ? e.message : String(e) }
+  }
+}
+
+/** Commite uniquement les fichiers déjà indexés. */
+export async function commitStaged(dir: string, message: string): Promise<GitActionResult> {
+  if (!message.trim()) return { ok: false, output: 'Message de commit vide.' }
+  try {
+    return run(['commit', '-m', message], assertAbsolute(dir))
   } catch (e) {
     return { ok: false, output: e instanceof Error ? e.message : String(e) }
   }

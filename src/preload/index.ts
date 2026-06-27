@@ -11,6 +11,7 @@ import type {
   GitStatus,
   GitActionResult,
   GitProject,
+  GitBranches,
   DetectedApps,
   ExternalAppId,
   AppConfig,
@@ -121,7 +122,23 @@ const api = {
       ipcRenderer.invoke(IPC.gitUnstage, dir, file),
     discard: (dir: string, file: string): Promise<GitActionResult> =>
       ipcRenderer.invoke(IPC.gitDiscard, dir, file),
-    projects: (): Promise<GitProject[]> => ipcRenderer.invoke(IPC.gitProjects)
+    projects: (): Promise<GitProject[]> => ipcRenderer.invoke(IPC.gitProjects),
+    diff: (
+      dir: string,
+      file: string,
+      opts: { staged?: boolean; untracked?: boolean }
+    ): Promise<string> => ipcRenderer.invoke(IPC.gitDiff, dir, file, opts),
+    branches: (dir: string): Promise<GitBranches> => ipcRenderer.invoke(IPC.gitBranches, dir),
+    checkout: (dir: string, branch: string): Promise<GitActionResult> =>
+      ipcRenderer.invoke(IPC.gitCheckout, dir, branch),
+    createBranch: (dir: string, name: string): Promise<GitActionResult> =>
+      ipcRenderer.invoke(IPC.gitCreateBranch, dir, name),
+    fetch: (dir: string): Promise<GitActionResult> => ipcRenderer.invoke(IPC.gitFetch, dir),
+    stageAll: (dir: string): Promise<GitActionResult> => ipcRenderer.invoke(IPC.gitStageAll, dir),
+    unstageAll: (dir: string): Promise<GitActionResult> =>
+      ipcRenderer.invoke(IPC.gitUnstageAll, dir),
+    commitStaged: (dir: string, message: string): Promise<GitActionResult> =>
+      ipcRenderer.invoke(IPC.gitCommitStaged, dir, message)
   },
   nav: {
     onCommand: (cb: (cmd: NavCommand) => void): (() => void) => {
