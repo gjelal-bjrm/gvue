@@ -42,8 +42,22 @@ export default defineConfig({
     },
     plugins: [react()],
     build: {
+      // Découpe le bundle en chunks logiques (au lieu d'un seul gros fichier) :
+      // les libs tierces changent rarement → meilleur cache, build plus lisible.
+      chunkSizeWarningLimit: 900,
       rollupOptions: {
-        input: { index: resolve('src/renderer/index.html') }
+        input: { index: resolve('src/renderer/index.html') },
+        output: {
+          // Code applicatif dans « index » ; les libs tierces réparties en
+          // chunks stables (xterm et lucide isolés car volumineux, le reste
+          // — react, zustand, virtualiseur, panneaux — dans « vendor »).
+          manualChunks(id) {
+            if (!id.includes('node_modules')) return undefined
+            if (id.includes('@xterm')) return 'xterm'
+            if (id.includes('lucide-react')) return 'icons'
+            return 'vendor'
+          }
+        }
       }
     }
   }

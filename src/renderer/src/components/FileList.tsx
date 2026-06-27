@@ -1,92 +1,31 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import {
-  ArrowUp,
-  ArrowDown,
-  FolderOpen,
-  ExternalLink,
-  Copy,
-  Trash2,
-  Plus,
-  Minus,
-  Undo2,
-  Scissors,
-  ClipboardCopy,
-  ClipboardPaste,
-  FolderPlus,
-  FilePlus,
-  RefreshCw,
-  Link2,
-  Pencil,
-  Star,
-  StarOff,
-  Code2,
-  PenLine,
-  FileArchive,
-  FileDown,
-  AppWindow,
-  FolderInput,
-  TerminalSquare,
-  Filter,
-  PieChart,
-  X
-} from 'lucide-react'
-import { useNavStore, type SortKey } from '../state/useNavStore'
+import { Filter, X } from 'lucide-react'
+import { useNavStore } from '../state/useNavStore'
 import { useAppearanceStore } from '../state/useAppearanceStore'
 import { useGitStore } from '../state/useGitStore'
-import type { DirEntry, GitCategory, GitFileChange } from '@shared/types'
+import type { DirEntry, GitFileChange } from '@shared/types'
 import { useUiStore } from '../state/useUiStore'
 import { useTerminalStore } from '../state/useTerminalStore'
-import { formatSize, formatRelativeDate, formatDate, pathKey } from '../lib/format'
-import { fileIconSpec } from '../lib/fileIcon'
-import { useOsIcon } from '../lib/osIcons'
-import { useFavoritesStore } from '../state/useFavoritesStore'
-import { useAppsStore } from '../state/useAppsStore'
-import { useOpenWithStore } from '../state/useOpenWithStore'
-import { clipFiles, pasteInto } from '../lib/fileActions'
-import GitWidget from './GitWidget'
-import ContextMenu, { type MenuEntry } from './ContextMenu'
+import { pathKey } from '../lib/format'
+import ContextMenu from './ContextMenu'
 import BulkRenameDialog from './BulkRenameDialog'
-
-/** Lettre + couleur (variable de thème) associées à une catégorie Git. */
-function gitBadge(category: GitCategory): { letter: string; color: string } {
-  switch (category) {
-    case 'untracked':
-      return { letter: 'U', color: 'var(--success-fg)' }
-    case 'added':
-      return { letter: 'A', color: 'var(--success-fg)' }
-    case 'deleted':
-      return { letter: 'D', color: 'var(--danger-fg)' }
-    case 'renamed':
-      return { letter: 'R', color: 'var(--info-fg)' }
-    case 'conflict':
-      return { letter: '!', color: 'var(--danger-fg)' }
-    case 'ignored':
-      return { letter: '·', color: 'var(--fg-muted)' }
-    default:
-      return { letter: 'M', color: 'var(--warning-fg)' }
-  }
-}
+import Row from './filelist/Row'
+import ColumnHeader from './filelist/ColumnHeader'
+import StatusBar from './filelist/StatusBar'
+import { useFileListKeyboard } from './filelist/useFileListKeyboard'
+import { buildItemMenu, buildBackgroundMenu, buildDropMenu, type MenuCtx } from './filelist/menus'
+import { baseSegment } from './filelist/helpers'
 
 /**
  * Liste de fichiers virtualisée (@tanstack/react-virtual) : seules les lignes
  * visibles sont montées → fluide sur des dossiers de milliers d'entrées.
+ * L'affichage (lignes, en-tête, barre d'état), les menus contextuels et la
+ * navigation clavier vivent dans `./filelist/*` ; ce composant orchestre l'état.
  */
 const EMPTY_MAP: Record<string, GitFileChange> = {}
 const EMPTY_SET = new Set<string>()
 const EMPTY_LIST: string[] = []
-
-const ARCHIVE_EXT = new Set([
-  'zip', '7z', 'rar', 'tar', 'gz', 'tgz', 'bz2', 'xz', 'cab', 'iso', 'wim', 'lzh', 'arj', 'zipx'
-])
-function extOf(name: string): string {
-  const d = name.lastIndexOf('.')
-  return d > 0 ? name.slice(d + 1).toLowerCase() : ''
-}
-/** Nom lisible d'un exécutable (basename sans « .exe »). */
-function programName(exe: string): string {
-  return (exe.split(/[\\/]/).pop() ?? exe).replace(/\.exe$/i, '')
-}
 
 export default function FileList(props: { paneId: string }): JSX.Element {
   const pane = useNavStore((s) => s.panes.find((p) => p.id === props.paneId))
@@ -179,68 +118,18 @@ export default function FileList(props: { paneId: string }): JSX.Element {
     else void window.api.fs.open(entry.path)
   }
 
-  // Navigation clavier (volet actif) : flèches/Home/Fin/PgUp/PgDn pour déplacer
-  // la sélection, Entrée pour ouvrir, Retour arrière pour remonter, et
-  // taper-pour-sélectionner (saute au 1er fichier dont le nom commence ainsi).
-  useEffect(() => {
-    if (!isActive) return
-    const onKey = (e: KeyboardEvent): void => {
-      const t = e.target as HTMLElement | null
-      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
-      if (renaming) return
-      if ((e.ctrlKey || e.metaKey) && (e.key === 'f' || e.key === 'F')) {
-        e.preventDefault()
-        setFilterOn((o) => !o)
-        return
-      }
-      if (e.ctrlKey || e.metaKey || e.altKey) return // laisse Ctrl+A/C/X/V à App
-      const len = visible.length
-      if (len === 0) return
-
-      const cur = (() => {
-        const last = selected[selected.length - 1]
-        const i = last ? visible.findIndex((en) => en.path === last) : -1
-        return i >= 0 ? i : 0
-      })()
-      const move = (idx: number): void => {
-        const i = Math.max(0, Math.min(len - 1, idx))
-        setSelected([visible[i].path])
-        anchorRef.current = i
-        rowVirtualizer.scrollToIndex(i, { align: 'auto' })
-      }
-
-      switch (e.key) {
-        case 'ArrowDown': e.preventDefault(); move(cur + 1); break
-        case 'ArrowUp': e.preventDefault(); move(cur - 1); break
-        case 'Home': e.preventDefault(); move(0); break
-        case 'End': e.preventDefault(); move(len - 1); break
-        case 'PageDown': e.preventDefault(); move(cur + 12); break
-        case 'PageUp': e.preventDefault(); move(cur - 12); break
-        case 'Enter': {
-          e.preventDefault()
-          const en = visible[cur]
-          if (en && selected.length) onActivate(en)
-          break
-        }
-        case 'Backspace':
-          e.preventDefault()
-          useNavStore.getState().goParent()
-          break
-        default:
-          if (e.key.length === 1 && e.key !== ' ') {
-            const now = Date.now()
-            const buf = typeBuf.current
-            buf.s = (now - buf.t < 800 ? buf.s : '') + e.key.toLowerCase()
-            buf.t = now
-            const i = visible.findIndex((en) => en.name.toLowerCase().startsWith(buf.s))
-            if (i >= 0) move(i)
-          }
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isActive, visible, selected, renaming, rowVirtualizer])
+  useFileListKeyboard({
+    isActive,
+    visible,
+    selected,
+    renaming,
+    rowVirtualizer,
+    anchorRef,
+    typeBuf,
+    setSelected,
+    setFilterOn,
+    onActivate
+  })
 
   // Sélection façon explorateur : clic simple = remplace ; Ctrl = bascule ;
   // Maj = plage depuis l'ancre. L'index est celui dans la liste visible.
@@ -295,7 +184,7 @@ export default function FileList(props: { paneId: string }): JSX.Element {
   const commitRename = async (oldPath: string, newName: string): Promise<void> => {
     setRenaming(null)
     const trimmed = newName.trim()
-    if (!trimmed || trimmed === oldPath.split(/[\\/]/).pop()) return
+    if (!trimmed || trimmed === baseSegment(oldPath)) return
     const res = await window.api.fs.rename(oldPath, trimmed)
     if (res.ok && res.path) {
       setSelected([res.path])
@@ -373,288 +262,22 @@ export default function FileList(props: { paneId: string }): JSX.Element {
     window.addEventListener('mouseup', up, true)
   }
 
-  const buildDropMenu = (paths: string[], destDir: string): MenuEntry[] => {
-    const n = paths.length
-    const apps = useAppsStore.getState().apps
-    const refreshAll = (): void => useNavStore.getState().refreshAll()
-    const run = (op: 'copy' | 'move'): void => {
-      void window.api.fs[op](paths, destDir).then(refreshAll)
-    }
-    const archives = paths.filter((p) => ARCHIVE_EXT.has(extOf(p.split(/[\\/]/).pop() ?? p)))
-
-    const items: MenuEntry[] = [
-      {
-        label: n > 1 ? `Copier ici (${n})` : 'Copier ici',
-        icon: <ClipboardCopy size={14} />,
-        onClick: () => run('copy')
-      },
-      {
-        label: n > 1 ? `Déplacer ici (${n})` : 'Déplacer ici',
-        icon: <FolderInput size={14} />,
-        onClick: () => run('move')
-      },
-      {
-        label: n > 1 ? `Créer ${n} raccourcis ici` : 'Créer un raccourci ici',
-        icon: <Link2 size={14} />,
-        onClick: () =>
-          void Promise.all(paths.map((p) => window.api.fs.createShortcut(p, destDir))).then(refreshAll)
-      }
-    ]
-
-    if (apps.sevenzip) {
-      items.push({
-        label: 'Compresser ici (.zip)',
-        icon: <FileArchive size={14} />,
-        onClick: () => void window.api.apps.archive(paths, destDir)
-      })
-      if (archives.length > 0) {
-        items.push({
-          label: archives.length > 1 ? `Extraire ici (${archives.length})` : 'Extraire ici',
-          icon: <FileDown size={14} />,
-          onClick: () => archives.forEach((a) => void window.api.apps.extract(a, destDir))
-        })
-      }
-    }
-
-    items.push({ type: 'sep' }, { label: 'Annuler', icon: <X size={14} />, onClick: () => {} })
-    return items
-  }
-
-  // Menu de la zone vide (clic droit hors d'un élément) : créer / coller / actualiser.
-  const backgroundMenu = (): MenuEntry[] => [
-    ...(useAppsStore.getState().apps.vscode
-      ? [
-          {
-            label: 'Ouvrir avec VS Code',
-            icon: <Code2 size={14} />,
-            onClick: () => window.api.apps.openWith('vscode', [path])
-          } as MenuEntry,
-          { type: 'sep' } as MenuEntry
-        ]
-      : []),
-    {
-      label: 'Nouveau dossier',
-      icon: <FolderPlus size={14} />,
-      onClick: () => void createThen(window.api.fs.createDir, 'Nouveau dossier')
-    },
-    {
-      label: 'Nouveau fichier',
-      icon: <FilePlus size={14} />,
-      onClick: () => void createThen(window.api.fs.createFile, 'Nouveau fichier.txt')
-    },
-    {
-      label: 'Créer des dossiers… (en lot)',
-      icon: <FolderPlus size={14} />,
-      onClick: () => useUiStore.getState().setFolderCreator(true)
-    },
-    { type: 'sep' },
-    {
-      label: 'Coller',
-      icon: <ClipboardPaste size={14} />,
-      disabled: !clipboard,
-      onClick: () => void pasteInto(path)
-    },
-    { type: 'sep' },
-    {
-      label: useFavoritesStore.getState().has(path) ? 'Retirer des favoris' : 'Ajouter aux favoris',
-      icon: useFavoritesStore.getState().has(path) ? <StarOff size={14} /> : <Star size={14} />,
-      onClick: () => useFavoritesStore.getState().toggle(path)
-    },
-    { label: 'Actualiser', icon: <RefreshCw size={14} />, onClick: () => useNavStore.getState().refresh() },
-    {
-      label: 'Ouvrir un terminal ici',
-      icon: <TerminalSquare size={14} />,
-      onClick: () => openTerminalHere(path)
-    },
-    {
-      label: "Ouvrir dans l'explorateur",
-      icon: <ExternalLink size={14} />,
-      onClick: () => void window.api.fs.reveal(path)
-    }
-  ]
-
-  const buildMenu = (entry: DirEntry): MenuEntry[] => {
-    const git = statusByPath[pathKey(entry.path)]
-    const apps = useAppsStore.getState().apps
-    // Cible des opérations groupées : la sélection si l'élément en fait partie.
-    const targets = selectedSet.has(entry.path) && selected.length > 1 ? selected : [entry.path]
-    const n = targets.length
-
-    // Intégrations d'applications externes (affichées seulement si installées).
-    const appEntries: MenuEntry[] = []
-    if (apps.vscode)
-      appEntries.push({
-        label: 'Ouvrir avec VS Code',
-        icon: <Code2 size={14} />,
-        onClick: () => window.api.apps.openWith('vscode', targets)
-      })
-    if (apps.notepadpp && entry.kind === 'file')
-      appEntries.push({
-        label: 'Éditer avec Notepad++',
-        icon: <PenLine size={14} />,
-        onClick: () => window.api.apps.openWith('notepadpp', targets)
-      })
-    // « Ouvrir avec » : programmes mémorisés pour ce type + sélecteur.
-    if (entry.kind === 'file') {
-      const ext = extOf(entry.name)
-      for (const exe of useOpenWithStore.getState().get(ext)) {
-        appEntries.push({
-          label: `Ouvrir avec ${programName(exe)}`,
-          icon: <AppWindow size={14} />,
-          onClick: () => window.api.apps.openPathWith(exe, targets)
-        })
-      }
-      appEntries.push({
-        label: 'Ouvrir avec…',
-        icon: <AppWindow size={14} />,
-        onClick: async () => {
-          const exe = await window.api.apps.pickProgram()
-          if (!exe) return
-          window.api.apps.openPathWith(exe, targets)
-          if (ext) useOpenWithStore.getState().add(ext, exe)
-        }
-      })
-    }
-    if (apps.sevenzip) {
-      appEntries.push({
-        label: n > 1 ? `Compresser (${n}) en .zip` : 'Compresser en .zip (7-Zip)',
-        icon: <FileArchive size={14} />,
-        onClick: () => void window.api.apps.archive(targets)
-      })
-      if (entry.kind === 'file' && ARCHIVE_EXT.has(extOf(entry.name)))
-        appEntries.push({
-          label: 'Extraire (7-Zip)',
-          icon: <FileDown size={14} />,
-          onClick: () => void window.api.apps.extract(entry.path)
-        })
-    }
-
-    const entries: MenuEntry[] = [
-      { label: 'Ouvrir', icon: <FolderOpen size={14} />, onClick: () => onActivate(entry) },
-      {
-        label: "Ouvrir dans l'explorateur",
-        icon: <ExternalLink size={14} />,
-        onClick: () => void window.api.fs.reveal(entry.path)
-      },
-      ...(entry.kind === 'directory'
-        ? [
-            {
-              label: 'Ouvrir un terminal ici',
-              icon: <TerminalSquare size={14} />,
-              onClick: () => openTerminalHere(entry.path)
-            } as MenuEntry,
-            {
-              label: "Analyser l'espace disque",
-              icon: <PieChart size={14} />,
-              onClick: () => useUiStore.getState().setDiskUsage(entry.path)
-            } as MenuEntry
-          ]
-        : []),
-      {
-        label: 'Créer un raccourci',
-        icon: <Link2 size={14} />,
-        onClick: () => void window.api.fs.createShortcut(entry.path).then(refreshAfter)
-      },
-      ...(appEntries.length ? [{ type: 'sep' } as MenuEntry, ...appEntries] : []),
-      { type: 'sep' },
-      {
-        label: 'Copier le chemin',
-        icon: <Copy size={14} />,
-        onClick: () => void navigator.clipboard.writeText(entry.path)
-      },
-      {
-        label: 'Copier le nom',
-        icon: <Copy size={14} />,
-        onClick: () => void navigator.clipboard.writeText(entry.name)
-      },
-      { type: 'sep' },
-      n > 1
-        ? {
-            label: `Renommer en masse (${n})…`,
-            icon: <Pencil size={14} />,
-            onClick: () => setBulkPaths(targets)
-          }
-        : { label: 'Renommer', icon: <Pencil size={14} />, onClick: () => setRenaming(entry.path) },
-      {
-        label: n > 1 ? `Couper (${n})` : 'Couper',
-        icon: <Scissors size={14} />,
-        onClick: () => clipFiles(targets, 'cut')
-      },
-      {
-        label: n > 1 ? `Copier (${n})` : 'Copier',
-        icon: <ClipboardCopy size={14} />,
-        onClick: () => clipFiles(targets, 'copy')
-      },
-      ...(entry.kind === 'directory'
-        ? [
-            {
-              label: 'Coller dans le dossier',
-              icon: <ClipboardPaste size={14} />,
-              disabled: !clipboard,
-              onClick: () => void pasteInto(entry.path)
-            } as MenuEntry
-          ]
-        : []),
-      {
-        label: 'Renommer',
-        icon: <Pencil size={14} />,
-        onClick: () => {
-          setSelected([entry.path])
-          setRenaming(entry.path)
-        }
-      },
-      ...(entry.kind === 'directory'
-        ? [
-            {
-              label: useFavoritesStore.getState().has(entry.path)
-                ? 'Retirer des favoris'
-                : 'Ajouter aux favoris',
-              icon: useFavoritesStore.getState().has(entry.path) ? (
-                <StarOff size={14} />
-              ) : (
-                <Star size={14} />
-              ),
-              onClick: () => useFavoritesStore.getState().toggle(entry.path)
-            } as MenuEntry
-          ]
-        : [])
-    ]
-
-    if (repo && git && git.category !== 'ignored') {
-      entries.push({ type: 'sep' })
-      entries.push({
-        label: 'Indexer',
-        icon: <Plus size={14} />,
-        onClick: () => void window.api.git.stage(path, entry.path).then(refreshAfter)
-      })
-      entries.push({
-        label: 'Désindexer',
-        icon: <Minus size={14} />,
-        disabled: !git.staged,
-        onClick: () => void window.api.git.unstage(path, entry.path).then(refreshAfter)
-      })
-      if (git.category !== 'untracked') {
-        entries.push({
-          label: 'Annuler les modifications',
-          icon: <Undo2 size={14} />,
-          danger: true,
-          onClick: () => {
-            if (window.confirm(`Annuler les modifications de « ${entry.name} » ? Action irréversible.`)) {
-              void window.api.git.discard(path, entry.path).then(refreshAfter)
-            }
-          }
-        })
-      }
-    }
-
-    entries.push({ type: 'sep' })
-    entries.push({
-      label: n > 1 ? `Supprimer (${n}) → corbeille` : 'Supprimer (corbeille)',
-      icon: <Trash2 size={14} />,
-      danger: true,
-      onClick: () => void trashPaths(targets)
-    })
-    return entries
+  // Contexte transmis aux constructeurs de menus (état + actions du volet).
+  const menuCtx: MenuCtx = {
+    path,
+    selected,
+    selectedSet,
+    clipboard,
+    repo,
+    statusByPath,
+    onActivate,
+    openTerminalHere,
+    refreshAfter,
+    createThen,
+    setRenaming,
+    setSelected,
+    setBulkPaths,
+    trashPaths
   }
 
   return (
@@ -789,7 +412,7 @@ export default function FileList(props: { paneId: string }): JSX.Element {
         <ContextMenu
           x={menu.x}
           y={menu.y}
-          entries={menu.entry ? buildMenu(menu.entry) : backgroundMenu()}
+          entries={menu.entry ? buildItemMenu(menu.entry, menuCtx) : buildBackgroundMenu(menuCtx)}
           onClose={() => setMenu(null)}
         />
       )}
@@ -811,211 +434,5 @@ export default function FileList(props: { paneId: string }): JSX.Element {
         />
       )}
     </div>
-  )
-}
-
-function ColumnHeader(props: {
-  sortKey: SortKey
-  sortDir: 'asc' | 'desc'
-  onSort: (key: SortKey) => void
-}): JSX.Element {
-  const Arrow = ({ k }: { k: SortKey }): JSX.Element | null => {
-    if (props.sortKey !== k) return null
-    return props.sortDir === 'asc' ? (
-      <ArrowUp size={12} className="ml-1 inline" />
-    ) : (
-      <ArrowDown size={12} className="ml-1 inline" />
-    )
-  }
-  return (
-    <div className="flex shrink-0 items-center border-b border-border px-3 text-[11px] font-medium uppercase tracking-wider text-fg-muted">
-      <button className="flex-1 px-2 py-2 text-left hover:text-fg-secondary" onClick={() => props.onSort('name')}>
-        Nom <Arrow k="name" />
-      </button>
-      <span className="w-6 shrink-0" />
-      <button className="w-24 px-2 py-2 text-right hover:text-fg-secondary" onClick={() => props.onSort('size')}>
-        Taille <Arrow k="size" />
-      </button>
-      <button className="w-32 px-2 py-2 text-right hover:text-fg-secondary" onClick={() => props.onSort('modifiedMs')}>
-        Modifié <Arrow k="modifiedMs" />
-      </button>
-    </div>
-  )
-}
-
-function Row(props: {
-  entry: DirEntry
-  index: number
-  height: number
-  selected: boolean
-  renaming: boolean
-  top: number
-  git?: GitFileChange
-  gitDir?: boolean
-  dropActive?: boolean
-  onRowClick: (e: React.MouseEvent) => void
-  onActivate: () => void
-  onContext: (e: React.MouseEvent) => void
-  onCommitRename: (name: string) => void
-  onCancelRename: () => void
-  dropDir?: string
-  onDragStart: (e: React.DragEvent) => void
-  onRightDragStart: (e: React.MouseEvent) => void
-  onDirOver?: (e: React.DragEvent) => void
-  onDirDrop?: (e: React.DragEvent) => void
-}): JSX.Element {
-  const { entry, git } = props
-  const { Icon, color } = fileIconSpec(entry)
-  const osIcon = useOsIcon(entry)
-  const badge = git ? gitBadge(git.category) : null
-  // Teinte le nom selon le statut Git (fichier suivi modifié, non suivi, conflit…).
-  const nameColor = props.selected
-    ? 'text-accent'
-    : badge && git?.category !== 'ignored'
-      ? ''
-      : 'text-fg'
-  return (
-    <div
-      className={`absolute left-0 flex w-full cursor-default items-center px-3 ${
-        props.dropActive
-          ? 'bg-accent-soft ring-1 ring-inset ring-accent'
-          : props.selected
-            ? 'bg-accent-soft'
-            : 'hover:bg-bg-hover'
-      } ${entry.hidden ? 'opacity-55' : ''}`}
-      style={{ top: props.top, height: props.height }}
-      data-gvue-dir={props.dropDir}
-      draggable={!props.renaming}
-      onDragStart={props.onDragStart}
-      onMouseDown={props.onRightDragStart}
-      onDragOver={props.onDirOver}
-      onDrop={props.onDirDrop}
-      onClick={props.onRowClick}
-      onDoubleClick={props.onActivate}
-      onContextMenu={props.onContext}
-      title={git ? `${entry.path} · ${git.category}${git.staged ? ' (indexé)' : ''}` : entry.path}
-    >
-      <div className="flex min-w-0 flex-1 items-center gap-2.5 px-2">
-        <span className="relative grid h-4 w-4 shrink-0 place-items-center">
-          {osIcon ? (
-            <img src={osIcon} alt="" className="max-h-4 max-w-4 object-contain" draggable={false} />
-          ) : (
-            <Icon size={16} style={{ color }} />
-          )}
-          {props.gitDir && !badge && (
-            <span
-              className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full"
-              style={{ background: 'var(--warning-fg)' }}
-            />
-          )}
-        </span>
-        {props.renaming ? (
-          <RenameInput
-            initial={entry.name}
-            onCommit={props.onCommitRename}
-            onCancel={props.onCancelRename}
-          />
-        ) : (
-          <span
-            className={`truncate ${nameColor}`}
-            style={badge && !props.selected ? { color: badge.color } : undefined}
-          >
-            {entry.name}
-          </span>
-        )}
-        {!props.renaming && entry.symlink && <span className="text-[11px] text-fg-muted">↗</span>}
-        {!props.renaming && entry.hidden && (
-          <span className="ml-1 text-[11px] text-fg-muted">masqué</span>
-        )}
-      </div>
-      <div className="w-6 shrink-0 text-center text-[12px] font-semibold tabular-nums">
-        {badge && (
-          <span style={{ color: badge.color }} title={git?.category}>
-            {badge.letter}
-          </span>
-        )}
-      </div>
-      <div className="w-24 px-2 text-right text-[12px] text-fg-muted tabular-nums">
-        {formatSize(entry.size, entry.kind)}
-      </div>
-      <div
-        className="w-32 px-2 text-right text-[12px] text-fg-muted tabular-nums"
-        title={formatDate(entry.modifiedMs)}
-      >
-        {formatRelativeDate(entry.modifiedMs)}
-      </div>
-    </div>
-  )
-}
-
-function StatusBar(props: {
-  count: number
-  total: number
-  selectedCount: number
-  showGit: boolean
-}): JSX.Element {
-  const hiddenCount = props.total - props.count
-  return (
-    <div className="flex shrink-0 items-center justify-between border-t border-border bg-bg-secondary px-3 py-1.5 text-[12px] text-fg-muted">
-      <div className="flex min-w-0 items-center gap-3">
-        <span className="shrink-0">
-          {props.count} élément{props.count > 1 ? 's' : ''}
-          {hiddenCount > 0 && ` · ${hiddenCount} masqué${hiddenCount > 1 ? 's' : ''}`}
-        </span>
-        {props.showGit && <GitWidget />}
-      </div>
-      {props.selectedCount > 0 && (
-        <span className="shrink-0 pl-3">
-          {props.selectedCount} sélectionné{props.selectedCount > 1 ? 's' : ''}
-        </span>
-      )}
-    </div>
-  )
-}
-
-function RenameInput(props: {
-  initial: string
-  onCommit: (name: string) => void
-  onCancel: () => void
-}): JSX.Element {
-  const ref = useRef<HTMLInputElement>(null)
-  const [val, setVal] = useState(props.initial)
-  const doneRef = useRef(false)
-
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    el.focus()
-    // Sélectionne le nom sans l'extension (comme l'explorateur Windows).
-    const dot = props.initial.lastIndexOf('.')
-    if (dot > 0) el.setSelectionRange(0, dot)
-    else el.select()
-  }, [props.initial])
-
-  // Garantit une seule issue (valider OU annuler) malgré le blur au démontage.
-  const finish = (commit: boolean): void => {
-    if (doneRef.current) return
-    doneRef.current = true
-    if (commit) props.onCommit(val)
-    else props.onCancel()
-  }
-
-  return (
-    <input
-      ref={ref}
-      value={val}
-      onChange={(e) => setVal(e.target.value)}
-      onClick={(e) => e.stopPropagation()}
-      onDoubleClick={(e) => e.stopPropagation()}
-      onMouseDown={(e) => e.stopPropagation()}
-      onKeyDown={(e) => {
-        e.stopPropagation()
-        if (e.key === 'Enter') finish(true)
-        if (e.key === 'Escape') finish(false)
-      }}
-      onBlur={() => finish(true)}
-      spellCheck={false}
-      className="min-w-0 flex-1 rounded border border-accent bg-bg px-1 text-[13px] text-fg outline-none"
-    />
   )
 }

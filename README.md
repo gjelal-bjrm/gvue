@@ -206,8 +206,10 @@ gvue/
 │  │     ├─ App.tsx
 │  │     ├─ components/         # TitleBar, Toolbar, CommandBar, CommandPalette, Sidebar, FolderTree,
 │  │     │                      #   FileList, FilePickerDialog, GitWidget, ContextMenu, SearchPanel,
-│  │     │                      #   QuickAccessPanel, Terminal, TerminalPanel, LauncherPanel,
+│  │     │                      #   QuickAccessPanel, Terminal, TerminalPanel, LauncherPanel, Toast,
 │  │     │                      #   AppearancePanel, PreviewPanel, WorkspaceMenu, UpdateBanner, Logo
+│  │     │   └─ filelist/        #   FileList éclaté : Row, RenameInput, ColumnHeader, StatusBar,
+│  │     │                      #     menus (contextuels), useFileListKeyboard, helpers
 │  │     ├─ state/              # stores zustand (nav, terminal, search, git, appearance, ui,
 │  │     │                      #   favorites, apps, openWith, workspace, runner, sidebar, update)
 │  │     ├─ theme/              # variables CSS, presets, application du thème
