@@ -45,6 +45,7 @@ import { useOpenWithStore } from '../state/useOpenWithStore'
 import { clipFiles, pasteInto } from '../lib/fileActions'
 import GitWidget from './GitWidget'
 import ContextMenu, { type MenuEntry } from './ContextMenu'
+import BulkRenameDialog from './BulkRenameDialog'
 
 /** Lettre + couleur (variable de thème) associées à une catégorie Git. */
 function gitBadge(category: GitCategory): { letter: string; color: string } {
@@ -108,6 +109,7 @@ export default function FileList(props: { paneId: string }): JSX.Element {
   const clipboard = useUiStore((s) => s.clipboard)
   const [filter, setFilter] = useState('')
   const [filterOn, setFilterOn] = useState(false)
+  const [bulkPaths, setBulkPaths] = useState<string[] | null>(null)
   const parentRef = useRef<HTMLDivElement>(null)
   const anchorRef = useRef<number | null>(null)
   const renameTimer = useRef<number | null>(null)
@@ -555,6 +557,13 @@ export default function FileList(props: { paneId: string }): JSX.Element {
         onClick: () => void navigator.clipboard.writeText(entry.name)
       },
       { type: 'sep' },
+      n > 1
+        ? {
+            label: `Renommer en masse (${n})…`,
+            icon: <Pencil size={14} />,
+            onClick: () => setBulkPaths(targets)
+          }
+        : { label: 'Renommer', icon: <Pencil size={14} />, onClick: () => setRenaming(entry.path) },
       {
         label: n > 1 ? `Couper (${n})` : 'Couper',
         icon: <Scissors size={14} />,
@@ -780,6 +789,14 @@ export default function FileList(props: { paneId: string }): JSX.Element {
           y={dropMenu.y}
           entries={buildDropMenu(dropMenu.paths, dropMenu.destDir)}
           onClose={() => setDropMenu(null)}
+        />
+      )}
+
+      {bulkPaths && (
+        <BulkRenameDialog
+          paths={bulkPaths}
+          onClose={() => setBulkPaths(null)}
+          onDone={() => void refreshAfter()}
         />
       )}
     </div>
