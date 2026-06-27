@@ -14,13 +14,30 @@ export function normalize(input: string): string {
   return path.normalize(path.resolve(input))
 }
 
-/** Vérifie qu'un chemin est absolu — garde-fou contre la traversée arbitraire. */
+/** Normalise un chemin relatif : sépar. unifiés en « / », bords nettoyés. */
+export function cleanRel(rel: string): string {
+  return rel.replace(/\\+/g, '/').replace(/^\/+|\/+$/g, '').trim()
+}
+
+/**
+ * Vrai si un chemin relatif (déjà nettoyé) est sûr : pas de segment « .. », vide
+ * ou « . ». Garde-fou contre la traversée de répertoire lors des créations en lot.
+ */
+export function isSafeRel(clean: string): boolean {
+  if (!clean) return false
+  return !clean.split('/').some((seg) => seg === '..' || seg === '' || seg === '.')
+}
+
+/**
+ * Vérifie qu'un chemin est absolu — garde-fou contre la traversée arbitraire.
+ * On teste l'entrée *brute* : sinon `path.resolve` la rendrait absolue (relative
+ * au cwd du processus) et le garde-fou ne se déclencherait jamais.
+ */
 export function assertAbsolute(input: string): string {
-  const normalized = normalize(input)
-  if (!path.isAbsolute(normalized)) {
+  if (!path.isAbsolute(input)) {
     throw new Error(`Chemin non absolu refusé : ${input}`)
   }
-  return normalized
+  return normalize(input)
 }
 
 // Fichiers système masqués par défaut par l'explorateur Windows. Node n'expose
@@ -242,9 +259,9 @@ export async function makeDirs(
   let created = 0
   const errors: string[] = []
   for (const rel of rels) {
-    const clean = rel.replace(/\\+/g, '/').replace(/^\/+|\/+$/g, '').trim()
+    const clean = cleanRel(rel)
     if (!clean) continue
-    if (clean.split('/').some((seg) => seg === '..' || seg === '' || seg === '.')) {
+    if (!isSafeRel(clean)) {
       errors.push(`Chemin invalide : ${rel}`)
       continue
     }

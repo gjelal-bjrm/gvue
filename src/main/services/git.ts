@@ -40,7 +40,7 @@ async function git(args: string[], cwd: string): Promise<string> {
 }
 
 /** Catégorise un code de statut porcelain (X = index, Y = copie de travail). */
-function categorize(x: string, y: string): GitCategory {
+export function categorize(x: string, y: string): GitCategory {
   const code = x + y
   if (code === '??') return 'untracked'
   if (code === '!!') return 'ignored'
@@ -52,7 +52,7 @@ function categorize(x: string, y: string): GitCategory {
 }
 
 /** Parse l'en-tête « ## branch...upstream [ahead N, behind M] ». */
-function parseBranch(info: string): { branch: string; ahead: number; behind: number } {
+export function parseBranch(info: string): { branch: string; ahead: number; behind: number } {
   let branch: string
   if (info.startsWith('No commits yet on ')) {
     branch = info.slice('No commits yet on '.length).split('...')[0].trim()
@@ -66,7 +66,7 @@ function parseBranch(info: string): { branch: string; ahead: number; behind: num
   return { branch, ahead: a ? Number(a[1]) : 0, behind: b ? Number(b[1]) : 0 }
 }
 
-function parse(raw: string, root: string): GitStatus {
+export function parse(raw: string, root: string): GitStatus {
   const parts = raw.split('\0')
   const files: GitFileChange[] = []
   let branch = ''

@@ -231,6 +231,7 @@ Autres scripts :
 
 ```bash
 npm run typecheck   # typage strict (main + renderer)
+npm test            # tests unitaires (vitest) de la logique pure
 npm run build       # build de production
 npm start           # prévisualise le build
 npm run rebuild     # recompile node-pty pour l'ABI d'Electron
@@ -374,7 +375,7 @@ Pour l'activer (si la recompilation a échoué) : installer les *Build Tools* pu
 - **Affinages possibles** : taille des zones **par espace de travail** (aujourd'hui
   globale), surveillance disque temps réel via `chokidar` (au lieu de `fs.watch`),
   treemap visuel pour l'espace disque, signature de code (supprimer l'avertissement
-  SmartScreen), tests automatisés des services purs.
+  SmartScreen), élargissement de la couverture de tests (UI, services Git réels).
 
 ---
 

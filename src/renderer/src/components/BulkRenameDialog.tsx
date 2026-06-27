@@ -1,25 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Pencil, X, ArrowRight, AlertTriangle } from 'lucide-react'
 import { baseName } from '../lib/format'
-
-/** Échappe une chaîne pour l'utiliser comme motif regex littéral. */
-function escapeRe(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
-
-interface Rules {
-  find: string
-  replace: string
-  regex: boolean
-  ci: boolean
-  prefix: string
-  suffix: string
-  numbering: boolean
-  start: number
-  pad: number
-  numPos: 'prefix' | 'suffix'
-  numSep: string
-}
+import { analyzeBulkRename, type BulkRenameRules as Rules } from '../lib/bulkRename'
 
 /**
  * Renommage en masse : applique des règles (rechercher/remplacer + regex,
@@ -51,43 +33,16 @@ export default function BulkRenameDialog(props: {
 
   const names = useMemo(() => props.paths.map((p) => baseName(p)), [props.paths])
 
-  // Calcule les nouveaux noms + détecte motif regex invalide.
-  const { newNames, regexError } = useMemo(() => {
-    let re: RegExp | null = null
-    let regexError = false
-    if (r.find) {
-      try {
-        re = new RegExp(r.regex ? r.find : escapeRe(r.find), 'g' + (r.ci ? 'i' : ''))
-      } catch {
-        regexError = true
-      }
-    }
-    const newNames = names.map((name, i) => {
-      let n = name
-      if (re) n = n.replace(re, r.replace)
-      const dot = n.lastIndexOf('.')
-      let base = dot > 0 ? n.slice(0, dot) : n
-      const ext = dot > 0 ? n.slice(dot) : ''
-      base = r.prefix + base + r.suffix
-      if (r.numbering) {
-        const num = String(r.start + i).padStart(Math.max(1, r.pad), '0')
-        base = r.numPos === 'prefix' ? num + r.numSep + base : base + r.numSep + num
-      }
-      return base + ext
-    })
-    return { newNames, regexError }
-  }, [names, r])
-
-  // Conflits : nom vide, ou doublon dans la nouvelle liste.
+  // Logique pure extraite (testable) : nouveaux noms + conflits + blocage.
+  const { newNames, regexError, hasEmpty, hasDup, changedCount, blocked } = useMemo(
+    () => analyzeBulkRename(names, r),
+    [names, r]
+  )
   const counts = useMemo(() => {
     const m = new Map<string, number>()
     for (const n of newNames) m.set(n, (m.get(n) ?? 0) + 1)
     return m
   }, [newNames])
-  const hasEmpty = newNames.some((n) => !n.trim())
-  const hasDup = newNames.some((n) => (counts.get(n) ?? 0) > 1)
-  const changedCount = newNames.filter((n, i) => n !== names[i]).length
-  const blocked = regexError || hasEmpty || hasDup || changedCount === 0
 
   const apply = async (): Promise<void> => {
     if (blocked) return
