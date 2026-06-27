@@ -1,6 +1,6 @@
 {
   "name": "gvue",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "GVue — explorateur de fichiers de bureau pensé pour les développeurs.",
   "main": "./out/main/index.js",
   "author": "GVue",

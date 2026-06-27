@@ -56,3 +56,6 @@ nsis:
   createStartMenuShortcut: true
   shortcutName: GVue
   uninstallDisplayName: GVue
+  # Pas de lancement auto en fin d'install (évite l'erreur « .lnk sans application
+  # associée » si l'exe vient d'être bloqué/quarantainé par l'antivirus).
+  runAfterFinish: false
