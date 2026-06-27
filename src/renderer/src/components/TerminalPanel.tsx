@@ -219,7 +219,7 @@ export default function TerminalPanel(): JSX.Element {
                       </button>
                     </div>
                     <div className="relative min-h-0 flex-1">
-                      <Terminal ptyId={t.ptyId} active={t.id === activeId} />
+                      <Terminal ptyId={t.ptyId} active={t.id === activeId} shellId={t.shell.id} cwd={t.cwd} />
                     </div>
                   </div>
                 </Panel>
@@ -233,7 +233,7 @@ export default function TerminalPanel(): JSX.Element {
               className="absolute inset-0 p-1.5"
               style={{ display: t.id === activeId ? 'block' : 'none' }}
             >
-              <Terminal ptyId={t.ptyId} active={t.id === activeId} />
+              <Terminal ptyId={t.ptyId} active={t.id === activeId} shellId={t.shell.id} cwd={t.cwd} />
             </div>
           ))
         )}

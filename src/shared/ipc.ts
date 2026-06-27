@@ -10,6 +10,7 @@ export const IPC = {
   fsProbe: 'fs:probe',
   fsPackageScripts: 'fs:packageScripts',
   fsRunnableFiles: 'fs:runnableFiles',
+  fsComplete: 'fs:complete',
   fsTrash: 'fs:trash',
   fsPreview: 'fs:preview',
   fsIcon: 'fs:icon',

@@ -9,6 +9,8 @@ export interface TermTab {
   ptyId: string
   shell: ShellInfo
   title: string
+  /** Dossier de départ (pour l'autocomplétion de chemins). */
+  cwd: string
   exited: boolean
   /** Désabonnement de l'événement de sortie du pty. */
   disposeExit: () => void
@@ -97,7 +99,7 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
         }))
         disposeExit()
       })
-      const tab: TermTab = { id: ptyId, ptyId, shell, title: shell.label, exited: false, disposeExit }
+      const tab: TermTab = { id: ptyId, ptyId, shell, title: shell.label, cwd, exited: false, disposeExit }
       set((s) => ({ tabs: [...s.tabs, tab], activeId: ptyId, error: null }))
     } catch (e) {
       set({ error: e instanceof Error ? e.message : String(e) })
@@ -126,7 +128,15 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
         }))
         disposeExit()
       })
-      const tab: TermTab = { id: ptyId, ptyId, shell, title, exited: false, disposeExit }
+      const tab: TermTab = {
+        id: ptyId,
+        ptyId,
+        shell,
+        title,
+        cwd: cwd || shell.path,
+        exited: false,
+        disposeExit
+      }
       set((s) => ({ tabs: [...s.tabs, tab], activeId: ptyId, error: null }))
       window.api.terminal.write(ptyId, command + '\r')
       return ptyId

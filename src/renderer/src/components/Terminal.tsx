@@ -6,13 +6,19 @@ import { acquire } from '../lib/terminalRegistry'
  * registre dans son conteneur et gère l'ajustement de taille. L'instance
  * survit au démontage du composant (réduction du panneau) → historique préservé.
  */
-export default function Terminal(props: { ptyId: string; active: boolean }): JSX.Element {
+export default function Terminal(props: {
+  ptyId: string
+  active: boolean
+  shellId?: string
+  cwd?: string
+}): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
-    const entry = acquire(props.ptyId)
+    const meta = props.shellId ? { shellId: props.shellId, cwd: props.cwd ?? '' } : undefined
+    const entry = acquire(props.ptyId, meta)
     container.appendChild(entry.element)
 
     const refit = (): void => {

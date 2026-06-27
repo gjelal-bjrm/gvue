@@ -73,6 +73,8 @@ const api = {
       ipcRenderer.invoke(IPC.fsPackageScripts, dir),
     runnableFiles: (dir: string): Promise<string[]> =>
       ipcRenderer.invoke(IPC.fsRunnableFiles, dir),
+    complete: (cwd: string, token: string, sep: string): Promise<string[]> =>
+      ipcRenderer.invoke(IPC.fsComplete, cwd, token, sep),
     trash: (path: string): Promise<void> => ipcRenderer.invoke(IPC.fsTrash, path),
     preview: (path: string): Promise<PreviewData> => ipcRenderer.invoke(IPC.fsPreview, path),
     icon: (path: string): Promise<string> => ipcRenderer.invoke(IPC.fsIcon, path),

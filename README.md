@@ -39,7 +39,10 @@ milliers d'entrées, tri par colonne (nom, taille, date), dates relatives
 dynamique des shells (PowerShell, PowerShell 7, cmd, Git Bash, WSL, **Python**) avec
 **shell par défaut configurable** (★ dans les sélecteurs), **plusieurs onglets** ou
 affichage **côte à côte** (colonnes redimensionnables), panneau réductible qui
-**préserve l'historique**, barre de commande qui exécute une commande dans le terminal actif.
+**préserve l'historique**, barre de commande qui exécute une commande dans le terminal
+actif. **Autocomplétion fantôme** (ghost text, façon fish) : suggestion en gris (couleur
+adaptée au shell) des **commandes connues** du shell et des **fichiers/dossiers du cwd**,
+validée par **Tab**.
 
 **Lanceur** — définis des **lancements** (commande + dossier, avec un **projet** et/ou
 une **catégorie**, ou un script `package.json` auto-détecté) et des **profils** (groupes

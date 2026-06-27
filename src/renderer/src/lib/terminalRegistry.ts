@@ -1,6 +1,13 @@
 import { Terminal as XTerm } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
+import { attachSuggest } from './terminalSuggest'
+
+/** Métadonnées d'un terminal, pour l'autocomplétion (type de shell + cwd). */
+export interface TermMeta {
+  shellId: string
+  cwd: string
+}
 
 /**
  * Registre d'instances xterm, indexé par ptyId.
@@ -33,8 +40,9 @@ export function buildTheme(): Record<string, string> {
   }
 }
 
-/** Récupère (ou crée) l'instance xterm liée à un ptyId. */
-export function acquire(ptyId: string): TermEntry {
+/** Récupère (ou crée) l'instance xterm liée à un ptyId. `meta` sert à la
+ * première création (autocomplétion : type de shell + cwd). */
+export function acquire(ptyId: string, meta?: TermMeta): TermEntry {
   const existing = registry.get(ptyId)
   if (existing) return existing
 
@@ -58,11 +66,21 @@ export function acquire(ptyId: string): TermEntry {
   const unsubData = window.api.terminal.onData(ptyId, (data) => term.write(data))
   const inputDisp = term.onData((data) => window.api.terminal.write(ptyId, data))
 
+  // Autocomplétion fantôme (si on connaît le shell + le cwd).
+  const detachSuggest = meta
+    ? attachSuggest(term, {
+        shellId: meta.shellId,
+        cwd: meta.cwd,
+        write: (d) => window.api.terminal.write(ptyId, d)
+      })
+    : null
+
   const entry: TermEntry = {
     term,
     fit,
     element,
     dispose: () => {
+      detachSuggest?.()
       unsubData()
       inputDisp.dispose()
       term.dispose()

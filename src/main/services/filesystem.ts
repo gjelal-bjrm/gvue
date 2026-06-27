@@ -155,6 +155,37 @@ export async function runnableFiles(input: string): Promise<string[]> {
 }
 
 /**
+ * Complète un jeton de chemin (pour l'autocomplétion du terminal). `token` est
+ * le mot en cours (peut contenir un préfixe de dossier, ex. « src/comp ») ;
+ * `sep` est le séparateur à utiliser pour les dossiers (« / » ou « \\ »).
+ * Renvoie les remplacements possibles du jeton (dossiers d'abord), bornés.
+ */
+export async function complete(input: string, token: string, sep: string): Promise<string[]> {
+  try {
+    const cwd = assertAbsolute(input)
+    const idx = Math.max(token.lastIndexOf('/'), token.lastIndexOf('\\'))
+    const dirPart = idx >= 0 ? token.slice(0, idx + 1) : ''
+    const base = idx >= 0 ? token.slice(idx + 1) : token
+    const baseDir = path.resolve(cwd, dirPart || '.')
+    const items = await fs.readdir(baseDir, { withFileTypes: true })
+    const low = base.toLowerCase()
+    const matched = items.filter(
+      (d) => d.name.toLowerCase().startsWith(low) && (base !== '' || !d.name.startsWith('.'))
+    )
+    matched.sort((a, b) => {
+      const ad = a.isDirectory() ? 0 : 1
+      const bd = b.isDirectory() ? 0 : 1
+      return ad - bd || a.name.localeCompare(b.name)
+    })
+    return matched
+      .slice(0, 50)
+      .map((d) => dirPart + d.name + (d.isDirectory() ? sep : ''))
+  } catch {
+    return []
+  }
+}
+
+/**
  * Sonde un chemin saisi à la main : renvoie « directory », « file » ou
  * « missing ». Sert à valider la barre d'adresse avant de naviguer.
  */
