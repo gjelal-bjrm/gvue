@@ -1,10 +1,38 @@
 import { app, Tray, Menu, BrowserWindow, nativeImage } from 'electron'
-import { basename } from 'node:path'
+import { basename, join } from 'node:path'
+import { spawn } from 'node:child_process'
+import { writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import { IPC } from '@shared/ipc'
 import { getConfig } from './services/config-store'
 import { createWindow } from './window'
 import { appIconPath } from './icon'
 import { checkForUpdates } from './services/updater'
+
+let runSeq = 0
+/**
+ * Exécute une commande dans une **console externe** (sans ouvrir GVue), façon
+ * double-clic sur un .bat. On passe par un .cmd temporaire pour éviter les
+ * cauchemars de quoting de `start`/cmd.
+ */
+async function runExternal(command: string, cwd: string, title: string): Promise<void> {
+  try {
+    if (process.platform !== 'win32') {
+      spawn('sh', ['-c', command], { cwd, detached: true, stdio: 'ignore' }).unref()
+      return
+    }
+    const file = join(tmpdir(), `gvue-run-${process.pid}-${++runSeq}.cmd`)
+    const script = `@echo off\r\ntitle ${title}\r\ncd /d "${cwd}"\r\n${command}\r\n`
+    await writeFile(file, script, 'utf8')
+    spawn('cmd.exe', ['/c', 'start', '', file], {
+      detached: true,
+      windowsHide: false,
+      stdio: 'ignore'
+    }).unref()
+  } catch {
+    /* ignore */
+  }
+}
 
 /**
  * Plateau système (tray) : permet à GVue de rester en arrière-plan (fenêtre
@@ -67,7 +95,8 @@ function buildMenu(): Menu {
     click: () => sendToWindow(IPC.trayOpenPath, p)
   })
 
-  // Un projet : ouvrir le dossier, et lancer sa commande ▶ si elle est définie.
+  // Un projet : ouvrir le dossier (dans GVue), et/ou lancer sa commande ▶ dans une
+  // console externe (sans ouvrir GVue) si elle est définie.
   const projectItem = (root: string): Electron.MenuItemConstructorOptions => {
     const cmd = projectLaunch[root]
     if (!cmd) return folderItem(root)
@@ -76,7 +105,7 @@ function buildMenu(): Menu {
       toolTip: root,
       submenu: [
         { label: 'Ouvrir le dossier', click: () => sendToWindow(IPC.trayOpenPath, root) },
-        { label: `Lancer : ${cmd}`, click: () => sendToWindow(IPC.trayRunProject, root) }
+        { label: 'Lancer', toolTip: cmd, click: () => void runExternal(cmd, root, `GVue — ${basename(root)}`) }
       ]
     }
   }
