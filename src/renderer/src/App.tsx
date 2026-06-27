@@ -11,6 +11,7 @@ import AppearancePanel from './components/AppearancePanel'
 import PreviewPanel from './components/PreviewPanel'
 import TerminalPanel from './components/TerminalPanel'
 import CommandPalette from './components/CommandPalette'
+import FileFinder from './components/FileFinder'
 import GitPanel from './components/GitPanel'
 import UpdateBanner from './components/UpdateBanner'
 import { useNavStore, activePane } from './state/useNavStore'
@@ -114,6 +115,9 @@ export default function App(): JSX.Element {
       } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'n' || e.key === 'N')) {
         e.preventDefault()
         void window.api.window.new()
+      } else if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === 'e' || e.key === 'E')) {
+        e.preventDefault()
+        useUiStore.getState().toggleFileFinder()
       }
     }
     window.addEventListener('keydown', onKey)
@@ -251,6 +255,7 @@ export default function App(): JSX.Element {
       <CommandBar />
       <UpdateBanner />
       <CommandPalette />
+      <FileFinder />
 
       <div className="min-h-0 flex-1">
         <PanelGroup key={vKey} autoSaveId="gvue:vertical" direction="vertical">

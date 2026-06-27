@@ -33,7 +33,11 @@ personnalisable. 100 % local, aucun appel réseau sortant hors fonctions explici
 et éditable, boutons précédent/suivant/parent/accueil, double-clic pour ouvrir
 (dossier ou application par défaut), liste **virtualisée** fluide même sur des
 milliers d'entrées, tri par colonne (nom, taille, date), dates relatives
-(« hier », « lun. »), bascule des éléments masqués.
+(« hier », « lun. »), bascule des éléments masqués. **Navigation au clavier**
+(flèches, Entrée, Retour arrière, **taper-pour-sélectionner**), **filtre instantané**
+du dossier (**Ctrl+F**) et **recherche de fichiers par nom** récursive et floue
+(**Ctrl+E**, façon « Aller au fichier »). Menu **« Ouvrir un terminal ici »** sur
+les dossiers.
 
 **Terminal intégré** — pseudo-terminal réel (`node-pty` + `xterm`), détection
 dynamique des shells (PowerShell, PowerShell 7, cmd, Git Bash, WSL, **Python**) avec

@@ -22,6 +22,13 @@ export interface DirEntry {
 /** Résultat d'une sonde de chemin : dossier, fichier, ou inexistant. */
 export type PathKind = 'directory' | 'file' | 'missing'
 
+/** Entrée aplatie d'arborescence (recherche de fichiers par nom). */
+export interface TreeEntry {
+  name: string
+  path: string
+  dir: boolean
+}
+
 /** Résultat d'une opération copier/déplacer : nombre traité + erreurs. */
 export interface FileOpResult {
   ok: number

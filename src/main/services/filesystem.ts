@@ -1,7 +1,7 @@
 import { promises as fs, constants as fsConstants } from 'node:fs'
 import * as path from 'node:path'
 import * as os from 'node:os'
-import type { DirEntry, ListResult, DriveInfo, PathKind } from '@shared/types'
+import type { DirEntry, ListResult, DriveInfo, PathKind, TreeEntry } from '@shared/types'
 
 /**
  * Service système de fichiers — logique pure, sans Electron.
@@ -152,6 +152,45 @@ export async function runnableFiles(input: string): Promise<string[]> {
   } catch {
     return []
   }
+}
+
+/** Dossiers ignorés lors du parcours récursif (recherche de fichiers par nom). */
+const TREE_SKIP = new Set([
+  'node_modules', '.git', 'dist', 'out', 'build', '.next', '.nuxt', '.cache', '.turbo',
+  'coverage', '.venv', 'venv', '__pycache__', '.idea', '.vscode', 'vendor', 'target', 'bin', 'obj'
+])
+
+/**
+ * Parcours récursif borné d'un dossier → liste plate (fichiers + dossiers), pour
+ * la recherche de fichiers par nom. Saute les dossiers lourds/cachés et plafonne
+ * à `max` entrées pour rester rapide même sur de gros dépôts.
+ */
+export async function listTree(input: string, max = 20000): Promise<TreeEntry[]> {
+  let root: string
+  try {
+    root = assertAbsolute(input)
+  } catch {
+    return []
+  }
+  const out: TreeEntry[] = []
+  const stack: string[] = [root]
+  while (stack.length > 0 && out.length < max) {
+    const dir = stack.pop() as string
+    let items: import('node:fs').Dirent[]
+    try {
+      items = await fs.readdir(dir, { withFileTypes: true })
+    } catch {
+      continue
+    }
+    for (const it of items) {
+      if (out.length >= max) break
+      const full = path.join(dir, it.name)
+      const isDir = it.isDirectory()
+      out.push({ name: it.name, path: full.replace(/\\/g, '/'), dir: isDir })
+      if (isDir && !TREE_SKIP.has(it.name) && !it.name.startsWith('.')) stack.push(full)
+    }
+  }
+  return out
 }
 
 /**

@@ -150,6 +150,7 @@ export default function CommandPalette(): JSX.Element | null {
       },
       { id: 'launcher', title: 'Lanceur', icon: <Rocket size={15} />, run: () => nav().showLauncher() },
       { id: 'new-window', title: 'Nouvelle fenêtre', hint: 'Ctrl+Maj+N', icon: <AppWindow size={15} />, run: () => void window.api.window.new() },
+      { id: 'go-to-file', title: 'Aller à un fichier…', hint: 'Ctrl+E', icon: <Search size={15} />, run: () => ui().setFileFinder(true) },
       { id: 'check-update', title: 'Vérifier les mises à jour', icon: <DownloadCloud size={15} />, run: () => useUpdateStore.getState().check() },
       { id: 'split', title: 'Diviser — nouveau volet', icon: <Columns2 size={15} />, run: () => void nav().addPane() },
       { id: 'preview', title: "Panneau d'aperçu", icon: <PanelRight size={15} />, run: () => ui().togglePreview() },

@@ -4,6 +4,7 @@ import type {
   ListResult,
   NavLocations,
   PathKind,
+  TreeEntry,
   PreviewData,
   FileOpResult,
   CreateResult,
@@ -75,6 +76,8 @@ const api = {
       ipcRenderer.invoke(IPC.fsRunnableFiles, dir),
     complete: (cwd: string, token: string, sep: string): Promise<string[]> =>
       ipcRenderer.invoke(IPC.fsComplete, cwd, token, sep),
+    listTree: (dir: string, max?: number): Promise<TreeEntry[]> =>
+      ipcRenderer.invoke(IPC.fsListTree, dir, max),
     trash: (path: string): Promise<void> => ipcRenderer.invoke(IPC.fsTrash, path),
     preview: (path: string): Promise<PreviewData> => ipcRenderer.invoke(IPC.fsPreview, path),
     icon: (path: string): Promise<string> => ipcRenderer.invoke(IPC.fsIcon, path),
