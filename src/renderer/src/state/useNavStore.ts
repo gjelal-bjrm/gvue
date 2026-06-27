@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { DirEntry, NavLocations, WorkspacePane } from '@shared/types'
+import { useUiStore } from './useUiStore'
 
 export type SortKey = 'name' | 'size' | 'modifiedMs'
 export type SortDir = 'asc' | 'desc'
@@ -114,6 +115,9 @@ export const useNavStore = create<NavState>((set, get) => {
     const pane = paneById(id)
     if (!pane) return
     const current = pane.path
+    // Naviguer vers un AUTRE dossier ferme la vue Git (retour à l'exploration) ;
+    // un simple rafraîchissement (même chemin) ne la ferme pas.
+    if (target !== current) useUiStore.getState().setGitView(false)
     patch(id, { loading: true, error: null })
     try {
       const result = await window.api.fs.list(target)
@@ -245,9 +249,15 @@ export const useNavStore = create<NavState>((set, get) => {
       patch(pane.id, { sortKey: key, sortDir, entries: sortEntries(pane.entries, key, sortDir) })
     },
 
-    showQuickAccess: () => patch(get().activeId, { quickAccess: true, launcher: false }),
+    showQuickAccess: () => {
+      useUiStore.getState().setGitView(false)
+      patch(get().activeId, { quickAccess: true, launcher: false })
+    },
 
-    showLauncher: () => patch(get().activeId, { launcher: true, quickAccess: false }),
+    showLauncher: () => {
+      useUiStore.getState().setGitView(false)
+      patch(get().activeId, { launcher: true, quickAccess: false })
+    },
 
     setSelected: (paths) => patch(get().activeId, { selected: paths }),
 
