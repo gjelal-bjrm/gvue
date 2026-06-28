@@ -110,6 +110,9 @@ vert/rouge) du fichier sélectionné, et zone de commit (depuis l'indicateur Git
 **Multi-sélection** (Ctrl/Maj+clic) et **menu contextuel** par fichier(s) : indexer/
 désindexer, annuler, **ignorer** (fichier / dossier / `*.ext` → `.gitignore`), copier
 le chemin (absolu/relatif), révéler dans l'explorateur, ouvrir avec VS Code / par défaut.
+Onglets **Modifications / Historique** : l'**historique** liste les commits (message,
+auteur, date, hash) et, pour le commit sélectionné, affiche ses **fichiers modifiés**
+puis le **diff** de chacun — façon GitHub Desktop.
 
 **Accès rapide** — page d'accueil façon explorateur Windows : **dossiers
 fréquents** et **fichiers récents**, alimentés automatiquement au fil de l'usage.

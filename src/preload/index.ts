@@ -14,6 +14,8 @@ import type {
   GitActionResult,
   GitProject,
   GitBranches,
+  GitCommit,
+  GitFileChange,
   DetectedApps,
   ExternalAppId,
   AppConfig,
@@ -163,7 +165,13 @@ const api = {
     commitStaged: (dir: string, message: string): Promise<GitActionResult> =>
       ipcRenderer.invoke(IPC.gitCommitStaged, dir, message),
     ignore: (dir: string, patterns: string[]): Promise<GitActionResult> =>
-      ipcRenderer.invoke(IPC.gitIgnore, dir, patterns)
+      ipcRenderer.invoke(IPC.gitIgnore, dir, patterns),
+    log: (dir: string, limit?: number): Promise<GitCommit[]> =>
+      ipcRenderer.invoke(IPC.gitLog, dir, limit),
+    commitFiles: (dir: string, hash: string): Promise<GitFileChange[]> =>
+      ipcRenderer.invoke(IPC.gitCommitFiles, dir, hash),
+    commitDiff: (dir: string, hash: string, file: string): Promise<string> =>
+      ipcRenderer.invoke(IPC.gitCommitDiff, dir, hash, file)
   },
   nav: {
     onCommand: (cb: (cmd: NavCommand) => void): (() => void) => {

@@ -67,6 +67,9 @@ export const IPC = {
   gitUnstageAll: 'git:unstageAll',
   gitCommitStaged: 'git:commitStaged',
   gitIgnore: 'git:ignore',
+  gitLog: 'git:log',
+  gitCommitFiles: 'git:commitFiles',
+  gitCommitDiff: 'git:commitDiff',
 
   // Navigation (commandes système : boutons souris précédent/suivant)
   navOnCommand: 'nav:onCommand',

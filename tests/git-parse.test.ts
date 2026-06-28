@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parse, categorize, parseBranch } from '../src/main/services/git'
+import { parse, categorize, parseBranch, parseNameStatusZ } from '../src/main/services/git'
 
 describe('categorize', () => {
   it('classe les codes porcelain', () => {
@@ -79,5 +79,28 @@ describe('parse (git status --porcelain -z)', () => {
     const raw = ['## main', '', ' M a.ts', ''].join('\0')
     const st = parse(raw, '/r')
     expect(st.files).toHaveLength(1)
+  })
+})
+
+describe('parseNameStatusZ (fichiers d’un commit)', () => {
+  it('parse ajouts/modifs/suppressions en chemins absolus', () => {
+    const raw = ['A', 'src/new.ts', 'M', 'src/edit.ts', 'D', 'old.ts', ''].join('\0')
+    expect(parseNameStatusZ(raw, '/repo')).toEqual([
+      { path: '/repo/src/new.ts', category: 'added', staged: false },
+      { path: '/repo/src/edit.ts', category: 'modified', staged: false },
+      { path: '/repo/old.ts', category: 'deleted', staged: false }
+    ])
+  })
+
+  it('gère un renommage (statut, ancien, nouveau) en gardant le nouveau chemin', () => {
+    const raw = ['R100', 'a/old.ts', 'a/new.ts', 'M', 'b.ts', ''].join('\0')
+    expect(parseNameStatusZ(raw, '/r')).toEqual([
+      { path: '/r/a/new.ts', category: 'renamed', staged: false },
+      { path: '/r/b.ts', category: 'modified', staged: false }
+    ])
+  })
+
+  it('renvoie une liste vide pour une entrée vide', () => {
+    expect(parseNameStatusZ('', '/r')).toEqual([])
   })
 })

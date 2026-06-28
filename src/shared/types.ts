@@ -344,6 +344,16 @@ export interface GitBranches {
   all: string[]
 }
 
+/** Un commit de l'historique (vue « Historique » façon GitHub Desktop). */
+export interface GitCommit {
+  hash: string
+  shortHash: string
+  author: string
+  /** Date formatée « AAAA-MM-JJ HH:MM ». */
+  date: string
+  subject: string
+}
+
 export interface GitStatus {
   /** Le dossier interrogé est-il dans un dépôt Git ? */
   isRepo: boolean

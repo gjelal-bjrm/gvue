@@ -1,5 +1,18 @@
 [
   {
+    "version": "0.1.10",
+    "notes": [
+      "Socle CI de release (GitHub Actions) + politique de signature",
+      "Decoupage de FileList (god component 1021 -> 438 l) + code-splitting",
+      "Copies longues — barre de progression annulable",
+      "Annulation de la derniere operation fichiers (Ctrl+Z)",
+      "Validation/auto-reparation de la configuration au demarrage",
+      "Tests unitaires (vitest) + correction du garde-fou assertAbsolute",
+      "Garde-fous anti-crash (ErrorBoundary + handlers globaux + journal)",
+      "README — notes « Nouveautes » auto-generees + flux publish brouillon"
+    ]
+  },
+  {
     "version": "0.1.9",
     "notes": [
       "Notes « Nouveautes » auto-generees depuis les commits (publish.bat)"

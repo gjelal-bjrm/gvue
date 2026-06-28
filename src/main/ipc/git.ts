@@ -78,4 +78,16 @@ export function registerGitHandlers(): void {
   ipcMain.handle(IPC.gitIgnore, async (_e, dir: string, patterns: string[]) => {
     return git.ignore(dir, patterns)
   })
+
+  ipcMain.handle(IPC.gitLog, async (_e, dir: string, limit?: number) => {
+    return git.log(dir, limit)
+  })
+
+  ipcMain.handle(IPC.gitCommitFiles, async (_e, dir: string, hash: string) => {
+    return git.commitFiles(dir, hash)
+  })
+
+  ipcMain.handle(IPC.gitCommitDiff, async (_e, dir: string, hash: string, file: string) => {
+    return git.commitDiff(dir, hash, file)
+  })
 }

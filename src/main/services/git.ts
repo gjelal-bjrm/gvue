@@ -9,7 +9,8 @@ import type {
   GitCategory,
   GitActionResult,
   GitProject,
-  GitBranches
+  GitBranches,
+  GitCommit
 } from '@shared/types'
 
 /**
@@ -342,6 +343,125 @@ export async function ignore(dir: string, patterns: string[]): Promise<GitAction
   } catch (e) {
     return { ok: false, output: e instanceof Error ? e.message : String(e) }
   }
+}
+
+/** Mappe une lettre de statut « name-status » en catégorie. */
+function mapNameStatus(letter: string): GitCategory {
+  switch (letter) {
+    case 'A':
+      return 'added'
+    case 'D':
+      return 'deleted'
+    case 'R':
+    case 'C':
+      return 'renamed'
+    case 'U':
+      return 'conflict'
+    default:
+      return 'modified' // M, T…
+  }
+}
+
+/** Historique des commits (du plus récent au plus ancien), limité à `limit`. */
+export async function log(dir: string, limit = 100): Promise<GitCommit[]> {
+  let cwd: string
+  try {
+    cwd = assertAbsolute(dir)
+  } catch {
+    return []
+  }
+  const SEP = '\x1f' // séparateur de champ
+  const REC = '\x1e' // séparateur d'enregistrement
+  const fmt = ['%H', '%h', '%an', '%ad', '%s'].join(SEP) + REC
+  try {
+    const raw = await git(
+      ['log', '-n', String(limit), '--date=format:%Y-%m-%d %H:%M', `--pretty=format:${fmt}`],
+      cwd
+    )
+    return raw
+      .split(REC)
+      .map((r) => r.trim())
+      .filter(Boolean)
+      .map((rec) => {
+        const [hash, shortHash, author, date, subject] = rec.split(SEP)
+        return { hash, shortHash, author, date, subject: subject ?? '' }
+      })
+  } catch {
+    return []
+  }
+}
+
+/** Fichiers modifiés par un commit (statut + chemin absolu). */
+export async function commitFiles(dir: string, hash: string): Promise<GitFileChange[]> {
+  let cwd: string
+  try {
+    cwd = assertAbsolute(dir)
+  } catch {
+    return []
+  }
+  let root: string
+  try {
+    root = (await git(['rev-parse', '--show-toplevel'], cwd)).trim()
+  } catch {
+    return []
+  }
+  try {
+    // --root : l'initial commit est comparé à l'arbre vide (tous les fichiers ajoutés).
+    const raw = await git(
+      ['diff-tree', '--no-commit-id', '--name-status', '-r', '--root', '-z', hash],
+      cwd
+    )
+    return parseNameStatusZ(raw, root)
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Parse une sortie `--name-status -z` (statut\0chemin\0…, renommage = statut\0
+ * ancien\0nouveau\0) en fichiers, chemins rendus absolus sous `root`.
+ */
+export function parseNameStatusZ(raw: string, root: string): GitFileChange[] {
+  const toks = raw.split('\0')
+  const files: GitFileChange[] = []
+  let i = 0
+  while (i < toks.length) {
+    const status = toks[i]
+    if (!status) {
+      i++
+      continue
+    }
+    const letter = status[0]
+    if (letter === 'R' || letter === 'C') {
+      const newp = toks[i + 2] // [status, ancien, nouveau]
+      i += 3
+      if (newp) files.push({ path: `${root}/${newp}`, category: 'renamed', staged: false })
+    } else {
+      const p = toks[i + 1]
+      i += 2
+      if (p) files.push({ path: `${root}/${p}`, category: mapNameStatus(letter), staged: false })
+    }
+  }
+  return files
+}
+
+/** Diff d'un fichier dans un commit donné (commit vs son parent). */
+export async function commitDiff(dir: string, hash: string, file: string): Promise<string> {
+  let cwd: string
+  try {
+    cwd = assertAbsolute(dir)
+  } catch {
+    return ''
+  }
+  let root: string
+  try {
+    root = (await git(['rev-parse', '--show-toplevel'], cwd)).trim()
+  } catch {
+    return ''
+  }
+  const rel = file.startsWith(root + '/') ? file.slice(root.length + 1) : file
+  // --format= retire l'en-tête du commit ; reste le patch du fichier.
+  return capture(['show', '--format=', hash, '--', rel], cwd)
 }
 
 /** Commite uniquement les fichiers déjà indexés. */
