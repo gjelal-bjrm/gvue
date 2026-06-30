@@ -220,7 +220,7 @@ export default function Toolbar(): JSX.Element {
           )}
         </div>
         {pathError && (
-          <div className="absolute left-0 top-full z-30 mt-1 max-w-full truncate rounded-app border border-danger-fg bg-danger-bg px-2.5 py-1 text-[12px] text-danger-fg shadow-lg">
+          <div className="absolute left-0 top-full z-30 mt-1 max-w-full truncate rounded-app border border-danger-fg bg-bg-secondary px-2.5 py-1 text-[12px] text-danger-fg shadow-lg">
             {pathError}
           </div>
         )}

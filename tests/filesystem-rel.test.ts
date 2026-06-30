@@ -6,7 +6,8 @@ import {
   cleanRel,
   isSafeRel,
   makeDirs,
-  dedupeNestedPaths
+  dedupeNestedPaths,
+  uncHost
 } from '../src/main/services/filesystem'
 
 describe('cleanRel', () => {
@@ -90,6 +91,21 @@ describe('makeDirs', () => {
     const norm = res.paths.map((p) => p.replace(/\\/g, '/'))
     // « pre » existait : la racine créée est « pre/sub », pas « pre ».
     expect(norm).toEqual([path.join(base, 'pre', 'sub').replace(/\\/g, '/')])
+  })
+})
+
+describe('uncHost', () => {
+  it('détecte une racine d’hôte UNC (back/forward slashes, avec/sans fin)', () => {
+    expect(uncHost('\\\\santorin')).toBe('santorin')
+    expect(uncHost('\\\\santorin\\')).toBe('santorin')
+    expect(uncHost('//santorin')).toBe('santorin')
+    expect(uncHost('  \\\\santorin  ')).toBe('santorin')
+  })
+  it('renvoie null dès qu’un partage est présent ou que ce n’est pas de l’UNC', () => {
+    expect(uncHost('\\\\santorin\\share')).toBeNull()
+    expect(uncHost('C:\\Users')).toBeNull()
+    expect(uncHost('/home/user')).toBeNull()
+    expect(uncHost('santorin')).toBeNull()
   })
 })
 

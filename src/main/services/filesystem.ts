@@ -1,7 +1,11 @@
 import { promises as fs, constants as fsConstants } from 'node:fs'
 import * as path from 'node:path'
 import * as os from 'node:os'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
 import type { DirEntry, ListResult, DriveInfo, PathKind, TreeEntry, UsageEntry } from '@shared/types'
+
+const pexec = promisify(execFile)
 
 /**
  * Service système de fichiers — logique pure, sans Electron.
@@ -124,8 +128,66 @@ export async function entryFor(input: string): Promise<DirEntry | null> {
   }
 }
 
+/**
+ * Si `input` est une racine d'hôte réseau UNC (« \\serveur », sans partage),
+ * renvoie le nom d'hôte ; sinon null. Node ne sait pas lister un hôte seul
+ * (Explorer le fait via le redirecteur réseau) → on traite ce cas à part.
+ */
+export function uncHost(input: string): string | null {
+  const m = /^[\\/]{2}([^\\/]+)[\\/]?$/.exec(input.trim())
+  return m ? m[1] : null
+}
+
+/**
+ * Liste les partages d'un hôte via « net view \\hôte ». Renvoie les noms de
+ * partages (disques), ou null si l'hôte est injoignable / la commande échoue.
+ */
+export async function listShares(host: string): Promise<string[] | null> {
+  if (process.platform !== 'win32') return null
+  try {
+    const { stdout } = await pexec('net', ['view', `\\\\${host}`], {
+      windowsHide: true,
+      timeout: 8000
+    })
+    const lines = stdout.split(/\r?\n/)
+    const sep = lines.findIndex((l) => l.startsWith('---'))
+    if (sep < 0) return []
+    const shares: string[] = []
+    for (let i = sep + 1; i < lines.length; i++) {
+      const line = lines[i]
+      // Fin du tableau : ligne vide ou message de conclusion localisé.
+      if (!line.trim() || /^(la commande|the command|der befehl)/i.test(line.trim())) break
+      const cols = line.split(/\s{2,}/)
+      const name = cols[0]?.trim()
+      const type = cols[1]?.trim() ?? ''
+      // Garde les partages disque (Disk/Disque/Disco…) ; ignore imprimantes.
+      if (name && (!type || /^dis/i.test(type))) shares.push(name)
+    }
+    return shares
+  } catch {
+    return null
+  }
+}
+
 /** Liste le contenu d'un dossier. Lecture paresseuse, jamais bloquante. */
 export async function list(input: string): Promise<ListResult> {
+  // Cas spécial : racine d'hôte UNC → on liste ses partages comme des dossiers.
+  const host = uncHost(input)
+  if (host) {
+    const base = `\\\\${host}`
+    const shares = await listShares(host)
+    const entries: DirEntry[] = (shares ?? []).map((s) => ({
+      name: s,
+      path: `${base}\\${s}`,
+      kind: 'directory',
+      size: 0,
+      modifiedMs: 0,
+      hidden: false,
+      symlink: false
+    }))
+    return { path: base, parent: null, entries }
+  }
+
   const dir = assertAbsolute(input)
   const dirents = await fs.readdir(dir, { withFileTypes: true })
   const entries = await Promise.all(
@@ -381,6 +443,12 @@ export async function usage(input: string): Promise<UsageEntry[]> {
  * « missing ». Sert à valider la barre d'adresse avant de naviguer.
  */
 export async function probe(input: string): Promise<PathKind> {
+  // Racine d'hôte UNC : « directory » si l'hôte répond (même sans partage visible).
+  const host = uncHost(input)
+  if (host) {
+    const shares = await listShares(host)
+    return shares === null ? 'missing' : 'directory'
+  }
   let target: string
   try {
     target = assertAbsolute(input)

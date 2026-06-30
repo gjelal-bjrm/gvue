@@ -38,7 +38,8 @@ milliers d'entrées, tri par colonne (nom, taille, date), dates relatives
 (flèches, Entrée, Retour arrière, **taper-pour-sélectionner**), **filtre instantané**
 du dossier (**Ctrl+F**) et **recherche de fichiers par nom** récursive et floue
 (**Ctrl+E**, façon « Aller au fichier »). Menu **« Ouvrir un terminal ici »** sur
-les dossiers.
+les dossiers. **Chemins réseau (UNC)** : saisir `\\serveur` dans la barre d'adresse
+liste ses partages (via `net view`), puis navigation classique dans `\\serveur\partage`.
 
 **Terminal intégré** — pseudo-terminal réel (`node-pty` + `xterm`), détection
 dynamique des shells (PowerShell, PowerShell 7, cmd, Git Bash, WSL, **Python**) avec
