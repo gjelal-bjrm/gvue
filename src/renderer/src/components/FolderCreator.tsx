@@ -28,7 +28,10 @@ function today(fmt: string): string {
 export default function FolderCreator(): JSX.Element | null {
   const open = useUiStore((s) => s.folderCreatorOpen)
   const setOpen = useUiStore((s) => s.setFolderCreator)
-  const baseDir = useNavStore((s) => activePane(s).path)
+  const targetBase = useUiStore((s) => s.folderCreatorBase)
+  const activeDir = useNavStore((s) => activePane(s).path)
+  // Dossier cible : celui passé au clic droit, sinon le volet actif.
+  const baseDir = targetBase ?? activeDir
   const [template, setTemplate] = useState('Dossier-{n}')
   const [names, setNames] = useState('')
   const [count, setCount] = useState(5)

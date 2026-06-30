@@ -29,6 +29,8 @@ interface UiState {
   diskUsagePath: string | null
   /** Créateur de dossiers en lot ouvert ? */
   folderCreatorOpen: boolean
+  /** Dossier cible du créateur (null = volet actif). */
+  folderCreatorBase: string | null
   /** Pop-up « Nouveautés » : version depuis laquelle montrer les notes (null = fermée). */
   whatsNewSince: string | null
   /** Terminaux affichés côte à côte (sinon en onglets, un seul visible). */
@@ -61,7 +63,7 @@ interface UiState {
   toggleFileFinder: () => void
   setFileFinder: (v: boolean) => void
   setDiskUsage: (path: string | null) => void
-  setFolderCreator: (v: boolean) => void
+  setFolderCreator: (v: boolean, base?: string) => void
   setWhatsNew: (since: string | null) => void
   togglePreview: () => void
   setPreviewOpen: (v: boolean) => void
@@ -78,6 +80,7 @@ export const useUiStore = create<UiState>((set) => ({
   fileFinderOpen: false,
   diskUsagePath: null,
   folderCreatorOpen: false,
+  folderCreatorBase: null,
   whatsNewSince: null,
   terminalSplit: false,
   gitViewOpen: false,
@@ -107,7 +110,8 @@ export const useUiStore = create<UiState>((set) => ({
   toggleFileFinder: () => set((s) => ({ fileFinderOpen: !s.fileFinderOpen })),
   setFileFinder: (v) => set({ fileFinderOpen: v }),
   setDiskUsage: (path) => set({ diskUsagePath: path }),
-  setFolderCreator: (v) => set({ folderCreatorOpen: v }),
+  setFolderCreator: (v, base) =>
+    set({ folderCreatorOpen: v, folderCreatorBase: v ? base ?? null : null }),
   setWhatsNew: (since) => set({ whatsNewSince: since }),
   togglePreview: () => set((s) => ({ previewOpen: !s.previewOpen })),
   setPreviewOpen: (v) => set({ previewOpen: v }),

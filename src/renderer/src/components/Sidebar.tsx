@@ -29,6 +29,8 @@ import { pathKey, baseName } from '../lib/format'
 import { commandForFile, joinWin } from '../lib/runfile'
 import FilePickerDialog from './FilePickerDialog'
 import FolderTree from './FolderTree'
+import ContextMenu from './ContextMenu'
+import { buildFolderMenu } from '../lib/folderMenu'
 
 /**
  * Sidebar : lanceur, accès rapide, lecteurs, favoris et projets.
@@ -66,6 +68,13 @@ export default function Sidebar(): JSX.Element {
   const [launchOpen, setLaunchOpen] = useState(false)
   const [groupAxis, setGroupAxis] = useState<'project' | 'category'>('project')
   const [config, setConfig] = useState<{ root: string; name: string } | null>(null)
+  const [menu, setMenu] = useState<{ x: number; y: number; dir: string } | null>(null)
+
+  // Ouvre le menu contextuel de dossier (Ce PC, favoris, projets).
+  const openCtx = (e: React.MouseEvent, dir: string): void => {
+    e.preventDefault()
+    setMenu({ x: e.clientX, y: e.clientY, dir })
+  }
 
   // Charge l'ordre et le repli des sections (persistés).
   useEffect(() => {
@@ -131,7 +140,13 @@ export default function Sidebar(): JSX.Element {
       body: (
         <>
           {home && (
-            <Item icon={Home} label="Accueil" active={isActive(home)} onClick={() => navigate(home)} />
+            <Item
+              icon={Home}
+              label="Accueil"
+              active={isActive(home)}
+              onClick={() => navigate(home)}
+              onContextMenu={(e) => openCtx(e, home)}
+            />
           )}
           {locations?.desktop && (
             <Item
@@ -139,6 +154,7 @@ export default function Sidebar(): JSX.Element {
               label="Bureau"
               active={isActive(locations.desktop)}
               onClick={() => navigate(locations.desktop)}
+              onContextMenu={(e) => openCtx(e, locations.desktop)}
             />
           )}
           {locations?.downloads && (
@@ -147,6 +163,7 @@ export default function Sidebar(): JSX.Element {
               label="Téléchargements"
               active={isActive(locations.downloads)}
               onClick={() => navigate(locations.downloads)}
+              onContextMenu={(e) => openCtx(e, locations.downloads)}
             />
           )}
           {locations?.documents && (
@@ -155,6 +172,7 @@ export default function Sidebar(): JSX.Element {
               label="Documents"
               active={isActive(locations.documents)}
               onClick={() => navigate(locations.documents)}
+              onContextMenu={(e) => openCtx(e, locations.documents)}
             />
           )}
         </>
@@ -179,6 +197,7 @@ export default function Sidebar(): JSX.Element {
               active={isActive(f)}
               onOpen={() => navigate(f)}
               onRemove={() => removeFavorite(f)}
+              onContextMenu={(e) => openCtx(e, f)}
             />
           ))
         )
@@ -202,6 +221,7 @@ export default function Sidebar(): JSX.Element {
                 e.stopPropagation()
                 setConfig({ root: p.root, name: p.name })
               }}
+              onContextMenu={(e) => openCtx(e, p.root)}
             />
           ))
         )
@@ -285,6 +305,15 @@ export default function Sidebar(): JSX.Element {
           root={config.root}
           name={config.name}
           onClose={() => setConfig(null)}
+        />
+      )}
+
+      {menu && (
+        <ContextMenu
+          x={menu.x}
+          y={menu.y}
+          entries={buildFolderMenu(menu.dir)}
+          onClose={() => setMenu(null)}
         />
       )}
     </nav>
@@ -378,9 +407,11 @@ function FavoriteItem(props: {
   active?: boolean
   onOpen: () => void
   onRemove: () => void
+  onContextMenu?: (e: React.MouseEvent) => void
 }): JSX.Element {
   return (
     <div
+      onContextMenu={props.onContextMenu}
       className={`group flex items-center gap-1 rounded-app pr-1 ${
         props.active ? 'bg-accent-soft text-accent' : 'text-fg-secondary hover:bg-bg-hover hover:text-fg'
       }`}
@@ -412,10 +443,12 @@ function ProjectItem(props: {
   onClick: () => void
   onPlay: (e: React.MouseEvent) => void
   onConfig: (e: React.MouseEvent) => void
+  onContextMenu?: (e: React.MouseEvent) => void
 }): JSX.Element {
   const { project } = props
   return (
     <div
+      onContextMenu={props.onContextMenu}
       className={`group flex items-center gap-1 rounded-app pr-1 ${
         props.active ? 'bg-accent-soft text-accent' : 'text-fg-secondary hover:bg-bg-hover hover:text-fg'
       }`}
@@ -612,11 +645,13 @@ function Item(props: {
   label: string
   active?: boolean
   onClick: () => void
+  onContextMenu?: (e: React.MouseEvent) => void
 }): JSX.Element {
   const { icon: Icon } = props
   return (
     <button
       onClick={props.onClick}
+      onContextMenu={props.onContextMenu}
       title={props.label}
       className={`flex items-center gap-2.5 rounded-app px-2 py-[var(--row-pad)] text-left transition-colors ${
         props.active ? 'bg-accent-soft text-accent' : 'text-fg-secondary hover:bg-bg-hover hover:text-fg'

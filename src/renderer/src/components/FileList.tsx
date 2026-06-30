@@ -292,9 +292,19 @@ export default function FileList(props: { paneId: string }): JSX.Element {
     trashPaths
   }
 
+  // Ouvre le menu du dossier courant (utile quand la liste est pleine : on peut
+  // toujours faire clic droit sur l'en-tête ou la barre d'état).
+  const openBackgroundMenu = (e: React.MouseEvent): void => {
+    if (!path) return
+    e.preventDefault()
+    setMenu({ x: e.clientX, y: e.clientY, entry: null })
+  }
+
   return (
     <div className="flex h-full flex-col bg-bg">
-      <ColumnHeader sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
+      <div onContextMenu={openBackgroundMenu}>
+        <ColumnHeader sortKey={sortKey} sortDir={sortDir} onSort={setSort} />
+      </div>
 
       {filterOn && (
         <div className="flex shrink-0 items-center gap-2 border-b border-border px-3 py-1.5">
@@ -421,12 +431,14 @@ export default function FileList(props: { paneId: string }): JSX.Element {
         </div>
       </div>
 
-      <StatusBar
-        count={visible.length}
-        total={entries.length}
-        selectedCount={selected.length}
-        showGit={isActive}
-      />
+      <div onContextMenu={openBackgroundMenu}>
+        <StatusBar
+          count={visible.length}
+          total={entries.length}
+          selectedCount={selected.length}
+          showGit={isActive}
+        />
+      </div>
 
       {menu && (
         <ContextMenu

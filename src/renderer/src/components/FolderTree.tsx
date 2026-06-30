@@ -3,6 +3,8 @@ import { ChevronRight, ChevronDown, Folder, FolderOpen, Crosshair } from 'lucide
 import { useNavStore, activePane } from '../state/useNavStore'
 import { useSidebarStore } from '../state/useSidebarStore'
 import { pathKey } from '../lib/format'
+import { buildFolderMenu } from '../lib/folderMenu'
+import ContextMenu from './ContextMenu'
 import type { DirEntry, DriveInfo } from '@shared/types'
 
 // Référence stable : évite qu'un sélecteur zustand renvoie un nouveau tableau à
@@ -41,6 +43,7 @@ export default function FolderTree(): JSX.Element {
   const cacheRef = useRef<Record<string, DirEntry[]>>({})
   const [, bump] = useReducer((v: number) => v + 1, 0)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [menu, setMenu] = useState<{ x: number; y: number; dir: string } | null>(null)
   const selectedRef = useRef<HTMLDivElement>(null)
 
   const currentKey = !quickAccess && !launcher ? pathKey(path) : ''
@@ -112,6 +115,10 @@ export default function FolderTree(): JSX.Element {
         <div
           ref={selected ? selectedRef : undefined}
           onClick={() => navigate(p)}
+          onContextMenu={(e) => {
+            e.preventDefault()
+            setMenu({ x: e.clientX, y: e.clientY, dir: p })
+          }}
           title={p}
           className={`flex cursor-pointer items-center gap-1 rounded-app pr-1 ${
             selected ? 'bg-accent-soft text-accent' : 'text-fg-secondary hover:bg-bg-hover hover:text-fg'
@@ -153,6 +160,14 @@ export default function FolderTree(): JSX.Element {
         <span className="ml-auto text-[10px]">{treeExpand ? 'activé' : 'désactivé'}</span>
       </button>
       {drives.map((d) => renderNode(d.path, d.label, 0))}
+      {menu && (
+        <ContextMenu
+          x={menu.x}
+          y={menu.y}
+          entries={buildFolderMenu(menu.dir)}
+          onClose={() => setMenu(null)}
+        />
+      )}
     </div>
   )
 }

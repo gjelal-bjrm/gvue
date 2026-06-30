@@ -244,6 +244,11 @@ export function buildItemMenu(entry: DirEntry, ctx: MenuCtx): MenuEntry[] {
             label: "Analyser l'espace disque",
             icon: <PieChart size={14} />,
             onClick: () => useUiStore.getState().setDiskUsage(entry.path)
+          } as MenuEntry,
+          {
+            label: 'Créer des dossiers… (en lot)',
+            icon: <FolderPlus size={14} />,
+            onClick: () => useUiStore.getState().setFolderCreator(true, entry.path)
           } as MenuEntry
         ]
       : []),

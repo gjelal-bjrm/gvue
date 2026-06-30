@@ -87,7 +87,11 @@ numérotation, avec aperçu).
 avec barres proportionnelles et descente dans l'arborescence (menu dossier ou palette).
 **Création de dossiers en lot** : motif avec jetons (`{n}` numéro, `{name}` depuis une
 liste, `{date}`, `{i}`) + numérotation + **sous-structure répliquée** (sous-dossiers),
-avec aperçu (menu de la zone vide ou palette).
+avec aperçu. Accessible via **clic droit sur un dossier** (liste, arbre, sidebar,
+favoris, projets — créé alors *dans* ce dossier), la **zone vide**, l'**en-tête de
+colonnes** ou la **barre d'état** (dossier courant, même volet plein), ou la palette.
+Les dossiers de la **sidebar et de l'arbre** ont aussi un menu contextuel (ouvrir,
+terminal ici, créer en lot, espace disque, copier le chemin, favoris).
 
 **Recherche** — recherche de contenu via **ripgrep** (`@vscode/ripgrep`), lancée
 depuis la barre d'outils sur le dossier courant : bascules casse / mot entier /
