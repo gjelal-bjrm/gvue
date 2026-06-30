@@ -64,6 +64,22 @@ export function acquire(ptyId: string, meta?: TermMeta): TermEntry {
   term.loadAddon(new WebLinksAddon((_event, uri) => void window.api.window.openExternal(uri)))
   term.open(element)
 
+  // Clic droit façon Git Bash / mintty : copie la sélection si présente,
+  // sinon colle le presse-papiers (term.paste respecte le bracketed paste).
+  const onContextMenu = (e: MouseEvent): void => {
+    e.preventDefault()
+    if (term.hasSelection()) {
+      const sel = term.getSelection()
+      if (sel) void navigator.clipboard.writeText(sel)
+      term.clearSelection() // confirme visuellement la copie
+    } else {
+      void navigator.clipboard.readText().then((text) => {
+        if (text) term.paste(text)
+      })
+    }
+  }
+  element.addEventListener('contextmenu', onContextMenu)
+
   // Branchement IPC bidirectionnel (le tampon du preload évite la perte initiale).
   const unsubData = window.api.terminal.onData(ptyId, (data) => term.write(data))
   const inputDisp = term.onData((data) => window.api.terminal.write(ptyId, data))
@@ -83,6 +99,7 @@ export function acquire(ptyId: string, meta?: TermMeta): TermEntry {
     element,
     dispose: () => {
       detachSuggest?.()
+      element.removeEventListener('contextmenu', onContextMenu)
       unsubData()
       inputDisp.dispose()
       term.dispose()

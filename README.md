@@ -47,7 +47,8 @@ affichage **côte à côte** (colonnes redimensionnables), panneau réductible q
 **préserve l'historique**, barre de commande qui exécute une commande dans le terminal
 actif. **Autocomplétion fantôme** (ghost text, façon fish) : suggestion en gris (couleur
 adaptée au shell) des **commandes connues** du shell et des **fichiers/dossiers du cwd**,
-validée par **Tab**.
+validée par **Tab**. **Clic droit** façon Git Bash : copie la sélection si présente,
+sinon colle le presse-papiers.
 
 **Lanceur** — définis des **lancements** (commande + dossier, avec un **projet** et/ou
 une **catégorie**, ou un script `package.json` auto-détecté) et des **profils** (groupes
