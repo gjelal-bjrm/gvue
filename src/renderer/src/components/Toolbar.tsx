@@ -20,7 +20,8 @@ import {
   FilterX,
   PanelRight,
   Columns2,
-  AppWindow
+  AppWindow,
+  Loader2
 } from 'lucide-react'
 import { useNavStore, activePane } from '../state/useNavStore'
 import { useUiStore } from '../state/useUiStore'
@@ -61,6 +62,7 @@ export default function Toolbar(): JSX.Element {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(path)
   const [pathError, setPathError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
   const [copied, setCopied] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -94,10 +96,13 @@ export default function Toolbar(): JSX.Element {
       return
     }
     let kind: Awaited<ReturnType<typeof window.api.fs.probe>>
+    setSubmitting(true)
     try {
       kind = await window.api.fs.probe(target)
     } catch {
       kind = 'missing'
+    } finally {
+      setSubmitting(false)
     }
     if (kind === 'directory') {
       setEditing(false)
@@ -173,19 +178,24 @@ export default function Toolbar(): JSX.Element {
           title={editing ? undefined : 'Cliquez pour éditer le chemin'}
         >
           {editing ? (
-            <input
-              ref={inputRef}
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onBlur={cancelEdit}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') void submit()
-                if (e.key === 'Escape') cancelEdit()
-              }}
-              className="w-full bg-transparent text-[13px] text-fg outline-none"
-              spellCheck={false}
-              autoComplete="off"
-            />
+            <>
+              <input
+                ref={inputRef}
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onBlur={cancelEdit}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void submit()
+                  if (e.key === 'Escape') cancelEdit()
+                }}
+                className="min-w-0 flex-1 bg-transparent text-[13px] text-fg outline-none"
+                spellCheck={false}
+                autoComplete="off"
+              />
+              {submitting && (
+                <Loader2 size={14} className="ml-1 shrink-0 animate-spin text-accent" />
+              )}
+            </>
           ) : (
             <>
               <div className="flex min-w-0 flex-1 items-center overflow-hidden text-[13px]">

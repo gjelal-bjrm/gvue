@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { Filter, X } from 'lucide-react'
+import { Filter, X, Loader2 } from 'lucide-react'
 import { useNavStore } from '../state/useNavStore'
 import { useAppearanceStore } from '../state/useAppearanceStore'
 import { useGitStore } from '../state/useGitStore'
@@ -50,6 +50,7 @@ export default function FileList(props: { paneId: string }): JSX.Element {
   const [filter, setFilter] = useState('')
   const [filterOn, setFilterOn] = useState(false)
   const [bulkPaths, setBulkPaths] = useState<string[] | null>(null)
+  const [showLoader, setShowLoader] = useState(false)
   const parentRef = useRef<HTMLDivElement>(null)
   const anchorRef = useRef<number | null>(null)
   const renameTimer = useRef<number | null>(null)
@@ -93,6 +94,17 @@ export default function FileList(props: { paneId: string }): JSX.Element {
     setFilter('')
     setFilterOn(false)
   }, [path])
+
+  // Loader différé : n'apparaît que si le chargement dure (>180 ms) — évite tout
+  // clignotement sur la navigation locale instantanée, visible sur le réseau lent.
+  useEffect(() => {
+    if (!loading) {
+      setShowLoader(false)
+      return
+    }
+    const t = window.setTimeout(() => setShowLoader(true), 180)
+    return () => window.clearTimeout(t)
+  }, [loading])
 
   const rowVirtualizer = useVirtualizer({
     count: visible.length,
@@ -348,6 +360,14 @@ export default function FileList(props: { paneId: string }): JSX.Element {
           setMenu({ x: e.clientX, y: e.clientY, entry: null })
         }}
       >
+        {showLoader && (
+          <div className="pointer-events-none absolute left-1/2 top-3 z-10 -translate-x-1/2">
+            <div className="flex items-center gap-2 rounded-app border border-border bg-bg-secondary px-3 py-1.5 text-[12px] text-fg-secondary shadow-lg">
+              <Loader2 size={14} className="animate-spin text-accent" />
+              Chargement…
+            </div>
+          </div>
+        )}
         {!loading && visible.length === 0 && !error && (
           <div className="p-8 text-center text-[13px] text-fg-muted">Dossier vide</div>
         )}

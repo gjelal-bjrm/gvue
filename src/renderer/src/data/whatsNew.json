@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.1.12",
+    "notes": [
+      "Chemins reseau UNC (\\serveur liste les partages) + fix lisibilite erreur",
+      "Terminal — clic droit copie la selection (sinon colle), facon Git Bash",
+      "Fix ouverture des liens du terminal (about:blank -> URL reelle)"
+    ]
+  },
+  {
     "version": "0.1.11",
     "notes": [
       "Vue Git « Historique » facon GitHub Desktop",
