@@ -249,6 +249,7 @@ const api = {
       ipcRenderer.invoke(IPC.windowAction, action),
     status: (): Promise<WindowStatus> => ipcRenderer.invoke(IPC.windowStatus),
     new: (): Promise<void> => ipcRenderer.invoke(IPC.windowNew),
+    openExternal: (url: string): Promise<void> => ipcRenderer.invoke(IPC.openExternal, url),
     setOpacity: (value: number): Promise<void> => ipcRenderer.invoke(IPC.windowSetOpacity, value),
     onStatus: (cb: (status: WindowStatus) => void): (() => void) => {
       const listener = (_e: unknown, status: WindowStatus): void => cb(status)

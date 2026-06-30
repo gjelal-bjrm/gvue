@@ -47,9 +47,18 @@ export function createWindow(): BrowserWindow {
 
   win.on('ready-to-show', () => win.show())
 
-  // Liens externes → navigateur système, jamais dans la fenêtre app.
+  // Liens externes → navigateur système, jamais dans la fenêtre app. On ne
+  // transmet à l'OS que des URL web (évite « about:blank » → dialogue Windows
+  // « aucune application pour ce lien »).
   win.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url)
+    try {
+      const scheme = new URL(url).protocol
+      if (scheme === 'http:' || scheme === 'https:' || scheme === 'mailto:') {
+        void shell.openExternal(url)
+      }
+    } catch {
+      /* URL invalide (ex. about:blank) : ignorée */
+    }
     return { action: 'deny' }
   })
 

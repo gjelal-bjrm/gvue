@@ -1,12 +1,25 @@
-import { ipcMain, BrowserWindow } from 'electron'
+import { ipcMain, BrowserWindow, shell } from 'electron'
 import { IPC } from '@shared/ipc'
 import { createWindow } from '../window'
 import type { WindowAction, WindowStatus } from '@shared/types'
+
+/** Schémas autorisés à l'ouverture externe (jamais file:, about:, etc.). */
+const EXTERNAL_SCHEMES = new Set(['http:', 'https:', 'mailto:'])
 
 /** Handlers IPC de contrôle de la fenêtre frameless (barre de titre custom). */
 export function registerWindowHandlers(): void {
   ipcMain.handle(IPC.windowNew, async () => {
     createWindow()
+  })
+
+  // Ouvre une URL dans le navigateur système (liens cliqués dans le terminal…).
+  // Valide le schéma pour ne jamais transmettre « about: »/« file: » à l'OS.
+  ipcMain.handle(IPC.openExternal, async (_e, url: string) => {
+    try {
+      if (EXTERNAL_SCHEMES.has(new URL(url).protocol)) await shell.openExternal(url)
+    } catch {
+      /* URL invalide : ignorée */
+    }
   })
 
   ipcMain.handle(IPC.windowAction, async (e, action: WindowAction) => {

@@ -59,7 +59,9 @@ export function acquire(ptyId: string, meta?: TermMeta): TermEntry {
   })
   const fit = new FitAddon()
   term.loadAddon(fit)
-  term.loadAddon(new WebLinksAddon())
+  // Handler explicite : ouvre l'URL réelle dans le navigateur système. Sans lui,
+  // le handler par défaut fait window.open() (vide) → l'OS reçoit « about:blank ».
+  term.loadAddon(new WebLinksAddon((_event, uri) => void window.api.window.openExternal(uri)))
   term.open(element)
 
   // Branchement IPC bidirectionnel (le tampon du preload évite la perte initiale).

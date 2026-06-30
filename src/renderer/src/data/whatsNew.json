@@ -1,5 +1,12 @@
 [
   {
+    "version": "0.1.11",
+    "notes": [
+      "Vue Git « Historique » facon GitHub Desktop",
+      "README — section Telechargement mentionnant la signature SignPath"
+    ]
+  },
+  {
     "version": "0.1.10",
     "notes": [
       "Socle CI de release (GitHub Actions) + politique de signature",

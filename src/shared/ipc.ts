@@ -91,6 +91,7 @@ export const IPC = {
   windowSetOpacity: 'window:setOpacity',
   windowOnStatus: 'window:onStatus',
   windowNew: 'window:new',
+  openExternal: 'app:openExternal',
 
   // Plateau système (tray) → actions rapides
   trayOpenPath: 'tray:openPath',
