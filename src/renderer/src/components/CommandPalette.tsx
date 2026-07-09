@@ -164,6 +164,7 @@ export default function CommandPalette(): JSX.Element | null {
       { id: 'whats-new', title: 'Nouveautés…', icon: <Sparkles size={15} />, run: () => ui().setWhatsNew('') },
       { id: 'undo', title: 'Annuler la dernière opération', hint: 'Ctrl+Z', icon: <Undo2 size={15} />, run: () => void undoLastOp() },
       { id: 'open-log', title: 'Ouvrir le journal de diagnostic', icon: <FileText size={15} />, run: () => void window.api.log.path().then((p) => window.api.fs.reveal(p)) },
+      { id: 'new-tab', title: 'Nouvel onglet', hint: 'Ctrl+T', icon: <Plus size={15} />, run: () => void nav().addTab() },
       { id: 'split', title: 'Diviser — nouveau volet', icon: <Columns2 size={15} />, run: () => void nav().addPane() },
       { id: 'preview', title: "Panneau d'aperçu", icon: <PanelRight size={15} />, run: () => ui().togglePreview() },
       { id: 'appearance', title: "Panneau d'apparence", icon: <Palette size={15} />, run: () => ui().toggleAppearance() },
@@ -175,7 +176,8 @@ export default function CommandPalette(): JSX.Element | null {
     if (paneCount > 1) {
       list.push({
         id: 'close-pane',
-        title: 'Fermer le volet actif',
+        title: "Fermer l'onglet actif",
+        hint: 'Ctrl+W',
         icon: <Columns2 size={15} />,
         run: () => nav().closePane(useNavStore.getState().activeId)
       })

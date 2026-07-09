@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { Panel, PanelGroup, PanelResizeHandle, type ImperativePanelHandle } from 'react-resizable-panels'
 import TitleBar from './components/TitleBar'
 import Toolbar from './components/Toolbar'
@@ -32,6 +32,7 @@ import Toast from './components/Toast'
 import CopyProgress from './components/CopyProgress'
 import FileHistory from './components/git/FileHistory'
 import ComparePanes from './components/ComparePanes'
+import PaneTabs from './components/PaneTabs'
 import { pathKey, baseName } from './lib/format'
 import { clipFiles, pasteInto, undoLastOp } from './lib/fileActions'
 
@@ -52,7 +53,14 @@ export default function App(): JSX.Element {
   const gitViewOpen = useUiStore((s) => s.gitViewOpen)
   const searchActive = useSearchStore((s) => s.active)
   const panes = useNavStore((s) => s.panes)
+  const groupActive = useNavStore((s) => s.groupActive)
   const terminalPanelRef = useRef<ImperativePanelHandle>(null)
+
+  // Colonnes d'onglets : groupes triés, chacun avec ses onglets dans l'ordre.
+  const groups = useMemo(() => {
+    const ids = [...new Set(panes.map((p) => p.group))].sort((a, b) => a - b)
+    return ids.map((g) => ({ g, tabs: panes.filter((p) => p.group === g) }))
+  }, [panes])
 
   useEffect(() => {
     void initAppearance()
@@ -145,6 +153,23 @@ export default function App(): JSX.Element {
       }
 
       const s = useNavStore.getState()
+
+      // Onglets : Ctrl+T ouvre, Ctrl+W ferme (colonne de l'onglet actif) —
+      // actifs partout, y compris sur les pages Accès rapide / Lanceur.
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey) {
+        const key = e.key.toLowerCase()
+        if (key === 't') {
+          e.preventDefault()
+          void s.addTab()
+          return
+        }
+        if (key === 'w') {
+          e.preventDefault()
+          s.closePane(s.activeId)
+          return
+        }
+      }
+
       const pane = activePane(s)
       if (pane.quickAccess) return
       const ctrl = (e.ctrlKey || e.metaKey) && !e.altKey
@@ -309,17 +334,25 @@ export default function App(): JSX.Element {
                 ) : searchActive ? (
                   <SearchPanel />
                 ) : (
-                  <PanelGroup key={`panes-${panes.length}`} autoSaveId="gvue:panes" direction="horizontal">
-                    {panes.map((p, i) => (
-                      <Fragment key={p.id}>
-                        {i > 0 && (
-                          <PanelResizeHandle className="w-px bg-border transition-colors hover:bg-accent" />
-                        )}
-                        <Panel minSize={20}>
-                          <Pane paneId={p.id} />
-                        </Panel>
-                      </Fragment>
-                    ))}
+                  <PanelGroup key={`panes-${groups.length}`} autoSaveId="gvue:panes" direction="horizontal">
+                    {groups.map(({ g, tabs }, i) => {
+                      const visible = tabs.find((t) => t.id === groupActive[g]) ?? tabs[0]
+                      return (
+                        <Fragment key={g}>
+                          {i > 0 && (
+                            <PanelResizeHandle className="w-px bg-border transition-colors hover:bg-accent" />
+                          )}
+                          <Panel minSize={20}>
+                            <div className="flex h-full flex-col">
+                              <PaneTabs group={g} tabs={tabs} visibleId={visible.id} />
+                              <div className="min-h-0 flex-1">
+                                <Pane paneId={visible.id} />
+                              </div>
+                            </div>
+                          </Panel>
+                        </Fragment>
+                      )
+                    })}
                   </PanelGroup>
                 )}
               </Panel>

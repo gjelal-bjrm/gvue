@@ -5,9 +5,15 @@ import { useUiStore } from './useUiStore'
 export type SortKey = 'name' | 'size' | 'modifiedMs'
 export type SortDir = 'asc' | 'desc'
 
-/** État de navigation d'un volet (l'app en affiche 1 à 3 côte à côte). */
+/**
+ * État de navigation d'un onglet. Les onglets sont regroupés en colonnes
+ * (« groupes ») affichées côte à côte : `group` identifie la colonne ; un seul
+ * onglet par colonne est visible (voir `groupActive`).
+ */
 export interface Pane {
   id: string
+  /** Colonne (groupe d'onglets) à laquelle appartient cet onglet. */
+  group: number
   path: string
   parent: string | null
   entries: DirEntry[]
@@ -30,15 +36,19 @@ export interface Pane {
 interface NavState {
   panes: Pane[]
   activeId: string
+  /** Onglet visible de chaque colonne (groupe → id d'onglet). */
+  groupActive: Record<number, string>
   locations: NavLocations | null
   showHidden: boolean
   hideGitIgnored: boolean
 
   init: () => Promise<void>
 
-  // Gestion des volets
+  // Gestion des volets (colonnes) et des onglets
   setActive: (id: string) => void
   addPane: () => Promise<void>
+  /** Ouvre un nouvel onglet dans la colonne donnée (défaut : celle de l'onglet actif). */
+  addTab: (group?: number) => Promise<void>
   closePane: (id: string) => void
   /** Restaure une disposition de volets (espace de travail). */
   applyWorkspace: (panes: WorkspacePane[], activeIndex: number) => Promise<void>
@@ -64,12 +74,18 @@ interface NavState {
   toggleGitIgnored: () => void
 }
 
-const MAX_PANES = 3
+const MAX_PANES = 3 // nombre maximal de colonnes côte à côte (les onglets, eux, sont illimités)
 let paneCounter = 1
 
-function makePane(id: string, sortKey: SortKey = 'name', sortDir: SortDir = 'asc'): Pane {
+function makePane(
+  id: string,
+  sortKey: SortKey = 'name',
+  sortDir: SortDir = 'asc',
+  group = 0
+): Pane {
   return {
     id,
+    group,
     path: '',
     parent: null,
     entries: [],
@@ -143,6 +159,7 @@ export const useNavStore = create<NavState>((set, get) => {
   return {
     panes: [makePane('pane-1')],
     activeId: 'pane-1',
+    groupActive: { 0: 'pane-1' },
     locations: null,
     showHidden: false,
     hideGitIgnored: true,
@@ -156,30 +173,90 @@ export const useNavStore = create<NavState>((set, get) => {
       patch(get().activeId, { quickAccess: true })
     },
 
-    setActive: (id) => set({ activeId: id }),
+    // Activer un onglet le rend aussi visible dans sa colonne.
+    setActive: (id) =>
+      set((s) => {
+        const p = s.panes.find((x) => x.id === id)
+        if (!p) return s
+        return { activeId: id, groupActive: { ...s.groupActive, [p.group]: id } }
+      }),
 
+    // « Diviser » : nouvelle colonne (groupe) à droite.
     addPane: async () => {
-      if (get().panes.length >= MAX_PANES) return
-      const src = activePane(get())
+      const s = get()
+      const groups = new Set(s.panes.map((p) => p.group))
+      if (groups.size >= MAX_PANES) return
+      const src = activePane(s)
+      const group = Math.max(...s.panes.map((p) => p.group)) + 1
       const id = `pane-${++paneCounter}`
-      set((s) => ({ panes: [...s.panes, makePane(id, src.sortKey, src.sortDir)], activeId: id }))
+      set((st) => ({
+        panes: [...st.panes, makePane(id, src.sortKey, src.sortDir, group)],
+        activeId: id,
+        groupActive: { ...st.groupActive, [group]: id }
+      }))
       await navigatePane(id, src.path || get().locations?.home || '', false)
     },
 
+    // Nouvel onglet dans une colonne (celle de l'onglet actif par défaut),
+    // ouvert sur le même dossier — comme l'explorateur Windows.
+    addTab: async (group) => {
+      const src = activePane(get())
+      const g = group ?? src.group
+      // Duplique l'onglet visible de la colonne cible (pas forcément l'actif global).
+      const model = get().panes.find((p) => p.id === get().groupActive[g]) ?? src
+      const id = `pane-${++paneCounter}`
+      set((st) => ({
+        panes: [...st.panes, makePane(id, model.sortKey, model.sortDir, g)],
+        activeId: id,
+        groupActive: { ...st.groupActive, [g]: id }
+      }))
+      await navigatePane(id, model.path || get().locations?.home || '', false)
+      if (model.quickAccess) patch(id, { quickAccess: true })
+    },
+
+    // Ferme un onglet ; la colonne disparaît avec son dernier onglet.
     closePane: (id) =>
       set((s) => {
         if (s.panes.length <= 1) return s
+        const closed = s.panes.find((p) => p.id === id)
+        if (!closed) return s
         const panes = s.panes.filter((p) => p.id !== id)
-        const activeId = s.activeId === id ? panes[panes.length - 1].id : s.activeId
-        return { panes, activeId }
+        const sameGroup = panes.filter((p) => p.group === closed.group)
+        const groupActive = { ...s.groupActive }
+        if (sameGroup.length > 0) {
+          if (groupActive[closed.group] === id) {
+            groupActive[closed.group] = sameGroup[sameGroup.length - 1].id
+          }
+        } else {
+          delete groupActive[closed.group]
+        }
+        let activeId = s.activeId
+        if (activeId === id) {
+          activeId = sameGroup.length ? sameGroup[sameGroup.length - 1].id : panes[panes.length - 1].id
+        }
+        // Le nouvel actif doit être visible dans sa colonne.
+        const act = panes.find((p) => p.id === activeId)
+        if (act) {
+          const vis = groupActive[act.group]
+          if (!vis || !panes.some((p) => p.id === vis && p.group === act.group)) {
+            groupActive[act.group] = activeId
+          }
+        }
+        return { panes, activeId, groupActive }
       }),
 
     applyWorkspace: async (confs, activeIndex) => {
       if (confs.length === 0) return
       const src = activePane(get())
-      const newPanes = confs.map(() => makePane(`pane-${++paneCounter}`, src.sortKey, src.sortDir))
-      const activeId = newPanes[Math.min(Math.max(activeIndex, 0), newPanes.length - 1)].id
-      set({ panes: newPanes, activeId })
+      // Anciens espaces (sans `group`) : une colonne par volet — comportement historique.
+      const newPanes = confs.map((c, i) =>
+        makePane(`pane-${++paneCounter}`, src.sortKey, src.sortDir, c.group ?? i)
+      )
+      const active = newPanes[Math.min(Math.max(activeIndex, 0), newPanes.length - 1)]
+      const groupActive: Record<number, string> = {}
+      for (const p of newPanes) if (!(p.group in groupActive)) groupActive[p.group] = p.id
+      groupActive[active.group] = active.id
+      set({ panes: newPanes, activeId: active.id, groupActive })
       await Promise.all(
         confs.map(async (c, i) => {
           const id = newPanes[i].id

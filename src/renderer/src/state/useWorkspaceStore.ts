@@ -40,7 +40,7 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
     const sb = useSidebarStore.getState()
     const term = useTerminalStore.getState()
     const data: WorkspaceData = {
-      panes: nav.panes.map((p) => ({ path: p.path, quickAccess: p.quickAccess })),
+      panes: nav.panes.map((p) => ({ path: p.path, quickAccess: p.quickAccess, group: p.group })),
       activeIndex: Math.max(0, nav.panes.findIndex((p) => p.id === nav.activeId)),
       terminalOpen: ui.terminalOpen,
       previewOpen: ui.previewOpen,

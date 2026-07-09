@@ -59,10 +59,15 @@ le **terminal intégré** (un onglet par lancement). Sous « Lanceur » dans la 
 Chaque **dépôt** de la sidebar a un **▶** qui exécute une **commande définie** d'un clic
 (bouton ⚙ pour la définir / la changer).
 
-**Multi-volets** — ouvre **jusqu'à 3 dossiers côte à côte**, chacun avec sa
-navigation, son historique et sa sélection. Le volet « actif » (cliqué) est celui
-que pilotent la barre d'adresse, Git et la palette — idéal pour comparer ou
-déplacer entre dossiers. Bouton « diviser » et fermeture par volet.
+**Multi-volets & onglets** — ouvre **jusqu'à 3 colonnes côte à côte**, chacune
+avec sa **barre d'onglets** façon explorateur Windows : **Ctrl+T** nouvel onglet
+(même dossier), **Ctrl+W** ferme, clic milieu ferme, « + » dans la barre. Chaque
+onglet garde sa navigation, son historique et sa sélection. L'onglet « actif »
+(cliqué) est celui que pilotent la barre d'adresse, Git et la palette — idéal
+pour comparer ou déplacer entre dossiers. **Comparaison de deux volets** (palette
+→ « Comparer les volets ») : uniquement à gauche / à droite, et fichiers de même
+nom mais différents (type, taille, date). Bouton « diviser » et fermeture par
+onglet ; les espaces de travail mémorisent colonnes **et** onglets.
 
 **Plusieurs fenêtres & arrière-plan** — ouvre **plusieurs fenêtres GVue**
 (barre d'outils, palette, **Ctrl+Maj+N**). GVue reste en **arrière-plan dans le

@@ -199,6 +199,8 @@ export interface RunnerProfile {
 export interface WorkspacePane {
   path: string
   quickAccess: boolean
+  /** Colonne (groupe d'onglets) du volet. Absent (anciens espaces) = une colonne par volet. */
+  group?: number
 }
 
 /** Espace de travail : disposition des volets + état des panneaux + config. */
