@@ -29,7 +29,8 @@ import {
   FolderPlus,
   Sparkles,
   FileText,
-  Undo2
+  Undo2,
+  GitCompareArrows
 } from 'lucide-react'
 import { useUiStore } from '../state/useUiStore'
 import { useNavStore, activePane } from '../state/useNavStore'
@@ -177,6 +178,12 @@ export default function CommandPalette(): JSX.Element | null {
         title: 'Fermer le volet actif',
         icon: <Columns2 size={15} />,
         run: () => nav().closePane(useNavStore.getState().activeId)
+      })
+      list.push({
+        id: 'compare-panes',
+        title: 'Comparer les volets',
+        icon: <GitCompareArrows size={15} />,
+        run: () => ui().setCompare(true)
       })
     }
 

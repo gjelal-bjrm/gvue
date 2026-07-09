@@ -30,6 +30,9 @@ interface UiState {
   /** Fichier dont on affiche l'historique Git (null = fermé). */
   fileHistoryPath: string | null
   setFileHistory: (p: string | null) => void
+  /** Dialogue de comparaison des volets ouvert ? */
+  compareOpen: boolean
+  setCompare: (v: boolean) => void
   /** Créateur de dossiers en lot ouvert ? */
   folderCreatorOpen: boolean
   /** Dossier cible du créateur (null = volet actif). */
@@ -84,6 +87,8 @@ export const useUiStore = create<UiState>((set) => ({
   diskUsagePath: null,
   fileHistoryPath: null,
   setFileHistory: (p) => set({ fileHistoryPath: p }),
+  compareOpen: false,
+  setCompare: (v) => set({ compareOpen: v }),
   folderCreatorOpen: false,
   folderCreatorBase: null,
   whatsNewSince: null,
