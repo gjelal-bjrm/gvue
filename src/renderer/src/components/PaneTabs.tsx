@@ -73,14 +73,15 @@ export default function PaneTabs(props: {
             </button>
           )
         })}
+        {/* « + » collé au dernier onglet, façon Chrome. */}
+        <button
+          onClick={() => void addTab(props.group)}
+          title="Nouvel onglet (Ctrl+T)"
+          className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-fg-muted hover:bg-bg-hover hover:text-fg"
+        >
+          <Plus size={14} />
+        </button>
       </div>
-      <button
-        onClick={() => void addTab(props.group)}
-        title="Nouvel onglet (Ctrl+T)"
-        className="grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg"
-      >
-        <Plus size={14} />
-      </button>
     </div>
   )
 }
