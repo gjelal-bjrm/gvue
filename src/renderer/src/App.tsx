@@ -48,6 +48,7 @@ export default function App(): JSX.Element {
   const terminalOpen = useUiStore((s) => s.terminalOpen)
   const terminalSize = useUiStore((s) => s.terminalSize)
   const terminalGrow = useUiStore((s) => s.terminalGrow)
+  const terminalMax = useUiStore((s) => s.terminalMax)
   const appearanceOpen = useUiStore((s) => s.appearanceOpen)
   const previewOpen = useUiStore((s) => s.previewOpen)
   const gitViewOpen = useUiStore((s) => s.gitViewOpen)
@@ -320,6 +321,12 @@ export default function App(): JSX.Element {
       <ComparePanes />
 
       <div className="min-h-0 flex-1">
+        {terminalOpen && terminalMax ? (
+          // Terminal maximisé (double-clic sur sa barre) : plein espace de la
+          // fenêtre. La disposition normale (tailles persistées via autoSaveId)
+          // est restaurée telle quelle en sortant du mode.
+          <TerminalPanel />
+        ) : (
         <PanelGroup key={vKey} autoSaveId="gvue:vertical" direction="vertical">
           <Panel minSize={30}>
             <PanelGroup key={hKey} autoSaveId="gvue:horizontal" direction="horizontal">
@@ -379,13 +386,17 @@ export default function App(): JSX.Element {
 
           {terminalOpen && (
             <>
-              <PanelResizeHandle className="h-px bg-border transition-colors hover:bg-accent" />
+              {/* Poignée élargie (zone de 6 px, trait de 1 px) : facile à attraper. */}
+              <PanelResizeHandle className="group relative h-1.5 shrink-0">
+                <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border transition-colors group-hover:bg-accent group-data-[resize-handle-active]:bg-accent" />
+              </PanelResizeHandle>
               <Panel ref={terminalPanelRef} defaultSize={terminalSize} minSize={12} maxSize={80}>
                 <TerminalPanel />
               </Panel>
             </>
           )}
         </PanelGroup>
+        )}
       </div>
     </div>
   )

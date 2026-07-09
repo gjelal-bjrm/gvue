@@ -41,6 +41,9 @@ interface UiState {
   whatsNewSince: string | null
   /** Terminaux affichés côte à côte (sinon en onglets, un seul visible). */
   terminalSplit: boolean
+  /** Terminal en plein espace de la fenêtre (double-clic sur sa barre). */
+  terminalMax: boolean
+  toggleTerminalMax: () => void
   /** Vue Git détaillée (façon GitHub Desktop) affichée à la place des volets ? */
   gitViewOpen: boolean
   /** Fichiers coupés/copiés en attente de collage. */
@@ -93,6 +96,8 @@ export const useUiStore = create<UiState>((set) => ({
   folderCreatorBase: null,
   whatsNewSince: null,
   terminalSplit: false,
+  terminalMax: false,
+  toggleTerminalMax: () => set((s) => ({ terminalMax: !s.terminalMax })),
   gitViewOpen: false,
   clipboard: null,
   toast: null,
@@ -101,12 +106,13 @@ export const useUiStore = create<UiState>((set) => ({
   clearToast: () => set({ toast: null }),
   copyProgress: null,
   setCopyProgress: (p) => set({ copyProgress: p }),
-  toggleTerminal: () => set((s) => ({ terminalOpen: !s.terminalOpen })),
+  toggleTerminal: () =>
+    set((s) => ({ terminalOpen: !s.terminalOpen, terminalMax: s.terminalOpen ? false : s.terminalMax })),
   toggleTerminalSplit: () => set((s) => ({ terminalSplit: !s.terminalSplit })),
   setTerminalSplit: (v) => set({ terminalSplit: v }),
   toggleGitView: () => set((s) => ({ gitViewOpen: !s.gitViewOpen })),
   setGitView: (v) => set({ gitViewOpen: v }),
-  setTerminalOpen: (v) => set({ terminalOpen: v }),
+  setTerminalOpen: (v) => set((s) => ({ terminalOpen: v, terminalMax: v ? s.terminalMax : false })),
   openTerminalLarge: () =>
     set((s) => ({
       terminalOpen: true,

@@ -12,7 +12,9 @@ import {
   Check,
   Columns2,
   Square,
-  Star
+  Star,
+  Maximize2,
+  Minimize2
 } from 'lucide-react'
 import { useUiStore } from '../state/useUiStore'
 import { useTerminalStore } from '../state/useTerminalStore'
@@ -28,6 +30,8 @@ export default function TerminalPanel(): JSX.Element {
   const { toggleTerminal, setTerminalOpen } = useUiStore()
   const split = useUiStore((s) => s.terminalSplit)
   const toggleSplit = useUiStore((s) => s.toggleTerminalSplit)
+  const maximized = useUiStore((s) => s.terminalMax)
+  const toggleMax = useUiStore((s) => s.toggleTerminalMax)
   const { shells, tabs, activeId, error, loadShells, openTab, ensureTab, closeTab, setActive } =
     useTerminalStore()
   const defaultShellId = useTerminalStore((s) => s.defaultShellId)
@@ -58,8 +62,15 @@ export default function TerminalPanel(): JSX.Element {
 
   return (
     <div className="flex h-full flex-col border-t border-border bg-bg-tertiary">
-      {/* En-tête + onglets */}
-      <div className="flex h-9 shrink-0 items-center justify-between border-b border-border pl-2 pr-2">
+      {/* En-tête + onglets. Double-clic (hors boutons) : plein espace / restaurer. */}
+      <div
+        onDoubleClick={(e) => {
+          if ((e.target as HTMLElement).closest('button')) return
+          toggleMax()
+        }}
+        title="Double-clic : agrandir / restaurer le terminal"
+        className="flex h-9 shrink-0 items-center justify-between border-b border-border pl-2 pr-2"
+      >
         <div className="flex min-w-0 items-center gap-1">
           <TerminalSquare size={14} className="mr-1 shrink-0 text-fg-muted" />
           <div className="flex min-w-0 items-center gap-1 overflow-x-auto">
@@ -161,6 +172,13 @@ export default function TerminalPanel(): JSX.Element {
             {split ? <Square size={14} /> : <Columns2 size={14} />}
           </HeaderBtn>
           <div className="mx-0.5 my-1 w-px bg-border" />
+          <HeaderBtn
+            label={maximized ? 'Restaurer la taille du terminal' : 'Agrandir (plein espace)'}
+            onClick={toggleMax}
+            active={maximized}
+          >
+            {maximized ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+          </HeaderBtn>
           <HeaderBtn label="Réduire le terminal" onClick={toggleTerminal}>
             <Minus size={14} />
           </HeaderBtn>
@@ -190,7 +208,9 @@ export default function TerminalPanel(): JSX.Element {
             {tabs.map((t, i) => (
               <Fragment key={t.id}>
                 {i > 0 && (
-                  <PanelResizeHandle className="w-px bg-border transition-colors hover:bg-accent" />
+                  <PanelResizeHandle className="group relative w-1.5 shrink-0">
+                    <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-border transition-colors group-hover:bg-accent group-data-[resize-handle-active]:bg-accent" />
+                  </PanelResizeHandle>
                 )}
                 <Panel minSize={12}>
                   <div
