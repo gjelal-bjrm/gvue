@@ -68,6 +68,7 @@ export const IPC = {
   gitCommitStaged: 'git:commitStaged',
   gitIgnore: 'git:ignore',
   gitLog: 'git:log',
+  gitFileLog: 'git:fileLog',
   gitCommitFiles: 'git:commitFiles',
   gitCommitDiff: 'git:commitDiff',
 

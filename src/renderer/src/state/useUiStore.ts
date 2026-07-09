@@ -27,6 +27,9 @@ interface UiState {
   fileFinderOpen: boolean
   /** Dossier analysé pour l'espace disque (null = panneau fermé). */
   diskUsagePath: string | null
+  /** Fichier dont on affiche l'historique Git (null = fermé). */
+  fileHistoryPath: string | null
+  setFileHistory: (p: string | null) => void
   /** Créateur de dossiers en lot ouvert ? */
   folderCreatorOpen: boolean
   /** Dossier cible du créateur (null = volet actif). */
@@ -79,6 +82,8 @@ export const useUiStore = create<UiState>((set) => ({
   paletteOpen: false,
   fileFinderOpen: false,
   diskUsagePath: null,
+  fileHistoryPath: null,
+  setFileHistory: (p) => set({ fileHistoryPath: p }),
   folderCreatorOpen: false,
   folderCreatorBase: null,
   whatsNewSince: null,

@@ -168,6 +168,8 @@ const api = {
       ipcRenderer.invoke(IPC.gitIgnore, dir, patterns),
     log: (dir: string, limit?: number): Promise<GitCommit[]> =>
       ipcRenderer.invoke(IPC.gitLog, dir, limit),
+    fileLog: (dir: string, file: string, limit?: number): Promise<GitCommit[]> =>
+      ipcRenderer.invoke(IPC.gitFileLog, dir, file, limit),
     commitFiles: (dir: string, hash: string): Promise<GitFileChange[]> =>
       ipcRenderer.invoke(IPC.gitCommitFiles, dir, hash),
     commitDiff: (dir: string, hash: string, file: string): Promise<string> =>

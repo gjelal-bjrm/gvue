@@ -30,6 +30,7 @@ import { useSearchStore } from './state/useSearchStore'
 import { useUpdateStore } from './state/useUpdateStore'
 import Toast from './components/Toast'
 import CopyProgress from './components/CopyProgress'
+import FileHistory from './components/git/FileHistory'
 import { pathKey, baseName } from './lib/format'
 import { clipFiles, pasteInto, undoLastOp } from './lib/fileActions'
 
@@ -289,6 +290,7 @@ export default function App(): JSX.Element {
       <WhatsNew />
       <Toast />
       <CopyProgress />
+      <FileHistory />
 
       <div className="min-h-0 flex-1">
         <PanelGroup key={vKey} autoSaveId="gvue:vertical" direction="vertical">

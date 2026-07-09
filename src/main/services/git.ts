@@ -362,6 +362,22 @@ function mapNameStatus(letter: string): GitCategory {
   }
 }
 
+// Séparateurs de champ/enregistrement pour parser `git log` sans ambiguïté.
+const LOG_SEP = '\x1f'
+const LOG_REC = '\x1e'
+const LOG_FMT = ['%H', '%h', '%an', '%ad', '%s'].join(LOG_SEP) + LOG_REC
+
+function parseLog(raw: string): GitCommit[] {
+  return raw
+    .split(LOG_REC)
+    .map((r) => r.trim())
+    .filter(Boolean)
+    .map((rec) => {
+      const [hash, shortHash, author, date, subject] = rec.split(LOG_SEP)
+      return { hash, shortHash, author, date, subject: subject ?? '' }
+    })
+}
+
 /** Historique des commits (du plus récent au plus ancien), limité à `limit`. */
 export async function log(dir: string, limit = 100): Promise<GitCommit[]> {
   let cwd: string
@@ -370,22 +386,48 @@ export async function log(dir: string, limit = 100): Promise<GitCommit[]> {
   } catch {
     return []
   }
-  const SEP = '\x1f' // séparateur de champ
-  const REC = '\x1e' // séparateur d'enregistrement
-  const fmt = ['%H', '%h', '%an', '%ad', '%s'].join(SEP) + REC
   try {
     const raw = await git(
-      ['log', '-n', String(limit), '--date=format:%Y-%m-%d %H:%M', `--pretty=format:${fmt}`],
+      ['log', '-n', String(limit), '--date=format:%Y-%m-%d %H:%M', `--pretty=format:${LOG_FMT}`],
       cwd
     )
-    return raw
-      .split(REC)
-      .map((r) => r.trim())
-      .filter(Boolean)
-      .map((rec) => {
-        const [hash, shortHash, author, date, subject] = rec.split(SEP)
-        return { hash, shortHash, author, date, subject: subject ?? '' }
-      })
+    return parseLog(raw)
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Historique des commits ayant touché un fichier (ou un dossier) donné.
+ * `--follow` suit les renommages (fichiers uniquement : git l'ignore pour un
+ * dossier). Le chemin peut être absolu (back/forward slashes) : il est rendu
+ * relatif à la racine du dépôt.
+ */
+export async function fileLog(dir: string, file: string, limit = 100): Promise<GitCommit[]> {
+  let cwd: string
+  try {
+    cwd = assertAbsolute(dir)
+  } catch {
+    return []
+  }
+  let root: string
+  try {
+    root = (await git(['rev-parse', '--show-toplevel'], cwd)).trim()
+  } catch {
+    return []
+  }
+  const norm = file.replace(/\\/g, '/')
+  const rel = norm.startsWith(root + '/') ? norm.slice(root.length + 1) : norm
+  try {
+    const raw = await git(
+      [
+        'log', '-n', String(limit), '--follow',
+        '--date=format:%Y-%m-%d %H:%M', `--pretty=format:${LOG_FMT}`,
+        '--', rel
+      ],
+      cwd
+    )
+    return parseLog(raw)
   } catch {
     return []
   }
@@ -459,8 +501,10 @@ export async function commitDiff(dir: string, hash: string, file: string): Promi
   } catch {
     return ''
   }
-  const rel = file.startsWith(root + '/') ? file.slice(root.length + 1) : file
+  const norm = file.replace(/\\/g, '/')
+  const rel = norm.startsWith(root + '/') ? norm.slice(root.length + 1) : norm
   // --format= retire l'en-tête du commit ; reste le patch du fichier.
+  // --follow n'existe pas pour `show` : le diff est celui du chemin à ce commit.
   return capture(['show', '--format=', hash, '--', rel], cwd)
 }
 

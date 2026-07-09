@@ -83,6 +83,10 @@ export function registerGitHandlers(): void {
     return git.log(dir, limit)
   })
 
+  ipcMain.handle(IPC.gitFileLog, async (_e, dir: string, file: string, limit?: number) => {
+    return git.fileLog(dir, file, limit)
+  })
+
   ipcMain.handle(IPC.gitCommitFiles, async (_e, dir: string, hash: string) => {
     return git.commitFiles(dir, hash)
   })

@@ -24,6 +24,7 @@ import {
   FolderInput,
   TerminalSquare,
   PieChart,
+  History,
   X
 } from 'lucide-react'
 import type { DirEntry, GitFileChange } from '@shared/types'
@@ -322,8 +323,16 @@ export function buildItemMenu(entry: DirEntry, ctx: MenuCtx): MenuEntry[] {
       : [])
   ]
 
-  if (repo && git && git.category !== 'ignored') {
+  if (repo) {
     entries.push({ type: 'sep' })
+    entries.push({
+      label: 'Historique Git',
+      icon: <History size={14} />,
+      onClick: () => useUiStore.getState().setFileHistory(entry.path)
+    })
+  }
+
+  if (repo && git && git.category !== 'ignored') {
     entries.push({
       label: 'Indexer',
       icon: <Plus size={14} />,
