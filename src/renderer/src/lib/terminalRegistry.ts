@@ -1,6 +1,7 @@
 import { Terminal as XTerm } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
+import { SearchAddon } from '@xterm/addon-search'
 import { attachSuggest } from './terminalSuggest'
 
 /** Métadonnées d'un terminal, pour l'autocomplétion (type de shell + cwd). */
@@ -20,6 +21,7 @@ export interface TermMeta {
 export interface TermEntry {
   term: XTerm
   fit: FitAddon
+  search: SearchAddon
   element: HTMLDivElement
   dispose: () => void
 }
@@ -62,6 +64,21 @@ export function acquire(ptyId: string, meta?: TermMeta): TermEntry {
   // Handler explicite : ouvre l'URL réelle dans le navigateur système. Sans lui,
   // le handler par défaut fait window.open() (vide) → l'OS reçoit « about:blank ».
   term.loadAddon(new WebLinksAddon((_event, uri) => void window.api.window.openExternal(uri)))
+  const search = new SearchAddon()
+  term.loadAddon(search)
+  // Ctrl+F dans le terminal : ouvre la barre de recherche du panneau (xterm
+  // avale les touches ; sans ce handler, Ctrl+F partirait au shell).
+  term.attachCustomKeyEventHandler((ev) => {
+    if (
+      ev.type === 'keydown' &&
+      ev.ctrlKey && !ev.shiftKey && !ev.altKey &&
+      (ev.key === 'f' || ev.key === 'F')
+    ) {
+      window.dispatchEvent(new CustomEvent('gvue:terminal-search', { detail: { ptyId } }))
+      return false
+    }
+    return true
+  })
   term.open(element)
 
   // Clic droit façon Git Bash / mintty : copie la sélection si présente,
@@ -96,6 +113,7 @@ export function acquire(ptyId: string, meta?: TermMeta): TermEntry {
   const entry: TermEntry = {
     term,
     fit,
+    search,
     element,
     dispose: () => {
       detachSuggest?.()
@@ -119,6 +137,56 @@ export function disposeTerminal(ptyId: string): void {
 /** Efface le contenu affiché du terminal (conserve la ligne courante). */
 export function clearTerminal(ptyId: string): void {
   registry.get(ptyId)?.term.clear()
+}
+
+/** Options de surlignage des correspondances (toutes + active). */
+function searchOptions(incremental: boolean): {
+  incremental: boolean
+  decorations: {
+    matchBackground: string
+    matchOverviewRuler: string
+    activeMatchBackground: string
+    activeMatchColorOverviewRuler: string
+  }
+} {
+  const accent = cssVar('--accent') || '#7f77dd'
+  return {
+    incremental,
+    decorations: {
+      matchBackground: 'rgba(255, 200, 0, 0.30)',
+      matchOverviewRuler: '#ffc800',
+      activeMatchBackground: accent,
+      activeMatchColorOverviewRuler: accent
+    }
+  }
+}
+
+/**
+ * Recherche dans le tampon d'un terminal (Ctrl+F). `incremental` étend la
+ * correspondance courante pendant la frappe au lieu de sauter à la suivante.
+ * Renvoie faux si aucune correspondance.
+ */
+export function searchTerminal(
+  ptyId: string,
+  query: string,
+  dir: 'next' | 'prev',
+  incremental = false
+): boolean {
+  const entry = registry.get(ptyId)
+  if (!entry || !query) return false
+  return dir === 'next'
+    ? entry.search.findNext(query, searchOptions(incremental))
+    : entry.search.findPrevious(query, searchOptions(incremental))
+}
+
+/** Efface les surlignages de recherche d'un terminal. */
+export function clearTerminalSearch(ptyId: string): void {
+  registry.get(ptyId)?.search.clearDecorations()
+}
+
+/** Rend le focus clavier au terminal (après fermeture de la recherche). */
+export function focusTerminal(ptyId: string): void {
+  registry.get(ptyId)?.term.focus()
 }
 
 /** Renvoie tout le contenu textuel du terminal (scrollback + écran). */

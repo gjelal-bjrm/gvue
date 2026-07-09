@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import {
   Minus,
@@ -14,11 +14,20 @@ import {
   Square,
   Star,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Search,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react'
 import { useUiStore } from '../state/useUiStore'
 import { useTerminalStore } from '../state/useTerminalStore'
-import { clearTerminal, getTerminalText } from '../lib/terminalRegistry'
+import {
+  clearTerminal,
+  getTerminalText,
+  searchTerminal,
+  clearTerminalSearch,
+  focusTerminal
+} from '../lib/terminalRegistry'
 import Terminal from './Terminal'
 
 /**
@@ -38,6 +47,36 @@ export default function TerminalPanel(): JSX.Element {
   const setDefaultShell = useTerminalStore((s) => s.setDefaultShell)
   const [menuOpen, setMenuOpen] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const [noMatch, setNoMatch] = useState(false)
+  const searchRef = useRef<HTMLInputElement>(null)
+
+  // Recherche : frappe = incrémental, Entrée = suivant, Maj+Entrée = précédent.
+  const runSearch = (q: string, dir: 'next' | 'prev', incremental = false): void => {
+    if (!activeId) return
+    setNoMatch(q.length > 0 && !searchTerminal(activeId, q, dir, incremental))
+  }
+
+  const closeSearch = (): void => {
+    setSearchOpen(false)
+    setQuery('')
+    setNoMatch(false)
+    if (activeId) {
+      clearTerminalSearch(activeId)
+      focusTerminal(activeId)
+    }
+  }
+
+  // Ctrl+F depuis un terminal (événement émis par le registre xterm).
+  useEffect(() => {
+    const open = (): void => {
+      setSearchOpen(true)
+      setTimeout(() => searchRef.current?.select(), 0)
+    }
+    window.addEventListener('gvue:terminal-search', open)
+    return () => window.removeEventListener('gvue:terminal-search', open)
+  }, [])
 
   const clearActive = (): void => {
     if (activeId) clearTerminal(activeId)
@@ -152,7 +191,51 @@ export default function TerminalPanel(): JSX.Element {
           </div>
         </div>
 
-        <div className="flex shrink-0 gap-1">
+        <div className="flex shrink-0 items-center gap-1">
+          {searchOpen ? (
+            <div
+              className={`flex items-center gap-0.5 rounded-app border bg-bg px-1 ${
+                noMatch ? 'border-danger-fg' : 'border-border'
+              }`}
+            >
+              <Search size={12} className="shrink-0 text-fg-muted" />
+              <input
+                ref={searchRef}
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value)
+                  runSearch(e.target.value, 'next', true)
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') runSearch(query, e.shiftKey ? 'prev' : 'next')
+                  else if (e.key === 'Escape') closeSearch()
+                }}
+                placeholder="Rechercher…"
+                spellCheck={false}
+                className="w-36 bg-transparent py-0.5 text-[12px] text-fg outline-none placeholder:text-fg-muted"
+              />
+              <HeaderBtn label="Précédent (Maj+Entrée)" onClick={() => runSearch(query, 'prev')}>
+                <ArrowUp size={12} />
+              </HeaderBtn>
+              <HeaderBtn label="Suivant (Entrée)" onClick={() => runSearch(query, 'next')}>
+                <ArrowDown size={12} />
+              </HeaderBtn>
+              <HeaderBtn label="Fermer la recherche (Échap)" onClick={closeSearch}>
+                <X size={12} />
+              </HeaderBtn>
+            </div>
+          ) : (
+            <HeaderBtn
+              label="Rechercher dans le terminal (Ctrl+F)"
+              onClick={() => {
+                setSearchOpen(true)
+                setTimeout(() => searchRef.current?.focus(), 0)
+              }}
+              disabled={!activeId}
+            >
+              <Search size={14} />
+            </HeaderBtn>
+          )}
           <HeaderBtn
             label="Copier le contenu du terminal"
             onClick={() => void copyActive()}

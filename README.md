@@ -49,7 +49,10 @@ affichage **côte à côte** (colonnes redimensionnables), panneau réductible q
 actif. **Autocomplétion fantôme** (ghost text, façon fish) : suggestion en gris (couleur
 adaptée au shell) des **commandes connues** du shell et des **fichiers/dossiers du cwd**,
 validée par **Tab**. **Clic droit** façon Git Bash : copie la sélection si présente,
-sinon colle le presse-papiers.
+sinon colle le presse-papiers. **Recherche dans le terminal** (**Ctrl+F**, Entrée /
+Maj+Entrée pour suivant/précédent, correspondances surlignées). **Double-clic sur
+la barre du terminal** : plein espace de la fenêtre / restaurer ; poignées de
+redimensionnement (hauteur du panneau, largeur des terminaux côte à côte) élargies.
 
 **Lanceur** — définis des **lancements** (commande + dossier, avec un **projet** et/ou
 une **catégorie**, ou un script `package.json` auto-détecté) et des **profils** (groupes
