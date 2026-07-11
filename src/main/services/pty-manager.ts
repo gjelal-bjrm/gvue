@@ -33,6 +33,32 @@ function loadPty(): typeof import('node-pty') {
 const sessions = new Map<string, IPty>()
 let counter = 0
 
+// Tampon de sortie par terminal (côté main), plafonné : sert au serveur MCP
+// (« get_terminal_output ») pour donner les logs aux agents IA sans dépendre
+// du renderer. Conservé après la fin du process (logs consultables), purgé au
+// kill explicite.
+const MAX_BUFFER_CHARS = 200_000
+const buffers = new Map<string, { chunks: string[]; size: number }>()
+
+/** Ajoute un fragment au tampon en respectant le plafond (logique pure). */
+export function appendCapped(
+  buf: { chunks: string[]; size: number },
+  data: string,
+  max = MAX_BUFFER_CHARS
+): void {
+  buf.chunks.push(data)
+  buf.size += data.length
+  while (buf.size > max && buf.chunks.length > 1) {
+    buf.size -= buf.chunks[0].length
+    buf.chunks.shift()
+  }
+}
+
+/** Sortie accumulée d'un terminal (brute, séquences ANSI incluses). */
+export function getPtyBuffer(id: string): string {
+  return buffers.get(id)?.chunks.join('') ?? ''
+}
+
 /** Crée un pseudo-terminal et streame sa sortie via les callbacks fournis. */
 export function createPty(opts: TerminalCreateOptions, onData: DataCb, onExit: ExitCb): string {
   const pty = loadPty()
@@ -44,7 +70,12 @@ export function createPty(opts: TerminalCreateOptions, onData: DataCb, onExit: E
     cwd: opts.cwd,
     env: process.env as Record<string, string>
   })
-  proc.onData((d) => onData(id, d))
+  const buf = { chunks: [] as string[], size: 0 }
+  buffers.set(id, buf)
+  proc.onData((d) => {
+    appendCapped(buf, d)
+    onData(id, d)
+  })
   proc.onExit(({ exitCode }) => {
     sessions.delete(id)
     onExit(id, exitCode)
@@ -69,6 +100,7 @@ export function resizePty(id: string, cols: number, rows: number): void {
 
 export function killPty(id: string): void {
   const session = sessions.get(id)
+  buffers.delete(id)
   if (!session) return
   try {
     session.kill()

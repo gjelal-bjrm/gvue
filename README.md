@@ -24,6 +24,7 @@ personnalisable. 100 % local, aucun appel réseau sortant hors fonctions explici
 - [Structure du projet](#structure-du-projet)
 - [Prérequis & démarrage](#prérequis--démarrage)
 - [Commandes personnalisées](#commandes-personnalisées)
+- [Serveur MCP (agents IA)](#serveur-mcp-agents-ia)
 - [Terminal natif (node-pty)](#terminal-natif-node-pty)
 - [Feuille de route — ce qui est fait / ce qu'il reste](#feuille-de-route)
 - [Sécurité](#sécurité)
@@ -392,6 +393,40 @@ Convertir en MP4         ffmpeg -i "{path}" "{stem}.mp4"        (fichiers)
 Conseils : entoure les jetons de **guillemets** (chemins avec espaces) ; les
 commandes `cmd /c …` sont automatiquement routées vers cmd (fiable même si le
 shell par défaut est Git Bash).
+
+---
+
+## Serveur MCP (agents IA)
+
+GVue peut exposer son **contexte de session** aux agents IA (Claude Code, etc.)
+via le protocole **MCP** : ce que tu regardes (onglets, dossier actif,
+**fichiers sélectionnés**), le dépôt Git courant, et les **terminaux intégrés
+avec leurs logs** — plus deux actions (naviguer, démarrer un lancement).
+L'agent cesse de te demander « quel dossier ? quel fichier ? » : il le voit.
+
+**Activation (opt-in)** : ⚙ Paramètres → Général → **« Serveur MCP »**. Puis,
+côté Claude Code (une seule fois — la commande exacte est affichée avec un
+bouton copier dans le panneau) :
+
+```bash
+claude mcp add gvue -- node "C:\chemin\vers\gvue-mcp.cjs"
+```
+
+**Outils exposés** :
+
+| Outil | Rôle |
+|---|---|
+| `get_context` | Onglets/colonnes ouverts, onglet actif, sélection, dépôt Git, terminaux |
+| `list_terminals` | Terminaux intégrés ouverts |
+| `get_terminal_output` | **Logs d'un terminal** (ex. le serveur de dev qui y tourne), ANSI nettoyé |
+| `navigate` | Ouvre un dossier dans GVue |
+| `list_launch_tasks` / `run_launch_task` | Liste / démarre les « lancements » configurés |
+
+**Sécurité** : serveur local uniquement (**127.0.0.1**, port aléatoire), chaque
+requête exige un **jeton** régénéré à chaque démarrage (écrit dans
+`userData/mcp-endpoint.json`, supprimé à l'arrêt). Désactivé par défaut. Le
+pont `gvue-mcp.cjs` (stdio, sans dépendance) relaie les appels des clients MCP
+vers l'instance GVue en cours.
 
 ---
 

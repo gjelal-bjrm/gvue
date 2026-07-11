@@ -37,7 +37,8 @@ import type {
   NativeMenuItem,
   ConflictMode,
   ConflictInfo,
-  ArchiveEntry
+  ArchiveEntry,
+  McpContext
 } from '@shared/types'
 
 /**
@@ -310,6 +311,14 @@ const api = {
     /** Affiche un menu contextuel natif ; résout avec l'id cliqué (ou null). */
     popup: (items: NativeMenuItem[], x: number, y: number): Promise<string | null> =>
       ipcRenderer.invoke(IPC.menuPopup, items, x, y)
+  },
+  mcp: {
+    /** Pousse l'instantané de contexte (onglets/sélection/terminaux) au serveur MCP. */
+    pushContext: (ctx: McpContext): void => ipcRenderer.send(IPC.mcpContext, ctx),
+    toggle: (enabled: boolean): Promise<{ enabled: boolean; port: number; bridgePath: string }> =>
+      ipcRenderer.invoke(IPC.mcpToggle, enabled),
+    status: (): Promise<{ enabled: boolean; port: number; bridgePath: string }> =>
+      ipcRenderer.invoke(IPC.mcpStatus)
   },
   log: {
     report: (report: RendererErrorReport): Promise<void> =>

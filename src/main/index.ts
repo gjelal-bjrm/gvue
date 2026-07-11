@@ -10,6 +10,9 @@ import { registerGitHandlers } from './ipc/git'
 import { registerAppsHandlers } from './ipc/apps'
 import { registerLogHandlers } from './ipc/log'
 import { registerMenuHandlers } from './ipc/menu'
+import { registerMcpHandlers } from './ipc/mcp'
+import { startMcpServer, stopMcpServer } from './services/mcp-server'
+import { getConfig } from './services/config-store'
 import { registerUpdateHandlers, initAutoUpdate } from './services/updater'
 import { logInfo, logError, getLogPath } from './services/logger'
 import { killAll } from './services/pty-manager'
@@ -51,6 +54,7 @@ function registerIpc(): void {
   registerUpdateHandlers()
   registerLogHandlers()
   registerMenuHandlers()
+  registerMcpHandlers()
 }
 
 // Verrou d'instance unique : un seul *processus* GVue (les fenêtres multiples
@@ -72,6 +76,13 @@ if (!gotLock) {
     createWindow()
     initAutoUpdate()
 
+    // Serveur MCP (agents IA) : opt-in, relancé si activé lors d'une session précédente.
+    try {
+      if (getConfig('mcpEnabled')) startMcpServer()
+    } catch {
+      /* config indisponible : reste désactivé */
+    }
+
     // Mort d'un process de rendu (page blanche) : on journalise pour diagnostic.
     app.on('render-process-gone', (_e, _wc, details) => {
       logError('render-process-gone', JSON.stringify(details))
@@ -92,6 +103,7 @@ app.on('before-quit', () => {
   killAll()
   killAllSearches()
   closeWatch()
+  stopMcpServer() // supprime aussi le fichier d'endpoint (jeton périmé)
 })
 
 app.on('window-all-closed', () => {

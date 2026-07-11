@@ -116,6 +116,11 @@ export const IPC = {
   // Menu contextuel natif (popup OS : peut déborder de la fenêtre)
   menuPopup: 'menu:popup',
 
+  // Serveur MCP (agents IA) : contexte poussé par le renderer + bascule
+  mcpContext: 'mcp:context',
+  mcpToggle: 'mcp:toggle',
+  mcpStatus: 'mcp:status',
+
   // Journalisation / diagnostic
   logReport: 'log:report',
   logPath: 'log:path'

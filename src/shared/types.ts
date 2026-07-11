@@ -3,6 +3,20 @@
 
 export type DirEntryKind = 'file' | 'directory'
 
+/** Instantané du contexte GVue poussé au serveur MCP (renderer → main). */
+export interface McpContext {
+  panes: {
+    id: string
+    group: number
+    path: string
+    quickAccess: boolean
+    active: boolean
+    selected: string[]
+  }[]
+  repo: { root: string; branch: string } | null
+  terminals: { ptyId: string; title: string; cwd: string; exited: boolean; paneId?: string }[]
+}
+
 /** Entrée sérialisable d'un menu contextuel NATIF (Menu.popup côté main). */
 export interface NativeMenuItem {
   /** Identifiant renvoyé au renderer quand l'entrée est cliquée. */
@@ -296,6 +310,8 @@ export interface AppConfig {
   viewMode: 'list' | 'grid'
   /** Terminaux liés à l'onglet de dossier actif (filtrage du panneau). */
   linkTerminals: boolean
+  /** Serveur MCP local (agents IA) activé ? */
+  mcpEnabled: boolean
   /** Commandes personnalisées du menu contextuel. */
   customCommands: CustomCommand[]
 }

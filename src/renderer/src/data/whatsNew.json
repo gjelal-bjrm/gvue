@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.1.17",
+    "notes": [
+      "Tutoriel integre des commandes personnalisees + section README",
+      "Passe design — theme clair, focus clavier, barre d'outils groupee",
+      "Antiseche des raccourcis clavier (F1)",
+      "Fix « Proprietes » (bis) — PowerShell console tue par detached:true"
+    ]
+  },
+  {
     "version": "0.1.16",
     "notes": [
       "Panneau « Parametres » a sections (Apparence / General / A propos)",

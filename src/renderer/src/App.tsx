@@ -21,6 +21,7 @@ import GitPanel from './components/GitPanel'
 import UpdateBanner from './components/UpdateBanner'
 import { useNavStore, activePane } from './state/useNavStore'
 import { useGitStore } from './state/useGitStore'
+import { useTerminalStore } from './state/useTerminalStore'
 import { useFavoritesStore } from './state/useFavoritesStore'
 import { useAppsStore } from './state/useAppsStore'
 import { useOpenWithStore } from './state/useOpenWithStore'
@@ -277,6 +278,49 @@ export default function App(): JSX.Element {
   // Système de mise à jour : statut courant + abonnement aux changements.
   useEffect(() => {
     return useUpdateStore.getState().init()
+  }, [])
+
+  // Contexte MCP (agents IA) : pousse au main un instantané onglets/sélection/
+  // dépôt/terminaux à chaque changement (débattu). Ne fait rien si le serveur
+  // est désactivé (le main ignore alors simplement le cache).
+  useEffect(() => {
+    let t: number | null = null
+    const push = (): void => {
+      if (t) window.clearTimeout(t)
+      t = window.setTimeout(() => {
+        const nav = useNavStore.getState()
+        const git = useGitStore.getState()
+        const term = useTerminalStore.getState()
+        window.api.mcp.pushContext({
+          panes: nav.panes.map((p) => ({
+            id: p.id,
+            group: p.group,
+            path: p.path,
+            quickAccess: p.quickAccess,
+            active: p.id === nav.activeId,
+            selected: p.selected
+          })),
+          repo: git.repo ? { root: git.repo.root, branch: git.repo.branch } : null,
+          terminals: term.tabs.map((tb) => ({
+            ptyId: tb.ptyId,
+            title: tb.title,
+            cwd: tb.cwd,
+            exited: tb.exited,
+            paneId: tb.paneId
+          }))
+        })
+      }, 400)
+    }
+    const u1 = useNavStore.subscribe(push)
+    const u2 = useGitStore.subscribe(push)
+    const u3 = useTerminalStore.subscribe(push)
+    push()
+    return () => {
+      u1()
+      u2()
+      u3()
+      if (t) window.clearTimeout(t)
+    }
   }, [])
 
   // Sauvegarde continue de la session (colonnes/onglets/chemins), débattue :

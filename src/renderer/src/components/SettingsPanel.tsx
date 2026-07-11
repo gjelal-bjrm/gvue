@@ -291,6 +291,8 @@ function GeneralSection(): JSX.Element {
   const linked = useTerminalStore((s) => s.linked)
   const toggleLinked = useTerminalStore((s) => s.toggleLinked)
   const [restore, setRestore] = useState<boolean | null>(null)
+  const [mcp, setMcp] = useState<{ enabled: boolean; bridgePath: string } | null>(null)
+  const [copiedCmd, setCopiedCmd] = useState(false)
 
   // Charge les réglages persistés (et synchronise le store des terminaux, qui
   // ne lit sa config qu'à l'ouverture du panneau terminal).
@@ -300,7 +302,19 @@ function GeneralSection(): JSX.Element {
       .get('linkTerminals')
       .then((v) => useTerminalStore.setState({ linked: !!v }))
       .catch(() => undefined)
+    void window.api.mcp.status().then(setMcp)
   }, [])
+
+  const toggleMcp = (enabled: boolean): void => {
+    void window.api.mcp.toggle(enabled).then(setMcp)
+  }
+
+  const mcpRegisterCmd = mcp ? `claude mcp add gvue -- node "${mcp.bridgePath}"` : ''
+  const copyMcpCmd = (): void => {
+    void navigator.clipboard?.writeText(mcpRegisterCmd)
+    setCopiedCmd(true)
+    setTimeout(() => setCopiedCmd(false), 1500)
+  }
 
   const setRestoreSession = (v: boolean): void => {
     setRestore(v)
@@ -359,6 +373,35 @@ function GeneralSection(): JSX.Element {
         >
           <TerminalSquare size={14} /> Gérer les commandes du menu contextuel…
         </button>
+      </Field>
+
+      <Field label="Serveur MCP (agents IA)">
+        <Segmented<'on' | 'off'>
+          value={mcp?.enabled ? 'on' : 'off'}
+          options={[
+            { value: 'on', label: 'Activé' },
+            { value: 'off', label: 'Désactivé' }
+          ]}
+          onChange={(v) => toggleMcp(v === 'on')}
+        />
+        <p className="mt-1.5 text-[11px] text-fg-muted">
+          Expose le contexte de GVue (onglets, sélection, dépôt Git, logs des terminaux)
+          aux agents IA comme Claude Code — local uniquement (127.0.0.1 + jeton).
+        </p>
+        {mcp?.enabled && (
+          <div className="mt-2">
+            <p className="mb-1 text-[11px] text-fg-muted">
+              Enregistrement côté Claude Code (une seule fois) :
+            </p>
+            <button
+              onClick={copyMcpCmd}
+              title="Copier la commande"
+              className="w-full truncate rounded-app border border-border bg-bg px-2 py-1.5 text-left font-mono text-[11px] text-fg-secondary hover:border-accent hover:bg-bg-hover"
+            >
+              {copiedCmd ? '✓ Copié !' : mcpRegisterCmd}
+            </button>
+          </div>
+        )}
       </Field>
     </div>
   )

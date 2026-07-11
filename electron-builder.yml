@@ -36,6 +36,10 @@ files:
 extraResources:
   - from: build/icon.png
     to: icon.png
+  # Pont MCP (stdio) : lancé par les clients IA (Claude Code…), il relaie vers
+  # l'instance GVue en cours (serveur local opt-in).
+  - from: scripts/gvue-mcp.cjs
+    to: gvue-mcp.cjs
 
 # Modules natifs : doivent vivre hors de l'asar pour être exécutés/chargés.
 asarUnpack:
