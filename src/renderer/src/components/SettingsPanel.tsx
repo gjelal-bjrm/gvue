@@ -1,8 +1,20 @@
-import { useState } from 'react'
-import { Palette, Check, X, Save, Trash2, DownloadCloud } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import {
+  Settings,
+  Check,
+  X,
+  Save,
+  Trash2,
+  DownloadCloud,
+  Sparkles,
+  FileText,
+  TerminalSquare
+} from 'lucide-react'
 import { useAppearanceStore } from '../state/useAppearanceStore'
 import { useUiStore } from '../state/useUiStore'
 import { useUpdateStore } from '../state/useUpdateStore'
+import { useNavStore } from '../state/useNavStore'
+import { useTerminalStore } from '../state/useTerminalStore'
 import { ACCENT_SWATCHES, FONT_CHOICES } from '../theme/presets'
 import type { Appearance, UpdateStatus } from '@shared/types'
 
@@ -28,17 +40,66 @@ function updateLabel(s: UpdateStatus): string {
   }
 }
 
+type Section = 'appearance' | 'general' | 'about'
+
 /**
- * Panneau d'apparence — entièrement fonctionnel (cf. section 7 de la spec).
- * Chaque réglage met à jour les variables CSS via le store et persiste dans
- * electron-store. Aucun composant n'est repeint « à la main ».
+ * Panneau Paramètres (⚙, en haut à droite) : Apparence (thème, couleurs,
+ * presets…), Général (comportements) et À propos (version, mises à jour).
+ * NB : le drapeau d'ouverture s'appelle encore `appearanceOpen` dans le uiStore
+ * (nom historique, persisté dans les espaces de travail).
  */
-export default function AppearancePanel(): JSX.Element {
-  const { appearance, update, savePreset, applyPreset, deletePreset } = useAppearanceStore()
+export default function SettingsPanel(): JSX.Element {
   const closePanel = useUiStore((s) => s.toggleAppearance)
-  const version = useUpdateStore((s) => s.version)
-  const updateStatus = useUpdateStore((s) => s.status)
-  const checkUpdate = useUpdateStore((s) => s.check)
+  const [section, setSection] = useState<Section>('appearance')
+
+  return (
+    <aside className="flex h-full w-full flex-col gap-4 overflow-y-auto border-l border-border bg-bg-secondary p-3.5 text-[13px]">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 font-medium">
+          <Settings size={16} className="text-accent" />
+          Paramètres
+        </div>
+        <button
+          onClick={closePanel}
+          title="Fermer le panneau"
+          className="grid h-6 w-6 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg"
+        >
+          <X size={15} />
+        </button>
+      </div>
+
+      {/* Sections */}
+      <div className="flex gap-1 rounded-app border border-border bg-bg p-0.5">
+        {(
+          [
+            ['appearance', 'Apparence'],
+            ['general', 'Général'],
+            ['about', 'À propos']
+          ] as [Section, string][]
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setSection(key)}
+            className={`min-w-0 flex-1 truncate rounded-app px-2 py-1 text-[12px] ${
+              section === key ? 'bg-accent-soft text-accent' : 'text-fg-secondary hover:bg-bg-hover'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {section === 'appearance' && <AppearanceSection />}
+      {section === 'general' && <GeneralSection />}
+      {section === 'about' && <AboutSection />}
+    </aside>
+  )
+}
+
+/* ------------------------------- Apparence ------------------------------- */
+
+function AppearanceSection(): JSX.Element {
+  const { appearance, update, savePreset, applyPreset, deletePreset } = useAppearanceStore()
   const [presetName, setPresetName] = useState('')
   const presetNames = Object.keys(appearance.presets)
 
@@ -50,22 +111,7 @@ export default function AppearancePanel(): JSX.Element {
   }
 
   return (
-    <aside className="flex h-full w-full flex-col gap-5 overflow-y-auto border-l border-border bg-bg-secondary p-3.5 text-[13px]">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 font-medium">
-          <Palette size={16} className="text-accent" />
-          Apparence
-        </div>
-        <button
-          onClick={closePanel}
-          title="Fermer le panneau"
-          className="grid h-6 w-6 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg"
-        >
-          <X size={15} />
-        </button>
-      </div>
-
-      {/* Couleur d'accent */}
+    <div className="flex flex-col gap-5">
       <Field label="Couleur d'accent">
         <div className="flex flex-wrap gap-2">
           {ACCENT_SWATCHES.map((s) => {
@@ -103,7 +149,6 @@ export default function AppearancePanel(): JSX.Element {
         </div>
       </Field>
 
-      {/* Thème */}
       <Field label="Thème">
         <Segmented<Appearance['theme']>
           value={appearance.theme}
@@ -116,7 +161,6 @@ export default function AppearancePanel(): JSX.Element {
         />
       </Field>
 
-      {/* Densité */}
       <Field label="Densité">
         <Segmented<Appearance['density']>
           value={appearance.density}
@@ -128,7 +172,6 @@ export default function AppearancePanel(): JSX.Element {
         />
       </Field>
 
-      {/* Coins */}
       <Field label="Coins">
         <Segmented<Appearance['corners']>
           value={appearance.corners}
@@ -140,7 +183,6 @@ export default function AppearancePanel(): JSX.Element {
         />
       </Field>
 
-      {/* Police */}
       <Field label="Police">
         <select
           value={appearance.fontFamily}
@@ -155,7 +197,6 @@ export default function AppearancePanel(): JSX.Element {
         </select>
       </Field>
 
-      {/* Taille de police */}
       <Field label={`Taille de l'interface — ${appearance.fontSize}px`}>
         <input
           type="range"
@@ -168,7 +209,6 @@ export default function AppearancePanel(): JSX.Element {
         />
       </Field>
 
-      {/* Opacité de la fenêtre (réelle, niveau OS) */}
       <Field label={`Opacité de la fenêtre — ${Math.round(appearance.windowOpacity * 100)} %`}>
         <input
           type="range"
@@ -181,7 +221,6 @@ export default function AppearancePanel(): JSX.Element {
         />
       </Field>
 
-      {/* Curseur clignotant du titre */}
       <Field label="Curseur clignotant du titre">
         <Segmented<'on' | 'off'>
           value={appearance.titleCursor ? 'on' : 'off'}
@@ -193,7 +232,6 @@ export default function AppearancePanel(): JSX.Element {
         />
       </Field>
 
-      {/* Presets nommés */}
       <Field label="Presets">
         <div className="flex gap-2">
           <input
@@ -241,9 +279,101 @@ export default function AppearancePanel(): JSX.Element {
           </div>
         )}
       </Field>
+    </div>
+  )
+}
 
-      {/* À propos / version */}
-      <Field label="À propos">
+/* -------------------------------- Général -------------------------------- */
+
+function GeneralSection(): JSX.Element {
+  const viewMode = useNavStore((s) => s.viewMode)
+  const toggleViewMode = useNavStore((s) => s.toggleViewMode)
+  const linked = useTerminalStore((s) => s.linked)
+  const toggleLinked = useTerminalStore((s) => s.toggleLinked)
+  const [restore, setRestore] = useState<boolean | null>(null)
+
+  // Charge les réglages persistés (et synchronise le store des terminaux, qui
+  // ne lit sa config qu'à l'ouverture du panneau terminal).
+  useEffect(() => {
+    void window.api.config.get('restoreSession').then((v) => setRestore(!!v))
+    void window.api.config
+      .get('linkTerminals')
+      .then((v) => useTerminalStore.setState({ linked: !!v }))
+      .catch(() => undefined)
+  }, [])
+
+  const setRestoreSession = (v: boolean): void => {
+    setRestore(v)
+    void window.api.config.set('restoreSession', v)
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      <Field label="Au démarrage">
+        <Segmented<'restore' | 'home'>
+          value={restore === false ? 'home' : 'restore'}
+          options={[
+            { value: 'restore', label: 'Rouvrir les dossiers' },
+            { value: 'home', label: 'Accès rapide' }
+          ]}
+          onChange={(v) => setRestoreSession(v === 'restore')}
+        />
+        <p className="mt-1.5 text-[11px] text-fg-muted">
+          Restaure colonnes, onglets et dossiers de la dernière session.
+        </p>
+      </Field>
+
+      <Field label="Affichage des fichiers">
+        <Segmented<'list' | 'grid'>
+          value={viewMode}
+          options={[
+            { value: 'list', label: 'Liste' },
+            { value: 'grid', label: 'Grille (vignettes)' }
+          ]}
+          onChange={(v) => {
+            if (v !== viewMode) toggleViewMode()
+          }}
+        />
+      </Field>
+
+      <Field label="Terminaux liés aux onglets de dossier">
+        <Segmented<'on' | 'off'>
+          value={linked ? 'on' : 'off'}
+          options={[
+            { value: 'on', label: 'Activé' },
+            { value: 'off', label: 'Désactivé' }
+          ]}
+          onChange={(v) => {
+            if ((v === 'on') !== linked) toggleLinked()
+          }}
+        />
+        <p className="mt-1.5 text-[11px] text-fg-muted">
+          Le panneau terminal n'affiche que les terminaux de l'onglet de dossier actif.
+        </p>
+      </Field>
+
+      <Field label="Commandes personnalisées">
+        <button
+          onClick={() => useUiStore.getState().setCustomCmd(true)}
+          className="flex items-center gap-1.5 rounded-app border border-border bg-bg px-2.5 py-1.5 text-[12px] text-fg-secondary hover:bg-bg-hover hover:text-fg"
+        >
+          <TerminalSquare size={14} /> Gérer les commandes du menu contextuel…
+        </button>
+      </Field>
+    </div>
+  )
+}
+
+/* -------------------------------- À propos ------------------------------- */
+
+function AboutSection(): JSX.Element {
+  const version = useUpdateStore((s) => s.version)
+  const updateStatus = useUpdateStore((s) => s.status)
+  const checkUpdate = useUpdateStore((s) => s.check)
+
+  return (
+    <div className="flex flex-col gap-5">
+      <Field label="Version">
         <div className="flex items-center justify-between gap-2 rounded-app border border-border bg-bg px-2.5 py-2">
           <div className="min-w-0">
             <div className="text-[12px] font-medium text-fg">GVue v{version || '—'}</div>
@@ -258,9 +388,28 @@ export default function AppearancePanel(): JSX.Element {
           </button>
         </div>
       </Field>
-    </aside>
+
+      <Field label="Diagnostic">
+        <div className="flex flex-col gap-1.5">
+          <button
+            onClick={() => useUiStore.getState().setWhatsNew('')}
+            className="flex items-center gap-1.5 rounded-app border border-border bg-bg px-2.5 py-1.5 text-left text-[12px] text-fg-secondary hover:bg-bg-hover hover:text-fg"
+          >
+            <Sparkles size={14} /> Nouveautés de cette version…
+          </button>
+          <button
+            onClick={() => void window.api.log.path().then((p) => window.api.fs.reveal(p))}
+            className="flex items-center gap-1.5 rounded-app border border-border bg-bg px-2.5 py-1.5 text-left text-[12px] text-fg-secondary hover:bg-bg-hover hover:text-fg"
+          >
+            <FileText size={14} /> Ouvrir le journal de diagnostic
+          </button>
+        </div>
+      </Field>
+    </div>
   )
 }
+
+/* -------------------------------- Helpers -------------------------------- */
 
 function Field(props: { label: string; children: React.ReactNode }): JSX.Element {
   return (

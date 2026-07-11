@@ -7,7 +7,7 @@ import { Fragment } from 'react'
 import Sidebar from './components/Sidebar'
 import Pane from './components/Pane'
 import SearchPanel from './components/SearchPanel'
-import AppearancePanel from './components/AppearancePanel'
+import SettingsPanel from './components/SettingsPanel'
 import PreviewPanel from './components/PreviewPanel'
 // Chargé à la demande : le chunk xterm (~450 ko) n'est tiré qu'à l'affichage
 // du premier terminal (voir aussi lib/terminalBridge, qui découple les stores).
@@ -407,7 +407,7 @@ export default function App(): JSX.Element {
                 <>
                   <PanelResizeHandle className="w-px bg-border transition-colors hover:bg-accent" />
                   <Panel defaultSize={20} minSize={15} maxSize={34}>
-                    <AppearancePanel />
+                    <SettingsPanel />
                   </Panel>
                 </>
               )}

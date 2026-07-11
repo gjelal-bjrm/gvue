@@ -181,7 +181,7 @@ export default function CommandPalette(): JSX.Element | null {
       { id: 'view-mode', title: 'Basculer vue liste / grille', icon: <LayoutGrid size={15} />, run: () => nav().toggleViewMode() },
       { id: 'split', title: 'Diviser — nouveau volet', icon: <Columns2 size={15} />, run: () => void nav().addPane() },
       { id: 'preview', title: "Panneau d'aperçu", icon: <PanelRight size={15} />, run: () => ui().togglePreview() },
-      { id: 'appearance', title: "Panneau d'apparence", icon: <Palette size={15} />, run: () => ui().toggleAppearance() },
+      { id: 'appearance', title: 'Paramètres (apparence, général, à propos)', icon: <Palette size={15} />, run: () => ui().toggleAppearance() },
       { id: 'theme-light', title: 'Thème : clair', icon: <Sun size={15} />, run: () => useAppearanceStore.getState().update({ theme: 'light' }) },
       { id: 'theme-dark', title: 'Thème : sombre', icon: <Moon size={15} />, run: () => useAppearanceStore.getState().update({ theme: 'dark' }) },
       { id: 'theme-auto', title: 'Thème : auto', icon: <SunMoon size={15} />, run: () => useAppearanceStore.getState().update({ theme: 'auto' }) }

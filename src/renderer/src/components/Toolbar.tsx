@@ -9,7 +9,7 @@ import {
   ChevronRight,
   Eye,
   EyeOff,
-  Palette,
+  Settings,
   CaseSensitive,
   WholeWord,
   Regex,
@@ -266,10 +266,10 @@ export default function Toolbar(): JSX.Element {
       </NavBtn>
       <NavBtn
         onClick={toggleAppearance}
-        title="Panneau d'apparence"
+        title="Paramètres"
         active={appearanceOpen}
       >
-        <Palette size={17} />
+        <Settings size={17} />
       </NavBtn>
     </div>
   )
