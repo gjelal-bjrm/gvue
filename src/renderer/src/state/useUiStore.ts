@@ -33,6 +33,9 @@ interface UiState {
   /** Dialogue de comparaison des volets ouvert ? */
   compareOpen: boolean
   setCompare: (v: boolean) => void
+  /** Gestionnaire des commandes personnalisées ouvert ? */
+  customCmdOpen: boolean
+  setCustomCmd: (v: boolean) => void
   /** Créateur de dossiers en lot ouvert ? */
   folderCreatorOpen: boolean
   /** Dossier cible du créateur (null = volet actif). */
@@ -95,6 +98,8 @@ export const useUiStore = create<UiState>((set) => ({
   setFileHistory: (p) => set({ fileHistoryPath: p }),
   compareOpen: false,
   setCompare: (v) => set({ compareOpen: v }),
+  customCmdOpen: false,
+  setCustomCmd: (v) => set({ customCmdOpen: v }),
   folderCreatorOpen: false,
   folderCreatorBase: null,
   whatsNewSince: null,

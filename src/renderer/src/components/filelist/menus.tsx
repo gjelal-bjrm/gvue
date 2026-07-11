@@ -36,6 +36,9 @@ import { useAppsStore } from '../../state/useAppsStore'
 import { useFavoritesStore } from '../../state/useFavoritesStore'
 import { useOpenWithStore } from '../../state/useOpenWithStore'
 import { clipFiles, pasteInto, copyOrMove } from '../../lib/fileActions'
+import { useCustomCommandsStore } from '../../state/useCustomCommandsStore'
+import { useTerminalStore } from '../../state/useTerminalStore'
+import { substituteTokens, cwdFor } from '../../lib/customCommands'
 import { pathKey } from '../../lib/format'
 import type { MenuEntry } from '../ContextMenu'
 import { ARCHIVE_EXT, extOf, programName, baseSegment } from './helpers'
@@ -250,6 +253,30 @@ export function buildItemMenu(entry: DirEntry, ctx: MenuCtx): MenuEntry[] {
         onClick: () => void window.api.apps.extract(entry.path)
       })
     appEntries.push({ label: '7-Zip', icon: <FileArchive size={14} />, children: sz })
+  }
+
+  // Commandes personnalisées (exécutées dans le terminal intégré, jetons substitués).
+  const custom = useCustomCommandsStore
+    .getState()
+    .commands.filter((c) => c.target === 'both' || c.target === (entry.kind === 'directory' ? 'directory' : 'file'))
+  if (custom.length) {
+    appEntries.push({
+      label: 'Commandes',
+      icon: <TerminalSquare size={14} />,
+      children: custom.map((c) => ({
+        label: c.name,
+        icon: <TerminalSquare size={14} />,
+        onClick: () => {
+          const isDir = entry.kind === 'directory'
+          useUiStore.getState().setTerminalOpen(true)
+          void useTerminalStore.getState().openTaskTab({
+            cwd: cwdFor(entry.path, isDir),
+            title: c.name,
+            command: substituteTokens(c.command, entry.path, isDir)
+          })
+        }
+      }))
+    })
   }
 
   const entries: MenuEntry[] = [

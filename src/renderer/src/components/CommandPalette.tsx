@@ -160,6 +160,7 @@ export default function CommandPalette(): JSX.Element | null {
       { id: 'go-to-file', title: 'Aller à un fichier…', hint: 'Ctrl+E', icon: <Search size={15} />, run: () => ui().setFileFinder(true) },
       { id: 'disk-usage', title: 'Espace disque (dossier courant)', icon: <PieChart size={15} />, run: () => ui().setDiskUsage(path) },
       { id: 'make-folders', title: 'Créer des dossiers…', icon: <FolderPlus size={15} />, run: () => ui().setFolderCreator(true) },
+      { id: 'custom-commands', title: 'Commandes personnalisées…', icon: <TerminalSquare size={15} />, run: () => ui().setCustomCmd(true) },
       { id: 'check-update', title: 'Vérifier les mises à jour', icon: <DownloadCloud size={15} />, run: () => useUpdateStore.getState().check() },
       { id: 'whats-new', title: 'Nouveautés…', icon: <Sparkles size={15} />, run: () => ui().setWhatsNew('') },
       { id: 'undo', title: 'Annuler la dernière opération', hint: 'Ctrl+Z', icon: <Undo2 size={15} />, run: () => void undoLastOp() },
