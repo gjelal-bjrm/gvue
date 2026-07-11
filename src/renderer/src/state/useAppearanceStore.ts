@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { Appearance } from '@shared/types'
 import { applyAppearance } from '../theme/applyTheme'
-import { applyThemeAll } from '../lib/terminalRegistry'
+import { applyThemeAll } from '../lib/terminalBridge'
 
 const FALLBACK: Appearance = {
   accent: '#D85A30',

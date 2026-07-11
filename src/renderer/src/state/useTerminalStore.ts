@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { ShellInfo } from '@shared/types'
 import { useNavStore, activePane } from './useNavStore'
-import { disposeTerminal } from '../lib/terminalRegistry'
+import { disposeTerminal } from '../lib/terminalBridge'
 
 export interface TermTab {
   /** Identifiant d'onglet = ptyId (unique). */

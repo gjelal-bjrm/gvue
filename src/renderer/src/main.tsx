@@ -3,7 +3,6 @@ import ReactDOM from 'react-dom/client'
 import App from './App'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { applyAppearance } from './theme/applyTheme'
-import '@xterm/xterm/css/xterm.css'
 import './styles/global.css'
 
 // Remonte au journal du processus principal toute erreur/rejet non interceptés

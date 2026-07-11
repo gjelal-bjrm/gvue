@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef } from 'react'
 import { Panel, PanelGroup, PanelResizeHandle, type ImperativePanelHandle } from 'react-resizable-panels'
 import TitleBar from './components/TitleBar'
 import Toolbar from './components/Toolbar'
@@ -9,7 +9,9 @@ import Pane from './components/Pane'
 import SearchPanel from './components/SearchPanel'
 import AppearancePanel from './components/AppearancePanel'
 import PreviewPanel from './components/PreviewPanel'
-import TerminalPanel from './components/TerminalPanel'
+// Chargé à la demande : le chunk xterm (~450 ko) n'est tiré qu'à l'affichage
+// du premier terminal (voir aussi lib/terminalBridge, qui découple les stores).
+const TerminalPanel = lazy(() => import('./components/TerminalPanel'))
 import CommandPalette from './components/CommandPalette'
 import FileFinder from './components/FileFinder'
 import DiskUsage from './components/DiskUsage'
@@ -325,7 +327,9 @@ export default function App(): JSX.Element {
           // Terminal maximisé (double-clic sur sa barre) : plein espace de la
           // fenêtre. La disposition normale (tailles persistées via autoSaveId)
           // est restaurée telle quelle en sortant du mode.
-          <TerminalPanel />
+          <Suspense fallback={null}>
+            <TerminalPanel />
+          </Suspense>
         ) : (
         <PanelGroup key={vKey} autoSaveId="gvue:vertical" direction="vertical">
           <Panel minSize={30}>
@@ -391,7 +395,9 @@ export default function App(): JSX.Element {
                 <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border transition-colors group-hover:bg-accent group-data-[resize-handle-active]:bg-accent" />
               </PanelResizeHandle>
               <Panel ref={terminalPanelRef} defaultSize={terminalSize} minSize={12} maxSize={80}>
-                <TerminalPanel />
+                <Suspense fallback={null}>
+                  <TerminalPanel />
+                </Suspense>
               </Panel>
             </>
           )}

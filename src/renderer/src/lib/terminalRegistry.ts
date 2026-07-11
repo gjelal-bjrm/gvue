@@ -1,8 +1,10 @@
+import '@xterm/xterm/css/xterm.css'
 import { Terminal as XTerm } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import { SearchAddon } from '@xterm/addon-search'
 import { attachSuggest } from './terminalSuggest'
+import { registerTerminalImpl } from './terminalBridge'
 
 /** Métadonnées d'un terminal, pour l'autocomplétion (type de shell + cwd). */
 export interface TermMeta {
@@ -188,6 +190,10 @@ export function clearTerminalSearch(ptyId: string): void {
 export function focusTerminal(ptyId: string): void {
   registry.get(ptyId)?.term.focus()
 }
+
+// Expose les opérations aux stores via la façade : ils peuvent ainsi rester
+// SANS import statique de ce module (chargement paresseux du chunk xterm).
+registerTerminalImpl({ applyThemeAll, disposeTerminal })
 
 /** Renvoie tout le contenu textuel du terminal (scrollback + écran). */
 export function getTerminalText(ptyId: string): string {
