@@ -1,14 +1,15 @@
 name: Release
 
-# Construit l'installeur Windows et le publie sur GitHub Releases.
-# Déclenché en poussant un tag « vX.Y.Z » (qui DOIT correspondre à la version de
-# package.json). En exécution manuelle, l'installeur est seulement archivé comme
-# artefact (pas de publication).
+# Chemin canonique de publication : pousser un tag « vX.Y.Z » (égal à la version
+# de package.json) construit, teste, empaquette, signe (si SignPath est
+# configuré) et crée un BROUILLON de release GitHub — dernière étape : cliquer
+# « Publish release ». En exécution manuelle (workflow_dispatch), tout tourne
+# sauf la création de la release.
 #
-# Ce workflow est aussi le socle de la signature de code (SignPath Foundation,
-# gratuit pour l'open-source) : SignPath ne signe que des artefacts produits par
-# une CI vérifiée. L'étape de signature est préparée plus bas (voir TODO) ; elle
-# s'activera une fois le projet approuvé par SignPath.
+# Signature : SignPath Foundation ne signe que des artefacts produits par une CI
+# vérifiée. L'étape est conditionnelle (secret SIGNPATH_API_TOKEN présent) ; le
+# binaire signé ayant un hash différent, scripts/fix-latest-yml.cjs réconcilie
+# latest.yml + .blockmap — sans quoi l'auto-update rejetterait la mise à jour.
 
 on:
   push:
@@ -16,20 +17,45 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write # nécessaire pour créer la Release et y téléverser les fichiers
+  contents: write # créer la Release et y téléverser les fichiers
 
 jobs:
   release:
     runs-on: windows-latest
+    env:
+      HAVE_SIGNPATH: ${{ secrets.SIGNPATH_API_TOKEN != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # tags + historique complets (garde de version, notes)
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
+
+      - name: Verifier tag = version package.json
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF#refs/tags/v}"
+          PKG=$(node -p "require('./package.json').version")
+          if [ "$TAG" != "$PKG" ]; then
+            echo "::error::Le tag v$TAG ne correspond pas a package.json ($PKG) — l'auto-update serait incoherent."
+            exit 1
+          fi
+
+      - name: Notes de version (commits depuis le tag precedent)
+        shell: bash
+        run: |
+          PREV=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -n "$PREV" ]; then
+            node scripts/gen-whatsnew.cjs --since "$PREV"
+          else
+            node scripts/gen-whatsnew.cjs
+          fi
 
       - name: Install dependencies
         run: npm ci
@@ -40,20 +66,51 @@ jobs:
       - name: Tests
         run: npm test
 
-      - name: Build (renderer + main + preload)
-        run: npm run build
+      - name: Build
+        run: npx electron-vite build
 
-      # Produit l'installeur NSIS + latest.yml + .blockmap dans dist/.
-      # --publish always : crée/maj la Release GitHub (brouillon) uniquement sur un tag.
-      - name: Package & publish
+      - name: Package (sans publier)
+        run: npx electron-builder --win --publish never
+
+      # ---- Signature SignPath (uniquement si le secret est configuré) ----
+      - name: Upload unsigned installer
+        id: unsigned
+        if: env.HAVE_SIGNPATH == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-installer
+          path: dist/*.exe
+          if-no-files-found: error
+
+      - name: Sign with SignPath
+        if: env.HAVE_SIGNPATH == 'true'
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: '${{ vars.SIGNPATH_ORG_ID }}'
+          project-slug: 'gvue'
+          signing-policy-slug: 'release-signing'
+          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: dist-signed
+
+      - name: Reconcilier latest.yml avec le binaire signe
+        if: env.HAVE_SIGNPATH == 'true'
+        run: node scripts/fix-latest-yml.cjs
+
+      # ---- Brouillon de release (l'utilisateur clique « Publish release ») ----
+      - name: Create draft release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx electron-builder --win --publish ${{ startsWith(github.ref, 'refs/tags/v') && 'always' || 'never' }}
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          gh release create "$TAG" --draft --title "GVue $TAG" \
+            dist/*.exe dist/latest.yml dist/*.blockmap
 
-      # Archive l'installeur comme artefact de workflow. Utile pour les exécutions
-      # manuelles, et c'est précisément ce que consomme SignPath pour la signature.
+      # Archive de secours (utile pour les exécutions manuelles, sans release).
       - name: Upload installer artifact
-        id: unsigned-installer
         uses: actions/upload-artifact@v4
         with:
           name: gvue-windows-installer
@@ -62,28 +119,3 @@ jobs:
             dist/latest.yml
             dist/*.blockmap
           if-no-files-found: error
-
-      # ───────────────────────────────────────────────────────────────────────
-      # TODO (après approbation SignPath Foundation) : signature du code.
-      # Renseigner les 4 identifiants ci-dessous (organization-id, project-slug,
-      # signing-policy-slug, et le secret SIGNPATH_API_TOKEN dans les secrets du
-      # dépôt), puis décommenter. Voir SIGNING.md.
-      #
-      # IMPORTANT auto-update : signer l'installeur APRÈS coup change son hash, ce
-      # qui périme latest.yml/.blockmap. Il faudra donc, à cette étape :
-      #   1) construire avec --publish never (au lieu de always ci-dessus),
-      #   2) signer l'installeur via SignPath (étape ci-dessous),
-      #   3) régénérer latest.yml + .blockmap pour le fichier SIGNÉ,
-      #   4) publier (gh release upload) l'installeur signé + métadonnées à jour.
-      #
-      # - name: Sign with SignPath
-      #   uses: signpath/github-action-submit-signing-request@v2
-      #   with:
-      #     api-token: '${{ secrets.SIGNPATH_API_TOKEN }}'
-      #     organization-id: '<organization-id>'
-      #     project-slug: 'gvue'
-      #     signing-policy-slug: 'release-signing'
-      #     github-artifact-id: '${{ steps.unsigned-installer.outputs.artifact-id }}'
-      #     wait-for-completion: true
-      #     output-artifact-directory: 'dist-signed'
-      # ───────────────────────────────────────────────────────────────────────

@@ -25,13 +25,20 @@ function git(args) {
   }
 }
 
-// Plage de commits : depuis le dernier release marqué, sinon les 25 derniers.
+// Plage de commits : `--since <ref>` explicite (utilisé par la CI, où le
+// marqueur local n'existe pas — on borne au tag précédent), sinon le marqueur
+// local, sinon les 25 derniers.
+const sinceArg = process.argv.indexOf('--since')
 let range = '-25'
-try {
-  const last = fs.readFileSync(markerPath, 'utf8').trim()
-  if (last) range = `${last}..HEAD`
-} catch {
-  /* pas de marqueur */
+if (sinceArg >= 0 && process.argv[sinceArg + 1]) {
+  range = `${process.argv[sinceArg + 1]}..HEAD`
+} else {
+  try {
+    const last = fs.readFileSync(markerPath, 'utf8').trim()
+    if (last) range = `${last}..HEAD`
+  } catch {
+    /* pas de marqueur */
+  }
 }
 
 const raw = git(`log ${range} --no-merges --pretty=format:%s`)
