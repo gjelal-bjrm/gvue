@@ -11,6 +11,8 @@ export interface TermTab {
   title: string
   /** Dossier de départ (pour l'autocomplétion de chemins). */
   cwd: string
+  /** Onglet de dossier actif à la création (pour le mode « terminaux liés »). */
+  paneId?: string
   exited: boolean
   /** Désabonnement de l'événement de sortie du pty. */
   disposeExit: () => void
@@ -23,6 +25,9 @@ interface TerminalState {
   error: string | null
   /** Shell par défaut (id) ; vide = premier détecté. */
   defaultShellId: string
+  /** Terminaux liés à l'onglet de dossier actif (filtrage, persisté). */
+  linked: boolean
+  toggleLinked: () => void
 
   loadShells: () => Promise<void>
   /** Définit le shell par défaut (persisté). */
@@ -49,16 +54,24 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
   activeId: null,
   error: null,
   defaultShellId: '',
+  linked: false,
+
+  toggleLinked: () => {
+    const next = !get().linked
+    set({ linked: next })
+    void window.api.config.set('linkTerminals', next)
+  },
 
   loadShells: async () => {
     try {
-      const [shells, defaultShell] = await Promise.all([
+      const [shells, defaultShell, linked] = await Promise.all([
         window.api.terminal.shells(),
-        window.api.config.get('defaultShell')
+        window.api.config.get('defaultShell'),
+        window.api.config.get('linkTerminals').catch(() => false)
       ])
       // Ne garde le défaut que s'il correspond encore à un shell détecté.
       const valid = shells.some((s) => s.id === defaultShell) ? defaultShell : ''
-      set({ shells, defaultShellId: valid })
+      set({ shells, defaultShellId: valid, linked: !!linked })
     } catch (e) {
       set({ error: e instanceof Error ? e.message : String(e) })
     }
@@ -99,7 +112,16 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
         }))
         disposeExit()
       })
-      const tab: TermTab = { id: ptyId, ptyId, shell, title: shell.label, cwd, exited: false, disposeExit }
+      const tab: TermTab = {
+        id: ptyId,
+        ptyId,
+        shell,
+        title: shell.label,
+        cwd,
+        paneId: useNavStore.getState().activeId,
+        exited: false,
+        disposeExit
+      }
       set((s) => ({ tabs: [...s.tabs, tab], activeId: ptyId, error: null }))
     } catch (e) {
       set({ error: e instanceof Error ? e.message : String(e) })
@@ -141,6 +163,7 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
         shell,
         title,
         cwd: cwd || shell.path,
+        paneId: useNavStore.getState().activeId,
         exited: false,
         disposeExit
       }

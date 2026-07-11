@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import {
   Minus,
@@ -17,10 +17,12 @@ import {
   Minimize2,
   Search,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Link2
 } from 'lucide-react'
 import { useUiStore } from '../state/useUiStore'
 import { useTerminalStore } from '../state/useTerminalStore'
+import { useNavStore } from '../state/useNavStore'
 import {
   clearTerminal,
   getTerminalText,
@@ -45,6 +47,29 @@ export default function TerminalPanel(): JSX.Element {
     useTerminalStore()
   const defaultShellId = useTerminalStore((s) => s.defaultShellId)
   const setDefaultShell = useTerminalStore((s) => s.setDefaultShell)
+  const linked = useTerminalStore((s) => s.linked)
+  const toggleLinked = useTerminalStore((s) => s.toggleLinked)
+  const navActiveId = useNavStore((s) => s.activeId)
+  const panes = useNavStore((s) => s.panes)
+
+  // Mode « lié » : ne montre que les terminaux de l'onglet de dossier actif
+  // (+ ceux dont l'onglet d'origine a été fermé, considérés globaux).
+  const paneIdSet = useMemo(() => new Set(panes.map((p) => p.id)), [panes])
+  const visibleTabs = useMemo(
+    () =>
+      linked
+        ? tabs.filter((t) => !t.paneId || t.paneId === navActiveId || !paneIdSet.has(t.paneId))
+        : tabs,
+    [linked, tabs, navActiveId, paneIdSet]
+  )
+  const activeVisible = visibleTabs.some((t) => t.id === activeId)
+
+  // En changeant d'onglet de dossier, bascule sur un terminal de cet onglet.
+  useEffect(() => {
+    if (!linked || activeVisible) return
+    const fallback = visibleTabs[visibleTabs.length - 1]
+    if (fallback) setActive(fallback.id)
+  }, [linked, navActiveId, visibleTabs, activeVisible, setActive])
   const [menuOpen, setMenuOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -113,7 +138,7 @@ export default function TerminalPanel(): JSX.Element {
         <div className="flex min-w-0 items-center gap-1">
           <TerminalSquare size={14} className="mr-1 shrink-0 text-fg-muted" />
           <div className="flex min-w-0 items-center gap-1 overflow-x-auto">
-            {tabs.map((t) => (
+            {visibleTabs.map((t) => (
               <button
                 key={t.id}
                 onClick={() => setActive(t.id)}
@@ -254,6 +279,17 @@ export default function TerminalPanel(): JSX.Element {
           >
             {split ? <Square size={14} /> : <Columns2 size={14} />}
           </HeaderBtn>
+          <HeaderBtn
+            label={
+              linked
+                ? "Terminaux liés à l'onglet de dossier (cliquer pour tout afficher)"
+                : "Lier les terminaux à l'onglet de dossier actif"
+            }
+            onClick={toggleLinked}
+            active={linked}
+          >
+            <Link2 size={14} />
+          </HeaderBtn>
           <div className="mx-0.5 my-1 w-px bg-border" />
           <HeaderBtn
             label={maximized ? 'Restaurer la taille du terminal' : 'Agrandir (plein espace)'}
@@ -285,10 +321,23 @@ export default function TerminalPanel(): JSX.Element {
             </button>
           </div>
         )}
+        {linked && visibleTabs.length === 0 && tabs.length > 0 && (
+          <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center">
+            <Link2 size={22} className="text-fg-muted" />
+            <p className="text-[13px] text-fg-secondary">
+              Aucun terminal pour cet onglet de dossier.
+            </p>
+            <p className="text-[12px] text-fg-muted">
+              « + » pour en ouvrir un ici, ou {`« `}
+              <Link2 size={11} className="inline" />
+              {` »`} pour afficher tous les terminaux.
+            </p>
+          </div>
+        )}
         {split ? (
-          // Côte à côte : chaque terminal dans sa colonne redimensionnable.
-          <PanelGroup key={`tsplit-${tabs.length}`} direction="horizontal" className="p-1.5">
-            {tabs.map((t, i) => (
+          // Côte à côte : chaque terminal (visible) dans sa colonne redimensionnable.
+          <PanelGroup key={`tsplit-${visibleTabs.length}-${linked}`} direction="horizontal" className="p-1.5">
+            {visibleTabs.map((t, i) => (
               <Fragment key={t.id}>
                 {i > 0 && (
                   <PanelResizeHandle className="group relative w-1.5 shrink-0">
@@ -330,11 +379,13 @@ export default function TerminalPanel(): JSX.Element {
             ))}
           </PanelGroup>
         ) : (
+          // Tous les onglets restent montés (historique préservé) ; seul l'actif
+          // — et visible dans le filtre « lié » — est affiché.
           tabs.map((t) => (
             <div
               key={t.id}
               className="absolute inset-0 p-1.5"
-              style={{ display: t.id === activeId ? 'block' : 'none' }}
+              style={{ display: t.id === activeId && activeVisible ? 'block' : 'none' }}
             >
               <Terminal ptyId={t.ptyId} active={t.id === activeId} shellId={t.shell.id} cwd={t.cwd} />
             </div>

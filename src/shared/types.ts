@@ -294,6 +294,8 @@ export interface AppConfig {
   lastSession: { panes: WorkspacePane[]; activeIndex: number }
   /** Mode d'affichage de la liste de fichiers. */
   viewMode: 'list' | 'grid'
+  /** Terminaux liés à l'onglet de dossier actif (filtrage du panneau). */
+  linkTerminals: boolean
   /** Commandes personnalisées du menu contextuel. */
   customCommands: CustomCommand[]
 }

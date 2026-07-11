@@ -45,6 +45,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   restoreSession: true,
   lastSession: { panes: [], activeIndex: 0 },
   viewMode: 'list',
+  linkTerminals: false,
   customCommands: []
 }
 

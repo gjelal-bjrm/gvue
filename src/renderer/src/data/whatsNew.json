@@ -1,5 +1,18 @@
 [
   {
+    "version": "0.1.15",
+    "notes": [
+      "Parcourir les archives sans extraction (zip/7z...)",
+      "Commandes personnalisees (menu contextuel -> « Commandes », terminal integre)",
+      "Vue grille (vignettes) + colonne Type et tri par extension",
+      "Conflits de copie/deplacement — Remplacer / Ignorer / Garder les deux",
+      "Restauration de session au demarrage (colonnes + onglets)",
+      "Terminal charge a la demande — chunk xterm hors du demarrage (PLAN-lazy-terminal)",
+      "Decoupage Sidebar (664->318 l) et GitPanel (588->435 l) (PLAN-split)",
+      "Pipeline de release CI complet (PLAN-release-pipeline)"
+    ]
+  },
+  {
     "version": "0.1.14",
     "notes": [
       "Bouton « + » d'onglet colle au dernier onglet (facon Chrome)",
