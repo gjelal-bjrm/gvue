@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowLeft,
   ArrowRight,
@@ -23,7 +23,8 @@ import {
   AppWindow,
   Loader2,
   LayoutGrid,
-  List
+  List,
+  HelpCircle
 } from 'lucide-react'
 import { useNavStore, activePane } from '../state/useNavStore'
 import { useUiStore } from '../state/useUiStore'
@@ -57,7 +58,9 @@ export default function Toolbar(): JSX.Element {
   const toggleGitIgnored = useNavStore((s) => s.toggleGitIgnored)
   const viewMode = useNavStore((s) => s.viewMode)
   const toggleViewMode = useNavStore((s) => s.toggleViewMode)
-  const paneCount = useNavStore((s) => s.panes.length)
+  const panes = useNavStore((s) => s.panes)
+  // Nombre de COLONNES (le max de 3 porte sur les colonnes, pas les onglets).
+  const groupCount = useMemo(() => new Set(panes.map((p) => p.group)).size, [panes])
   const addPane = useNavStore((s) => s.addPane)
   const appearanceOpen = useUiStore((s) => s.appearanceOpen)
   const toggleAppearance = useUiStore((s) => s.toggleAppearance)
@@ -150,6 +153,7 @@ export default function Toolbar(): JSX.Element {
         <NavBtn onClick={refresh} title="Rafraîchir">
           <RotateCw size={15} />
         </NavBtn>
+        <Sep />
         <NavBtn
           onClick={toggleHidden}
           title={showHidden ? 'Masquer les éléments cachés' : 'Afficher les éléments cachés'}
@@ -251,18 +255,23 @@ export default function Toolbar(): JSX.Element {
       <SearchBox />
 
       <WorkspaceMenu />
+      <Sep />
       <NavBtn onClick={() => void window.api.window.new()} title="Nouvelle fenêtre (Ctrl+Maj+N)">
         <AppWindow size={17} />
       </NavBtn>
       <NavBtn
         onClick={() => void addPane()}
-        disabled={paneCount >= 3}
-        title="Diviser — nouveau volet"
+        disabled={groupCount >= 3}
+        title="Diviser — nouvelle colonne"
       >
         <Columns2 size={17} />
       </NavBtn>
       <NavBtn onClick={togglePreview} title="Panneau d'aperçu" active={previewOpen}>
         <PanelRight size={17} />
+      </NavBtn>
+      <Sep />
+      <NavBtn onClick={() => useUiStore.getState().setShortcuts(true)} title="Raccourcis clavier (F1)">
+        <HelpCircle size={16} />
       </NavBtn>
       <NavBtn
         onClick={toggleAppearance}
@@ -273,6 +282,11 @@ export default function Toolbar(): JSX.Element {
       </NavBtn>
     </div>
   )
+}
+
+/** Séparateur fin entre groupes de boutons de la barre d'outils. */
+function Sep(): JSX.Element {
+  return <div className="mx-0.5 h-5 w-px shrink-0 bg-border" />
 }
 
 /**

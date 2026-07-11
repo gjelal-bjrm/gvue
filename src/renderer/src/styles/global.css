@@ -28,13 +28,27 @@ body {
   overflow: hidden;
 }
 
+/*
+ * Focus clavier visible (accessibilité) : anneau accent uniquement à la
+ * navigation clavier (:focus-visible), jamais au clic souris. xterm exclu
+ * (son textarea de saisie est hors écran).
+ */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: var(--radius);
+}
+.xterm :focus-visible {
+  outline: none;
+}
+
 /* Barre de défilement discrète, accordée au thème. */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--border);
+  background: var(--border-strong);
   border-radius: 6px;
 }
 ::-webkit-scrollbar-thumb:hover {

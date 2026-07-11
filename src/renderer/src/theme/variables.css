@@ -44,9 +44,11 @@
   --bg: #ffffff;
   --bg-secondary: #f5f5f7;
   --bg-tertiary: #ececef;
-  --bg-hover: rgba(0, 0, 0, 0.04);
-  --border: rgba(0, 0, 0, 0.09);
-  --border-strong: rgba(0, 0, 0, 0.14);
+  /* Plus marqués qu'en sombre : sur fond blanc, 4 % de noir (hover) et 9 %
+     (bordures) étaient quasi invisibles, surtout sur bg-secondary. */
+  --bg-hover: rgba(0, 0, 0, 0.06);
+  --border: rgba(0, 0, 0, 0.12);
+  --border-strong: rgba(0, 0, 0, 0.2);
   --fg: #1c1c22;
   --fg-secondary: #4a4a55;
   --fg-muted: #6f6f7c;
