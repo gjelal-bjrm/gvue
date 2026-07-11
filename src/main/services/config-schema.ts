@@ -41,7 +41,11 @@ export const DEFAULT_CONFIG: AppConfig = {
   treeExpandToCurrent: true,
   defaultShell: '',
   lastSeenVersion: '',
-  hideGitIgnored: true
+  hideGitIgnored: true,
+  restoreSession: true,
+  lastSession: { panes: [], activeIndex: 0 },
+  viewMode: 'list',
+  customCommands: []
 }
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {

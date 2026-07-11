@@ -168,7 +168,21 @@ export const useNavStore = create<NavState>((set, get) => {
       const locations = await window.api.fs.locations()
       const hideGitIgnored = await window.api.config.get('hideGitIgnored').catch(() => true)
       set({ locations, hideGitIgnored })
-      // Charge le home en arrière-plan puis démarre sur la page Accès rapide.
+
+      // Restauration de session : rouvre colonnes + onglets de la dernière
+      // fois (option « Rouvrir les dossiers au démarrage », activée par défaut).
+      try {
+        const restore = await window.api.config.get('restoreSession')
+        const session = await window.api.config.get('lastSession')
+        if (restore && session && Array.isArray(session.panes) && session.panes.length > 0) {
+          await get().applyWorkspace(session.panes, session.activeIndex ?? 0)
+          return
+        }
+      } catch {
+        /* config indisponible : démarrage par défaut */
+      }
+
+      // Défaut : charge le home en arrière-plan puis démarre sur l'Accès rapide.
       await navigatePane(get().activeId, locations.home, false)
       patch(get().activeId, { quickAccess: true })
     },

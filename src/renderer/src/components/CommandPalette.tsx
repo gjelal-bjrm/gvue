@@ -163,6 +163,18 @@ export default function CommandPalette(): JSX.Element | null {
       { id: 'check-update', title: 'Vérifier les mises à jour', icon: <DownloadCloud size={15} />, run: () => useUpdateStore.getState().check() },
       { id: 'whats-new', title: 'Nouveautés…', icon: <Sparkles size={15} />, run: () => ui().setWhatsNew('') },
       { id: 'undo', title: 'Annuler la dernière opération', hint: 'Ctrl+Z', icon: <Undo2 size={15} />, run: () => void undoLastOp() },
+      {
+        id: 'restore-session',
+        title: 'Rouvrir les dossiers au démarrage (activer/désactiver)',
+        icon: <RotateCw size={15} />,
+        run: () =>
+          void window.api.config.get('restoreSession').then((v) => {
+            void window.api.config.set('restoreSession', !v)
+            useUiStore.getState().showToast(
+              !v ? 'La session sera restaurée au prochain démarrage.' : 'Démarrage sur l’Accès rapide rétabli.'
+            )
+          })
+      },
       { id: 'open-log', title: 'Ouvrir le journal de diagnostic', icon: <FileText size={15} />, run: () => void window.api.log.path().then((p) => window.api.fs.reveal(p)) },
       { id: 'new-tab', title: 'Nouvel onglet', hint: 'Ctrl+T', icon: <Plus size={15} />, run: () => void nav().addTab() },
       { id: 'split', title: 'Diviser — nouveau volet', icon: <Columns2 size={15} />, run: () => void nav().addPane() },

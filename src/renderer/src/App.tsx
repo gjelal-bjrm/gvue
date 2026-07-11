@@ -270,6 +270,24 @@ export default function App(): JSX.Element {
     return useUpdateStore.getState().init()
   }, [])
 
+  // Sauvegarde continue de la session (colonnes/onglets/chemins), débattue :
+  // sert à « Rouvrir les dossiers au démarrage ».
+  useEffect(() => {
+    let t: number | null = null
+    const unsub = useNavStore.subscribe((s) => {
+      if (t) window.clearTimeout(t)
+      t = window.setTimeout(() => {
+        const ps = s.panes.map((p) => ({ path: p.path, quickAccess: p.quickAccess, group: p.group }))
+        const activeIndex = Math.max(0, s.panes.findIndex((p) => p.id === s.activeId))
+        void window.api.config.set('lastSession', { panes: ps, activeIndex })
+      }, 800)
+    })
+    return () => {
+      unsub()
+      if (t) window.clearTimeout(t)
+    }
+  }, [])
+
   // Pop-up « Nouveautés » : une seule fois après une mise à jour (version changée).
   useEffect(() => {
     void (async () => {

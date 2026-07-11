@@ -267,6 +267,24 @@ export interface AppConfig {
   /** Dernière version dont les « nouveautés » ont été vues (pour la pop-up de MAJ). */
   lastSeenVersion: string
   hideGitIgnored: boolean
+  /** Rouvrir les dossiers de la dernière session au démarrage. */
+  restoreSession: boolean
+  /** Dernière disposition (colonnes/onglets), sauvegardée en continu. */
+  lastSession: { panes: WorkspacePane[]; activeIndex: number }
+  /** Mode d'affichage de la liste de fichiers. */
+  viewMode: 'list' | 'grid'
+  /** Commandes personnalisées du menu contextuel. */
+  customCommands: CustomCommand[]
+}
+
+/** Commande personnalisée (menu contextuel), exécutée dans le terminal intégré. */
+export interface CustomCommand {
+  id: string
+  name: string
+  /** Jetons : {path} {dir} {name} {stem} {ext}. */
+  command: string
+  /** Type d'élément sur lequel la proposer. */
+  target: 'file' | 'directory' | 'both'
 }
 
 /** État du système de mise à jour automatique (electron-updater). */
