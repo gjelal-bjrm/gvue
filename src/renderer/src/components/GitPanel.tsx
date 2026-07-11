@@ -3,17 +3,10 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import {
   GitBranch,
   GitCommit,
-  ArrowUp,
-  ArrowDown,
-  RotateCw,
-  DownloadCloud,
   Plus,
   Minus,
   Undo2,
-  X,
-  ChevronDown,
   Loader2,
-  Check,
   Ban,
   Copy,
   ExternalLink,
@@ -28,14 +21,15 @@ import { pathKey } from '../lib/format'
 import ContextMenu, { type MenuEntry } from './ContextMenu'
 import type { GitActionResult, GitFileChange } from '@shared/types'
 import DiffView from './git/DiffView'
-import { badge } from './git/badge'
 import GitHistory from './git/GitHistory'
+import BranchBar from './git/BranchBar'
+import CommitBox from './git/CommitBox'
+import ChangedFileRow from './git/ChangedFileRow'
 
 /**
- * Vue Git détaillée (façon GitHub Desktop), affichée à la place des volets :
- * barre de branche (changer / créer / fetch / pull / push), liste des fichiers
- * (indexés / modifications) avec statut coloré et indexation par fichier, diff
- * coloré du fichier sélectionné, et zone de commit.
+ * Vue Git détaillée (façon GitHub Desktop), affichée à la place des volets —
+ * orchestration seule : la barre de branche, la zone de commit et les lignes de
+ * fichiers vivent dans ./git/. Onglets Modifications / Historique.
  */
 export default function GitPanel(): JSX.Element {
   const repo = useGitStore((s) => s.repo)
@@ -49,11 +43,8 @@ export default function GitPanel(): JSX.Element {
   const [sel, setSel] = useState<Set<string>>(new Set())
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
   const [diff, setDiff] = useState('')
-  const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState<GitActionResult | null>(null)
-  const [branchMenu, setBranchMenu] = useState(false)
-  const [newBranch, setNewBranch] = useState('')
   const [tab, setTab] = useState<'changes' | 'history'>('changes')
 
   const root = repo?.root ?? path
@@ -110,6 +101,17 @@ export default function GitPanel(): JSX.Element {
       onOk?.()
       await refreshAll()
     }
+  }
+
+  // Commit des fichiers indexés ; renvoie vrai si accepté (CommitBox vide alors son champ).
+  const commit = async (message: string): Promise<boolean> => {
+    setBusy(true)
+    setResult(null)
+    const r = await window.api.git.commitStaged(root, message)
+    setResult(r)
+    setBusy(false)
+    if (r.ok) await refreshAll()
+    return r.ok
   }
 
   const relOf = (p: string): string =>
@@ -285,150 +287,20 @@ export default function GitPanel(): JSX.Element {
     )
   }
 
-  const fileRow = (f: GitFileChange): JSX.Element => {
-    const b = badge(f.category)
-    const rel = relOf(f.path)
-    const isSel = sel.has(pathKey(f.path))
-    const isLead = selPath != null && pathKey(f.path) === pathKey(selPath)
-    return (
-      <div
-        key={f.path}
-        onClick={(e) => onRowClick(e, f)}
-        onContextMenu={(e) => onRowContext(e, f)}
-        className={`group flex cursor-pointer items-center gap-1.5 rounded-app px-1.5 py-1 ${
-          isSel ? 'bg-accent-soft' : 'hover:bg-bg-hover'
-        } ${isLead ? 'ring-1 ring-inset ring-accent' : ''}`}
-      >
-        <input
-          type="checkbox"
-          checked={f.staged}
-          onClick={(e) => e.stopPropagation()}
-          onChange={() =>
-            void act(() =>
-              f.staged ? window.api.git.unstage(root, f.path) : window.api.git.stage(root, f.path)
-            )
-          }
-          title={f.staged ? 'Sera commité (cliquer pour désindexer)' : 'Cocher pour indexer'}
-          className="shrink-0 accent-[var(--accent)]"
-        />
-        <span className={`w-3 shrink-0 text-center font-mono text-[11px] font-bold ${b.cls}`}>
-          {b.letter}
-        </span>
-        <span className={`min-w-0 flex-1 truncate text-[12px] ${isSel ? 'text-accent' : 'text-fg-secondary'}`} title={rel}>
-          {rel}
-        </span>
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            discardTargets([f])
-          }}
-          title="Annuler les modifications (destructif)"
-          className="grid h-5 w-5 shrink-0 place-items-center rounded text-fg-muted opacity-0 hover:bg-bg-hover hover:text-danger-fg group-hover:opacity-100"
-        >
-          <Undo2 size={12} />
-        </button>
-      </div>
-    )
-  }
-
   return (
     <div className="flex h-full flex-col bg-bg">
-      {/* Barre de branche */}
-      <div className="flex h-10 shrink-0 items-center gap-1 border-b border-border px-2">
-        <div className="relative">
-          <button
-            onClick={() => setBranchMenu((o) => !o)}
-            className="flex items-center gap-1.5 rounded-app border border-border px-2 py-1 text-[12px] text-fg hover:bg-bg-hover"
-            title="Changer de branche"
-          >
-            <GitBranch size={14} className="text-accent" />
-            <span className="max-w-[180px] truncate">{repo.branch}</span>
-            <ChevronDown size={12} className="text-fg-muted" />
-          </button>
-          {branchMenu && (
-            <>
-              <div className="fixed inset-0 z-30" onClick={() => setBranchMenu(false)} />
-              <div className="absolute left-0 top-full z-40 mt-1 w-64 rounded-app border border-border bg-bg-secondary p-1 shadow-lg">
-                <div className="max-h-60 overflow-auto">
-                  {branches.all.map((b) => (
-                    <button
-                      key={b}
-                      onClick={() => {
-                        setBranchMenu(false)
-                        if (b !== branches.current) void act(() => window.api.git.checkout(root, b))
-                      }}
-                      className={`flex w-full items-center gap-1.5 rounded-app px-2 py-1.5 text-left text-[12px] hover:bg-bg-hover ${
-                        b === branches.current ? 'text-accent' : 'text-fg-secondary'
-                      }`}
-                    >
-                      <GitBranch size={12} />
-                      <span className="min-w-0 flex-1 truncate">{b}</span>
-                      {b === branches.current && <Check size={12} />}
-                    </button>
-                  ))}
-                </div>
-                <div className="mt-1 flex gap-1 border-t border-border pt-1">
-                  <input
-                    value={newBranch}
-                    onChange={(e) => setNewBranch(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && newBranch.trim()) {
-                        setBranchMenu(false)
-                        const name = newBranch.trim()
-                        setNewBranch('')
-                        void act(() => window.api.git.createBranch(root, name))
-                      }
-                    }}
-                    placeholder="Nouvelle branche…"
-                    spellCheck={false}
-                    className="min-w-0 flex-1 rounded-app border border-border bg-bg px-2 py-1 text-[12px] text-fg outline-none placeholder:text-fg-muted focus:border-accent"
-                  />
-                  <button
-                    onClick={() => {
-                      const name = newBranch.trim()
-                      if (!name) return
-                      setBranchMenu(false)
-                      setNewBranch('')
-                      void act(() => window.api.git.createBranch(root, name))
-                    }}
-                    title="Créer la branche"
-                    className="grid h-7 w-7 shrink-0 place-items-center rounded-app bg-accent text-white hover:opacity-90"
-                  >
-                    <Plus size={14} />
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-
-        <HeaderBtn onClick={() => void act(() => window.api.git.fetch(root))} disabled={busy} label="Fetch">
-          <DownloadCloud size={14} /> Fetch
-        </HeaderBtn>
-        <HeaderBtn onClick={() => void act(() => window.api.git.pull(root))} disabled={busy} label="Pull">
-          <ArrowDown size={14} /> Pull{repo.behind > 0 ? ` ${repo.behind}` : ''}
-        </HeaderBtn>
-        <HeaderBtn onClick={() => void act(() => window.api.git.push(root))} disabled={busy} label="Push">
-          <ArrowUp size={14} /> Push{repo.ahead > 0 ? ` ${repo.ahead}` : ''}
-        </HeaderBtn>
-
-        <div className="ml-auto flex items-center gap-1">
-          <button
-            onClick={() => void refreshAll()}
-            title="Rafraîchir"
-            className="grid h-7 w-7 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg"
-          >
-            <RotateCw size={14} />
-          </button>
-          <button
-            onClick={() => setGitView(false)}
-            title="Fermer la vue Git"
-            className="grid h-7 w-7 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg"
-          >
-            <X size={15} />
-          </button>
-        </div>
-      </div>
+      <BranchBar
+        repo={repo}
+        branches={branches}
+        busy={busy}
+        onCheckout={(b) => void act(() => window.api.git.checkout(root, b))}
+        onCreateBranch={(name) => void act(() => window.api.git.createBranch(root, name))}
+        onFetch={() => void act(() => window.api.git.fetch(root))}
+        onPull={() => void act(() => window.api.git.pull(root))}
+        onPush={() => void act(() => window.api.git.push(root))}
+        onRefresh={() => void refreshAll()}
+        onClose={() => setGitView(false)}
+      />
 
       {/* Onglets façon GitHub Desktop : Modifications / Historique */}
       <div className="flex shrink-0 items-center border-b border-border px-2">
@@ -490,39 +362,35 @@ export default function GitPanel(): JSX.Element {
               {files.length === 0 ? (
                 <p className="px-1 py-3 text-center text-[12px] text-fg-muted">Aucun changement.</p>
               ) : (
-                order.map(fileRow)
+                order.map((f) => (
+                  <ChangedFileRow
+                    key={f.path}
+                    file={f}
+                    rel={relOf(f.path)}
+                    selected={sel.has(pathKey(f.path))}
+                    lead={selPath != null && pathKey(f.path) === pathKey(selPath)}
+                    onClick={(e) => onRowClick(e, f)}
+                    onContextMenu={(e) => onRowContext(e, f)}
+                    onToggleStaged={() =>
+                      void act(() =>
+                        f.staged
+                          ? window.api.git.unstage(root, f.path)
+                          : window.api.git.stage(root, f.path)
+                      )
+                    }
+                    onDiscard={() => discardTargets([f])}
+                  />
+                ))
               )}
             </div>
 
-            {/* Zone de commit */}
-            <div className="shrink-0 border-t border-border p-2">
-              <textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Message de commit…"
-                spellCheck={false}
-                rows={2}
-                className="mb-1.5 w-full resize-none rounded-app border border-border bg-bg px-2 py-1.5 text-[12px] text-fg outline-none placeholder:text-fg-muted focus:border-accent"
-              />
-              <button
-                onClick={() =>
-                  void act(
-                    () => window.api.git.commitStaged(root, message.trim()),
-                    () => setMessage('')
-                  )
-                }
-                disabled={busy || !message.trim() || staged.length === 0}
-                className="flex w-full items-center justify-center gap-1.5 rounded-app bg-accent px-2 py-1.5 text-[12px] font-medium text-white hover:opacity-90 disabled:opacity-40"
-              >
-                <GitCommit size={14} />
-                Commit{staged.length > 0 ? ` (${staged.length})` : ''} sur {repo.branch}
-              </button>
-              {!busy && result && !result.ok && (
-                <pre className="mt-1.5 max-h-24 overflow-auto whitespace-pre-wrap break-words rounded-app border border-danger-fg bg-danger-bg px-2 py-1 text-[11px] text-danger-fg">
-                  {result.output}
-                </pre>
-              )}
-            </div>
+            <CommitBox
+              branch={repo.branch}
+              stagedCount={staged.length}
+              busy={busy}
+              error={!busy && result && !result.ok ? result.output : null}
+              onCommit={commit}
+            />
           </div>
         </Panel>
 
@@ -543,9 +411,7 @@ export default function GitPanel(): JSX.Element {
             ) : (
               <div className="min-h-0 flex-1 overflow-auto p-2">
                 <div className="mb-1.5 truncate px-1 font-mono text-[11px] text-fg-muted">
-                  {selected.path.startsWith(repo.root + '/')
-                    ? selected.path.slice(repo.root.length + 1)
-                    : selected.path}
+                  {relOf(selected.path)}
                 </div>
                 {diff ? (
                   <DiffView diff={diff} />
@@ -567,22 +433,3 @@ export default function GitPanel(): JSX.Element {
     </div>
   )
 }
-
-function HeaderBtn(props: {
-  onClick: () => void
-  disabled?: boolean
-  label: string
-  children: React.ReactNode
-}): JSX.Element {
-  return (
-    <button
-      onClick={props.onClick}
-      disabled={props.disabled}
-      title={props.label}
-      className="flex items-center gap-1 rounded-app border border-border px-2 py-1 text-[12px] text-fg-secondary hover:bg-bg-hover hover:text-fg disabled:opacity-40"
-    >
-      {props.children}
-    </button>
-  )
-}
-
