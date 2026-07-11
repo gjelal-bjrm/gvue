@@ -37,4 +37,8 @@ export function registerAppsHandlers(): void {
   ipcMain.handle(IPC.appsExtract, async (_e, archivePath: string, destDir?: string) =>
     apps.extract(archivePath, destDir)
   )
+
+  ipcMain.on(IPC.appsOpenAsDialog, (_e, path: string) => apps.openAsDialog(path))
+
+  ipcMain.on(IPC.appsProperties, (_e, path: string) => apps.showProperties(path))
 }

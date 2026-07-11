@@ -48,6 +48,8 @@ export const IPC = {
   appsPickProgram: 'apps:pickProgram',
   appsArchive: 'apps:archive',
   appsExtract: 'apps:extract',
+  appsOpenAsDialog: 'apps:openAsDialog',
+  appsProperties: 'apps:properties',
 
   // Git
   gitStatus: 'git:status',

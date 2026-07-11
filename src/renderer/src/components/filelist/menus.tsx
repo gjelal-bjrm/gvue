@@ -25,6 +25,7 @@ import {
   TerminalSquare,
   PieChart,
   History,
+  Info,
   X
 } from 'lucide-react'
 import type { DirEntry, GitFileChange } from '@shared/types'
@@ -165,6 +166,11 @@ export function buildBackgroundMenu(ctx: MenuCtx): MenuEntry[] {
       label: "Ouvrir dans l'explorateur",
       icon: <ExternalLink size={14} />,
       onClick: () => void window.api.fs.reveal(path)
+    },
+    {
+      label: 'Propriétés du dossier',
+      icon: <Info size={14} />,
+      onClick: () => window.api.apps.properties(path)
     }
   ]
 }
@@ -178,32 +184,34 @@ export function buildItemMenu(entry: DirEntry, ctx: MenuCtx): MenuEntry[] {
   const targets = selectedSet.has(entry.path) && selected.length > 1 ? selected : [entry.path]
   const n = targets.length
 
-  // Intégrations d'applications externes (affichées seulement si installées).
+  // Intégrations d'applications : regroupées en sous-menus pour garder le menu
+  // court (retour utilisateur : liste trop longue, façon shell Windows).
   const appEntries: MenuEntry[] = []
-  if (apps.vscode)
-    appEntries.push({
-      label: 'Ouvrir avec VS Code',
-      icon: <Code2 size={14} />,
-      onClick: () => window.api.apps.openWith('vscode', targets)
-    })
-  if (apps.notepadpp && entry.kind === 'file')
-    appEntries.push({
-      label: 'Éditer avec Notepad++',
-      icon: <PenLine size={14} />,
-      onClick: () => window.api.apps.openWith('notepadpp', targets)
-    })
-  // « Ouvrir avec » : programmes mémorisés pour ce type + sélecteur.
   if (entry.kind === 'file') {
     const ext = extOf(entry.name)
+    const openWith: MenuEntry[] = []
+    if (apps.vscode)
+      openWith.push({
+        label: 'VS Code',
+        icon: <Code2 size={14} />,
+        onClick: () => window.api.apps.openWith('vscode', targets)
+      })
+    if (apps.notepadpp)
+      openWith.push({
+        label: 'Notepad++',
+        icon: <PenLine size={14} />,
+        onClick: () => window.api.apps.openWith('notepadpp', targets)
+      })
     for (const exe of useOpenWithStore.getState().get(ext)) {
-      appEntries.push({
-        label: `Ouvrir avec ${programName(exe)}`,
+      openWith.push({
+        label: programName(exe),
         icon: <AppWindow size={14} />,
         onClick: () => window.api.apps.openPathWith(exe, targets)
       })
     }
-    appEntries.push({
-      label: 'Ouvrir avec…',
+    if (openWith.length) openWith.push({ type: 'sep' })
+    openWith.push({
+      label: 'Choisir un programme…',
       icon: <AppWindow size={14} />,
       onClick: async () => {
         const exe = await window.api.apps.pickProgram()
@@ -212,19 +220,35 @@ export function buildItemMenu(entry: DirEntry, ctx: MenuCtx): MenuEntry[] {
         if (ext) useOpenWithStore.getState().add(ext, exe)
       }
     })
+    openWith.push({
+      // Boîte « Ouvrir avec » du système : toutes les applications du registre.
+      label: 'Applications Windows…',
+      icon: <AppWindow size={14} />,
+      onClick: () => window.api.apps.openAsDialog(entry.path)
+    })
+    appEntries.push({ label: 'Ouvrir avec', icon: <AppWindow size={14} />, children: openWith })
+  } else if (apps.vscode) {
+    appEntries.push({
+      label: 'Ouvrir avec VS Code',
+      icon: <Code2 size={14} />,
+      onClick: () => window.api.apps.openWith('vscode', targets)
+    })
   }
   if (apps.sevenzip) {
-    appEntries.push({
-      label: n > 1 ? `Compresser (${n}) en .zip` : 'Compresser en .zip (7-Zip)',
-      icon: <FileArchive size={14} />,
-      onClick: () => void window.api.apps.archive(targets)
-    })
+    const sz: MenuEntry[] = [
+      {
+        label: n > 1 ? `Compresser (${n}) en .zip` : 'Compresser en .zip',
+        icon: <FileArchive size={14} />,
+        onClick: () => void window.api.apps.archive(targets)
+      }
+    ]
     if (entry.kind === 'file' && ARCHIVE_EXT.has(extOf(entry.name)))
-      appEntries.push({
-        label: 'Extraire (7-Zip)',
+      sz.push({
+        label: 'Extraire ici',
         icon: <FileDown size={14} />,
         onClick: () => void window.api.apps.extract(entry.path)
       })
+    appEntries.push({ label: '7-Zip', icon: <FileArchive size={14} />, children: sz })
   }
 
   const entries: MenuEntry[] = [
@@ -364,6 +388,11 @@ export function buildItemMenu(entry: DirEntry, ctx: MenuCtx): MenuEntry[] {
     icon: <Trash2 size={14} />,
     danger: true,
     onClick: () => void ctx.trashPaths(targets)
+  })
+  entries.push({
+    label: 'Propriétés',
+    icon: <Info size={14} />,
+    onClick: () => window.api.apps.properties(entry.path)
   })
   return entries
 }

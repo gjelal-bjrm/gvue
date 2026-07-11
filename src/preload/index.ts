@@ -133,7 +133,9 @@ const api = {
     archive: (paths: string[], destDir?: string): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke(IPC.appsArchive, paths, destDir),
     extract: (archivePath: string, destDir?: string): Promise<{ ok: boolean; error?: string }> =>
-      ipcRenderer.invoke(IPC.appsExtract, archivePath, destDir)
+      ipcRenderer.invoke(IPC.appsExtract, archivePath, destDir),
+    openAsDialog: (path: string): void => ipcRenderer.send(IPC.appsOpenAsDialog, path),
+    properties: (path: string): void => ipcRenderer.send(IPC.appsProperties, path)
   },
   git: {
     status: (dir: string): Promise<GitStatus> => ipcRenderer.invoke(IPC.gitStatus, dir),

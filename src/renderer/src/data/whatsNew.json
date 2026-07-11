@@ -1,5 +1,17 @@
 [
   {
+    "version": "0.1.14",
+    "notes": [
+      "Bouton « + » d'onglet colle au dernier onglet (facon Chrome)",
+      "Recherche dans le terminal (Ctrl+F, @xterm/addon-search)",
+      "Terminal plein espace (double-clic sur sa barre) + poignees elargies",
+      "Onglets de navigation par volet (Ctrl+T / Ctrl+W, facon explorateur)",
+      "Comparaison de deux volets (palette -> « Comparer les volets »)",
+      "Historique Git d'un fichier (clic droit -> « Historique Git »)",
+      "5 plans d'implementation classes par levier (PLAN-*.md)"
+    ]
+  },
+  {
     "version": "0.1.13",
     "notes": [
       "Menus contextuels de dossier (sidebar/arbre) + creation en lot accessible",

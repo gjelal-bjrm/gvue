@@ -6,7 +6,8 @@ import {
   FolderPlus,
   PieChart,
   Star,
-  StarOff
+  StarOff,
+  Info
 } from 'lucide-react'
 import type { MenuEntry } from '../components/ContextMenu'
 import { useNavStore } from '../state/useNavStore'
@@ -56,6 +57,11 @@ export function buildFolderMenu(dir: string): MenuEntry[] {
       label: isFav ? 'Retirer des favoris' : 'Ajouter aux favoris',
       icon: isFav ? <StarOff size={14} /> : <Star size={14} />,
       onClick: () => fav.toggle(dir)
+    },
+    {
+      label: 'Propriétés',
+      icon: <Info size={14} />,
+      onClick: () => window.api.apps.properties(dir)
     }
   ]
 }

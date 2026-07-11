@@ -57,6 +57,41 @@ export function openPathWith(exe: string, paths: string[]): void {
   spawn(safeExe, safe, { detached: true, stdio: 'ignore' }).unref()
 }
 
+/**
+ * Boîte de dialogue Windows « Ouvrir avec » : propose toutes les applications
+ * enregistrées dans le registre pour ce type de fichier (comme l'explorateur).
+ */
+export function openAsDialog(input: string): void {
+  if (process.platform !== 'win32') return
+  const safe = assertAbsolute(input)
+  spawn('rundll32.exe', ['shell32.dll,OpenAs_RunDLL', safe], {
+    detached: true,
+    stdio: 'ignore'
+  }).unref()
+}
+
+/**
+ * Boîte « Propriétés » de l'explorateur Windows (taille, sécurité, versions…),
+ * via le verbe shell COM. Contrainte Windows : la boîte appartient au processus
+ * qui l'invoque → un PowerShell caché reste vivant en arrière-plan (30 min max)
+ * le temps que l'utilisateur la consulte, puis s'éteint seul.
+ */
+export function showProperties(input: string): void {
+  if (process.platform !== 'win32') return
+  const safe = assertAbsolute(input)
+  const esc = safe.replace(/'/g, "''")
+  const script =
+    `$p='${esc}'; $sh=New-Object -ComObject Shell.Application; ` +
+    `$parent=Split-Path $p; $leaf=Split-Path $p -Leaf; ` +
+    `$item = if ($parent) { $sh.NameSpace($parent).ParseName($leaf) } else { $sh.NameSpace($p).Self }; ` +
+    `if ($item) { $item.InvokeVerb('Properties'); Start-Sleep -Seconds 1800 }`
+  spawn('powershell.exe', ['-NoProfile', '-WindowStyle', 'Hidden', '-Command', script], {
+    detached: true,
+    stdio: 'ignore',
+    windowsHide: true
+  }).unref()
+}
+
 /** Exécutable 7-Zip à utiliser : interface graphique si dispo, sinon CLI. */
 function sevenZip(): string | null {
   const apps = detect()
