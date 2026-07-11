@@ -72,20 +72,26 @@ export function openAsDialog(input: string): void {
 
 /**
  * Boîte « Propriétés » de l'explorateur Windows (taille, sécurité, versions…),
- * via le verbe shell COM. Contrainte Windows : la boîte appartient au processus
- * qui l'invoque → un PowerShell caché reste vivant en arrière-plan (30 min max)
- * le temps que l'utilisateur la consulte, puis s'éteint seul.
+ * via l'API canonique SHObjectProperties — PAS via le verbe COM `Properties`,
+ * dont le nom est LOCALISÉ (sur un Windows francophone, « Propri&étés ») et qui
+ * échouait donc en silence. Contrainte Windows : la boîte appartient au
+ * processus qui l'invoque → un PowerShell caché reste vivant en arrière-plan
+ * (30 min max) le temps de la consulter, puis s'éteint seul.
  */
 export function showProperties(input: string): void {
   if (process.platform !== 'win32') return
   const safe = assertAbsolute(input)
   const esc = safe.replace(/'/g, "''")
-  const script =
-    `$p='${esc}'; $sh=New-Object -ComObject Shell.Application; ` +
-    `$parent=Split-Path $p; $leaf=Split-Path $p -Leaf; ` +
-    `$item = if ($parent) { $sh.NameSpace($parent).ParseName($leaf) } else { $sh.NameSpace($p).Self }; ` +
-    `if ($item) { $item.InvokeVerb('Properties'); Start-Sleep -Seconds 1800 }`
-  spawn('powershell.exe', ['-NoProfile', '-WindowStyle', 'Hidden', '-Command', script], {
+  const script = [
+    `$sig = '[DllImport("shell32.dll", CharSet = CharSet.Unicode)] public static extern bool SHObjectProperties(IntPtr hwnd, uint objectType, string objectName, string propertyPage);'`,
+    `Add-Type -Namespace GVue -Name Native -MemberDefinition $sig`,
+    // 2 = SHOP_FILEPATH (fichiers, dossiers et lecteurs).
+    `[GVue.Native]::SHObjectProperties([IntPtr]::Zero, 2, '${esc}', $null) | Out-Null`,
+    `Start-Sleep -Seconds 1800`
+  ].join('; ')
+  // -EncodedCommand : aucun souci d'échappement (guillemets du C# inline).
+  const encoded = Buffer.from(script, 'utf16le').toString('base64')
+  spawn('powershell.exe', ['-NoProfile', '-WindowStyle', 'Hidden', '-EncodedCommand', encoded], {
     detached: true,
     stdio: 'ignore',
     windowsHide: true
