@@ -36,6 +36,7 @@ import FileHistory from './components/git/FileHistory'
 import ComparePanes from './components/ComparePanes'
 import ConflictDialog from './components/ConflictDialog'
 import CustomCommandsDialog from './components/CustomCommandsDialog'
+import ArchiveViewer from './components/ArchiveViewer'
 import { useCustomCommandsStore } from './state/useCustomCommandsStore'
 import PaneTabs from './components/PaneTabs'
 import { pathKey, baseName } from './lib/format'
@@ -345,6 +346,7 @@ export default function App(): JSX.Element {
       <ComparePanes />
       <ConflictDialog />
       <CustomCommandsDialog />
+      <ArchiveViewer />
 
       <div className="min-h-0 flex-1">
         {terminalOpen && terminalMax ? (

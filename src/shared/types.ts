@@ -66,6 +66,15 @@ export interface FileOpResult {
   cancelled?: boolean
 }
 
+/** Entrée d'une archive (zip, 7z…) listée sans extraction. */
+export interface ArchiveEntry {
+  /** Chemin dans l'archive (séparateurs « / »). */
+  path: string
+  /** Taille décompressée (octets). */
+  size: number
+  dir: boolean
+}
+
 /** Résolution d'un conflit de copie/déplacement (appliquée à tout le lot). */
 export type ConflictMode = 'rename' | 'overwrite' | 'skip'
 

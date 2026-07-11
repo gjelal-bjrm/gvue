@@ -305,6 +305,15 @@ export function buildItemMenu(entry: DirEntry, ctx: MenuCtx): MenuEntry[] {
           } as MenuEntry
         ]
       : []),
+    ...(entry.kind === 'file' && ARCHIVE_EXT.has(extOf(entry.name))
+      ? [
+          {
+            label: "Parcourir l'archive",
+            icon: <FileArchive size={14} />,
+            onClick: () => useUiStore.getState().setArchive(entry.path)
+          } as MenuEntry
+        ]
+      : []),
     {
       label: 'Créer un raccourci',
       icon: <Link2 size={14} />,

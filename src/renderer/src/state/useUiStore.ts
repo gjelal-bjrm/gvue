@@ -36,6 +36,9 @@ interface UiState {
   /** Gestionnaire des commandes personnalisées ouvert ? */
   customCmdOpen: boolean
   setCustomCmd: (v: boolean) => void
+  /** Archive dont on parcourt le contenu (null = fermé). */
+  archivePath: string | null
+  setArchive: (p: string | null) => void
   /** Créateur de dossiers en lot ouvert ? */
   folderCreatorOpen: boolean
   /** Dossier cible du créateur (null = volet actif). */
@@ -100,6 +103,8 @@ export const useUiStore = create<UiState>((set) => ({
   setCompare: (v) => set({ compareOpen: v }),
   customCmdOpen: false,
   setCustomCmd: (v) => set({ customCmdOpen: v }),
+  archivePath: null,
+  setArchive: (p) => set({ archivePath: p }),
   folderCreatorOpen: false,
   folderCreatorBase: null,
   whatsNewSince: null,

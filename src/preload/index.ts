@@ -36,7 +36,8 @@ import type {
   CopyProgress,
   NativeMenuItem,
   ConflictMode,
-  ConflictInfo
+  ConflictInfo,
+  ArchiveEntry
 } from '@shared/types'
 
 /**
@@ -141,6 +142,12 @@ const api = {
       ipcRenderer.invoke(IPC.appsExtract, archivePath, destDir),
     openAsDialog: (path: string): void => ipcRenderer.send(IPC.appsOpenAsDialog, path),
     properties: (path: string): void => ipcRenderer.send(IPC.appsProperties, path)
+  },
+  archive: {
+    list: (path: string): Promise<{ ok: boolean; entries: ArchiveEntry[]; error?: string }> =>
+      ipcRenderer.invoke(IPC.archiveList, path),
+    extract: (path: string, destDir?: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke(IPC.archiveExtract, path, destDir)
   },
   git: {
     status: (dir: string): Promise<GitStatus> => ipcRenderer.invoke(IPC.gitStatus, dir),

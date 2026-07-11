@@ -52,6 +52,10 @@ export const IPC = {
   appsOpenAsDialog: 'apps:openAsDialog',
   appsProperties: 'apps:properties',
 
+  // Archives (lecture sans extraction)
+  archiveList: 'archive:list',
+  archiveExtract: 'archive:extract',
+
   // Git
   gitStatus: 'git:status',
   gitCommit: 'git:commit',

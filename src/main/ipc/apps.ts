@@ -2,6 +2,7 @@ import { ipcMain, dialog, BrowserWindow } from 'electron'
 import { IPC } from '@shared/ipc'
 import type { ExternalAppId } from '@shared/types'
 import * as apps from '../services/apps'
+import * as archive from '../services/archive'
 
 /** Handlers IPC des intégrations d'applications externes. */
 export function registerAppsHandlers(): void {
@@ -41,4 +42,10 @@ export function registerAppsHandlers(): void {
   ipcMain.on(IPC.appsOpenAsDialog, (_e, path: string) => apps.openAsDialog(path))
 
   ipcMain.on(IPC.appsProperties, (_e, path: string) => apps.showProperties(path))
+
+  ipcMain.handle(IPC.archiveList, async (_e, path: string) => archive.listArchive(path))
+
+  ipcMain.handle(IPC.archiveExtract, async (_e, path: string, destDir?: string) =>
+    archive.extractArchive(path, destDir)
+  )
 }
