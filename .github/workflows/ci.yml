@@ -1,0 +1,38 @@
+name: CI
+
+# Typecheck + tests + build sur chaque push/PR (les releases ont leur propre
+# workflow release.yml, déclenché par les tags v*).
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Annule les exécutions périmées quand on repousse sur la même branche.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Tests
+        run: npm test
+
+      - name: Build
+        run: npx electron-vite build

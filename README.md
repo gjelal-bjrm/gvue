@@ -1,5 +1,7 @@
 # GVue
 
+![CI](https://github.com/gjelal-bjrm/gvue/actions/workflows/ci.yml/badge.svg)
+
 **Explorateur de fichiers de bureau pensé pour les développeurs.**
 
 Un explorateur aussi familier que celui de Windows, mais qui *comprend* le code et
