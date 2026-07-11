@@ -9,6 +9,7 @@ import { registerSearchHandlers } from './ipc/search'
 import { registerGitHandlers } from './ipc/git'
 import { registerAppsHandlers } from './ipc/apps'
 import { registerLogHandlers } from './ipc/log'
+import { registerMenuHandlers } from './ipc/menu'
 import { registerUpdateHandlers, initAutoUpdate } from './services/updater'
 import { logInfo, logError, getLogPath } from './services/logger'
 import { killAll } from './services/pty-manager'
@@ -49,6 +50,7 @@ function registerIpc(): void {
   registerAppsHandlers()
   registerUpdateHandlers()
   registerLogHandlers()
+  registerMenuHandlers()
 }
 
 // Verrou d'instance unique : un seul *processus* GVue (les fenêtres multiples

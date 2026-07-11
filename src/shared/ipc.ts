@@ -108,6 +108,9 @@ export const IPC = {
   updateGet: 'update:get',
   updateStatus: 'update:onStatus',
 
+  // Menu contextuel natif (popup OS : peut déborder de la fenêtre)
+  menuPopup: 'menu:popup',
+
   // Journalisation / diagnostic
   logReport: 'log:report',
   logPath: 'log:path'

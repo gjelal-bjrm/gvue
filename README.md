@@ -85,7 +85,9 @@ instances de GVue** et **depuis/vers l'explorateur Windows** (drag de sortie via
 copier. Les **copies volumineuses** (> 20 Mo) affichent une **barre de
 progression annulable**. **Couper / copier / coller** (Ctrl+X/C/V ou menu contextuel). Menu sur la
 **zone vide** (nouveau fichier/dossier, coller, actualiser). Jamais d'écrasement :
-collision → « nom (copie) ». Suppression vers la corbeille (Suppr). **Annuler la
+collision → « nom (copie) ». Les **menus contextuels sont natifs** (popup de
+l'OS) : jamais coupés, ils peuvent **déborder de la fenêtre** comme dans
+l'explorateur Windows. Suppression vers la corbeille (Suppr). **Annuler la
 dernière opération** (**Ctrl+Z** ou palette) : renommage (simple ou en masse),
 déplacement, copie et création de dossiers/fichiers reviennent en arrière (les
 créations/copies repartent à la corbeille), avec confirmation par message éphémère.

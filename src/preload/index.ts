@@ -33,7 +33,8 @@ import type {
   RendererErrorReport,
   UndoInfo,
   UndoResult,
-  CopyProgress
+  CopyProgress,
+  NativeMenuItem
 } from '@shared/types'
 
 /**
@@ -293,6 +294,11 @@ const api = {
       ipcRenderer.on(IPC.updateStatus, listener)
       return () => ipcRenderer.removeListener(IPC.updateStatus, listener)
     }
+  },
+  menu: {
+    /** Affiche un menu contextuel natif ; résout avec l'id cliqué (ou null). */
+    popup: (items: NativeMenuItem[], x: number, y: number): Promise<string | null> =>
+      ipcRenderer.invoke(IPC.menuPopup, items, x, y)
   },
   log: {
     report: (report: RendererErrorReport): Promise<void> =>

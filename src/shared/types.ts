@@ -3,6 +3,16 @@
 
 export type DirEntryKind = 'file' | 'directory'
 
+/** Entrée sérialisable d'un menu contextuel NATIF (Menu.popup côté main). */
+export interface NativeMenuItem {
+  /** Identifiant renvoyé au renderer quand l'entrée est cliquée. */
+  id?: string
+  label?: string
+  type?: 'normal' | 'separator'
+  enabled?: boolean
+  submenu?: NativeMenuItem[]
+}
+
 /** Rapport d'erreur remonté du renderer vers le journal du processus principal. */
 export interface RendererErrorReport {
   /** Origine (ex. « react », « bootstrap »). */
