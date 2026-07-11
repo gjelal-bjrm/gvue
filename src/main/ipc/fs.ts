@@ -1,7 +1,7 @@
 import { ipcMain, shell, app, nativeImage } from 'electron'
 import { dirname, basename, extname } from 'node:path'
 import { IPC } from '@shared/ipc'
-import type { NavLocations, DirEntry, QuickAccessData } from '@shared/types'
+import type { NavLocations, DirEntry, QuickAccessData, ConflictMode } from '@shared/types'
 import * as filesystem from '../services/filesystem'
 import * as fileops from '../services/fileops'
 import { readPreview } from '../services/preview'
@@ -65,6 +65,40 @@ async function getFileIconUrl(input: string): Promise<string> {
   const url = img && !img.isEmpty() ? img.toDataURL() : ''
   iconCache.set(key, url)
   return url
+}
+
+/**
+ * Applique la résolution de conflits choisie AVANT une copie/déplacement :
+ * « skip » retire du lot les éléments en conflit ; « overwrite » envoie les
+ * cibles existantes à la CORBEILLE (récupérable) pour que l'opération prenne
+ * le nom direct ; « rename » (défaut) garde le comportement « nom (copie) ».
+ */
+async function applyConflictMode(
+  paths: string[],
+  destDir: string,
+  mode?: ConflictMode
+): Promise<string[]> {
+  if (!mode || mode === 'rename') return paths
+  const conflicts = await fileops.listConflicts(paths, destDir)
+  if (conflicts.length === 0) return paths
+  if (mode === 'skip') {
+    const conflicted = new Set(conflicts.map((c) => c.sourcePath))
+    return paths.filter((p) => {
+      try {
+        return !conflicted.has(filesystem.normalize(p))
+      } catch {
+        return true
+      }
+    })
+  }
+  for (const c of conflicts) {
+    try {
+      await shell.trashItem(c.targetPath)
+    } catch {
+      /* cible verrouillée : la copie retombera sur « nom (copie) » */
+    }
+  }
+  return paths
 }
 
 /**
@@ -153,8 +187,14 @@ export function registerFsHandlers(): void {
     return getFileIconUrl(targetPath)
   })
 
-  ipcMain.handle(IPC.fsCopy, async (e, paths: string[], destDir: string) => {
+  ipcMain.handle(IPC.fsConflicts, async (_e, paths: string[], destDir: string) => {
+    return fileops.listConflicts(paths, destDir)
+  })
+
+  ipcMain.handle(IPC.fsCopy, async (e, rawPaths: string[], destDir: string, mode?: ConflictMode) => {
     const wc = e.sender
+    const paths = await applyConflictMode(rawPaths, destDir, mode)
+    if (paths.length === 0) return { ok: 0, errors: [], ops: [] }
     let last = 0
     const res = await fileops.copy(paths, destDir, (p) => {
       // Throttle ~12 fps pour ne pas inonder l'IPC sur les gros transferts.
@@ -175,7 +215,9 @@ export function registerFsHandlers(): void {
 
   ipcMain.on(IPC.fsCancelCopy, () => fileops.requestCancelCopy())
 
-  ipcMain.handle(IPC.fsMove, async (_e, paths: string[], destDir: string) => {
+  ipcMain.handle(IPC.fsMove, async (_e, rawPaths: string[], destDir: string, mode?: ConflictMode) => {
+    const paths = await applyConflictMode(rawPaths, destDir, mode)
+    if (paths.length === 0) return { ok: 0, errors: [], ops: [] }
     const res = await fileops.move(paths, destDir)
     pushUndo({ kind: 'move', label: `Déplacement de ${res.ok} élément(s)`, pairs: res.ops ?? [] })
     return res

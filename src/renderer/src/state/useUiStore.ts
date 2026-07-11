@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { CopyProgress } from '@shared/types'
+import type { CopyProgress, ConflictInfo, ConflictMode } from '@shared/types'
 
 /** Presse-papiers de fichiers interne (entre volets d'une même fenêtre). */
 export interface FileClipboard {
@@ -57,6 +57,9 @@ interface UiState {
   /** Progression de la copie en cours (null = aucune). */
   copyProgress: CopyProgress | null
   setCopyProgress: (p: CopyProgress | null) => void
+  /** Demande de résolution de conflits en attente (dialogue), ou null. */
+  conflictReq: { conflicts: ConflictInfo[]; resolve: (m: ConflictMode | null) => void } | null
+  setConflictReq: (r: UiState['conflictReq']) => void
   toggleTerminal: () => void
   toggleTerminalSplit: () => void
   setTerminalSplit: (v: boolean) => void
@@ -106,6 +109,8 @@ export const useUiStore = create<UiState>((set) => ({
   clearToast: () => set({ toast: null }),
   copyProgress: null,
   setCopyProgress: (p) => set({ copyProgress: p }),
+  conflictReq: null,
+  setConflictReq: (r) => set({ conflictReq: r }),
   toggleTerminal: () =>
     set((s) => ({ terminalOpen: !s.terminalOpen, terminalMax: s.terminalOpen ? false : s.terminalMax })),
   toggleTerminalSplit: () => set((s) => ({ terminalSplit: !s.terminalSplit })),

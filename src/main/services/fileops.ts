@@ -115,6 +115,42 @@ export async function createFile(dirInput: string, base: string): Promise<Create
   }
 }
 
+/**
+ * Conflits d'une copie/déplacement : éléments dont la cible directe
+ * (`destDir/basename`) existe déjà. Le déplacement vers son propre dossier
+ * (cible = source) n'est pas un conflit (no-op géré par `move`).
+ */
+export async function listConflicts(
+  paths: string[],
+  destDirInput: string
+): Promise<import('@shared/types').ConflictInfo[]> {
+  const destDir = assertAbsolute(destDirInput)
+  const out: import('@shared/types').ConflictInfo[] = []
+  for (const raw of paths) {
+    let src: string
+    try {
+      src = assertAbsolute(raw)
+    } catch {
+      continue
+    }
+    const target = path.join(destDir, path.basename(src))
+    if (normalize(target) === src) continue
+    try {
+      const [ts, ss] = await Promise.all([fs.stat(target), fs.stat(src)])
+      out.push({
+        name: path.basename(src),
+        sourcePath: src,
+        targetPath: target,
+        source: { size: ss.isDirectory() ? 0 : ss.size, modifiedMs: ss.mtimeMs, dir: ss.isDirectory() },
+        target: { size: ts.isDirectory() ? 0 : ts.size, modifiedMs: ts.mtimeMs, dir: ts.isDirectory() }
+      })
+    } catch {
+      /* cible absente (pas de conflit) ou source illisible */
+    }
+  }
+  return out
+}
+
 /** Vrai si `child` est égal à `parent` ou situé sous lui. */
 function isInside(child: string, parent: string): boolean {
   const rel = path.relative(parent, child)

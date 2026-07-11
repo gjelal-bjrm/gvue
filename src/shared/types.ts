@@ -66,6 +66,18 @@ export interface FileOpResult {
   cancelled?: boolean
 }
 
+/** Résolution d'un conflit de copie/déplacement (appliquée à tout le lot). */
+export type ConflictMode = 'rename' | 'overwrite' | 'skip'
+
+/** Conflit détecté avant une copie/déplacement (cible déjà existante). */
+export interface ConflictInfo {
+  name: string
+  sourcePath: string
+  targetPath: string
+  source: { size: number; modifiedMs: number; dir: boolean }
+  target: { size: number; modifiedMs: number; dir: boolean }
+}
+
 /** Progression d'une copie longue (octets copiés / total + élément courant). */
 export interface CopyProgress {
   done: number

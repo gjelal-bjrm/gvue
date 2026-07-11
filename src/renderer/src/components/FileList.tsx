@@ -8,7 +8,7 @@ import type { DirEntry, GitFileChange } from '@shared/types'
 import { useUiStore } from '../state/useUiStore'
 import { useTerminalStore } from '../state/useTerminalStore'
 import { pathKey } from '../lib/format'
-import { opFeedback } from '../lib/fileActions'
+import { copyOrMove } from '../lib/fileActions'
 import ContextMenu from './ContextMenu'
 import BulkRenameDialog from './BulkRenameDialog'
 import Row from './filelist/Row'
@@ -249,10 +249,8 @@ export default function FileList(props: { paneId: string }): JSX.Element {
     }
     if (paths.length === 0) return
     const move = e.ctrlKey ? false : e.shiftKey ? true : defaultMove
-    const res = await (move ? window.api.fs.move : window.api.fs.copy)(paths, destDir)
-    const msg = opFeedback(res, move ? 'Déplacement' : 'Copie')
-    if (msg) useUiStore.getState().showToast(msg)
-    useNavStore.getState().refreshAll()
+    // Gère les conflits (dialogue), le toast d'erreurs et le rafraîchissement.
+    await copyOrMove(move ? 'move' : 'copy', paths, destDir)
     if (isActive) void useGitStore.getState().refresh(path)
   }
 

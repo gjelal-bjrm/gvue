@@ -34,7 +34,9 @@ import type {
   UndoInfo,
   UndoResult,
   CopyProgress,
-  NativeMenuItem
+  NativeMenuItem,
+  ConflictMode,
+  ConflictInfo
 } from '@shared/types'
 
 /**
@@ -92,10 +94,12 @@ const api = {
     trash: (path: string): Promise<void> => ipcRenderer.invoke(IPC.fsTrash, path),
     preview: (path: string): Promise<PreviewData> => ipcRenderer.invoke(IPC.fsPreview, path),
     icon: (path: string): Promise<string> => ipcRenderer.invoke(IPC.fsIcon, path),
-    copy: (paths: string[], destDir: string): Promise<FileOpResult> =>
-      ipcRenderer.invoke(IPC.fsCopy, paths, destDir),
-    move: (paths: string[], destDir: string): Promise<FileOpResult> =>
-      ipcRenderer.invoke(IPC.fsMove, paths, destDir),
+    copy: (paths: string[], destDir: string, mode?: ConflictMode): Promise<FileOpResult> =>
+      ipcRenderer.invoke(IPC.fsCopy, paths, destDir, mode),
+    move: (paths: string[], destDir: string, mode?: ConflictMode): Promise<FileOpResult> =>
+      ipcRenderer.invoke(IPC.fsMove, paths, destDir, mode),
+    conflicts: (paths: string[], destDir: string): Promise<ConflictInfo[]> =>
+      ipcRenderer.invoke(IPC.fsConflicts, paths, destDir),
     rename: (path: string, newName: string): Promise<CreateResult> =>
       ipcRenderer.invoke(IPC.fsRename, path, newName),
     renameMany: (paths: string[], newNames: string[]): Promise<FileOpResult> =>

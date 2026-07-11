@@ -35,7 +35,7 @@ import { useUiStore, type FileClipboard } from '../../state/useUiStore'
 import { useAppsStore } from '../../state/useAppsStore'
 import { useFavoritesStore } from '../../state/useFavoritesStore'
 import { useOpenWithStore } from '../../state/useOpenWithStore'
-import { clipFiles, pasteInto, opFeedback } from '../../lib/fileActions'
+import { clipFiles, pasteInto, copyOrMove } from '../../lib/fileActions'
 import { pathKey } from '../../lib/format'
 import type { MenuEntry } from '../ContextMenu'
 import { ARCHIVE_EXT, extOf, programName, baseSegment } from './helpers'
@@ -71,12 +71,9 @@ export function buildDropMenu(paths: string[], destDir: string): MenuEntry[] {
   const n = paths.length
   const apps = useAppsStore.getState().apps
   const refreshAll = (): void => useNavStore.getState().refreshAll()
+  // copyOrMove gère conflits (dialogue), toast et rafraîchissement.
   const run = (op: 'copy' | 'move'): void => {
-    void window.api.fs[op](paths, destDir).then((res) => {
-      const msg = opFeedback(res, op === 'move' ? 'Déplacement' : 'Copie')
-      if (msg) useUiStore.getState().showToast(msg)
-      refreshAll()
-    })
+    void copyOrMove(op, paths, destDir)
   }
   const archives = paths.filter((p) => ARCHIVE_EXT.has(extOf(baseSegment(p))))
 

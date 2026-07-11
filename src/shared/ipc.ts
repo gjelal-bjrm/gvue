@@ -25,6 +25,7 @@ export const IPC = {
   fsUndoPeek: 'fs:undoPeek',
   fsCancelCopy: 'fs:cancelCopy',
   fsOnCopyProgress: 'fs:onCopyProgress',
+  fsConflicts: 'fs:conflicts',
   fsCreateFile: 'fs:createFile',
   fsCreateDir: 'fs:createDir',
   fsCreateShortcut: 'fs:createShortcut',

@@ -1,7 +1,7 @@
 import { useUiStore } from '../state/useUiStore'
 import { useNavStore, activePane } from '../state/useNavStore'
 import { useGitStore } from '../state/useGitStore'
-import type { FileOpResult } from '@shared/types'
+import type { FileOpResult, ConflictMode } from '@shared/types'
 
 /**
  * Actions de presse-papiers de fichiers (couper / copier / coller), partagées
@@ -22,17 +22,51 @@ export function opFeedback(res: FileOpResult, verb: string): string | null {
   return `Échec ${verb.toLowerCase()} : ${first}`
 }
 
+/**
+ * Détecte les conflits (cibles existantes) et, s'il y en a, demande à
+ * l'utilisateur via le dialogue de conflits (ConflictDialog). Résout avec le
+ * mode choisi pour tout le lot, ou null si annulé.
+ */
+async function resolveConflictMode(paths: string[], destDir: string): Promise<ConflictMode | null> {
+  const conflicts = await window.api.fs.conflicts(paths, destDir)
+  if (conflicts.length === 0) return 'rename'
+  return new Promise((resolve) => {
+    useUiStore.getState().setConflictReq({
+      conflicts,
+      resolve: (m) => {
+        useUiStore.getState().setConflictReq(null)
+        resolve(m)
+      }
+    })
+  })
+}
+
+/**
+ * Copie/déplace avec gestion des conflits (dialogue Remplacer / Ignorer /
+ * Garder les deux) + toast d'erreurs + rafraîchissement. Renvoie le résultat,
+ * ou null si l'utilisateur a annulé au dialogue.
+ */
+export async function copyOrMove(
+  op: 'copy' | 'move',
+  paths: string[],
+  destDir: string
+): Promise<FileOpResult | null> {
+  const mode = await resolveConflictMode(paths, destDir)
+  if (!mode) return null
+  const res = await (op === 'move' ? window.api.fs.move : window.api.fs.copy)(paths, destDir, mode)
+  const msg = opFeedback(res, op === 'move' ? 'Déplacement' : 'Copie')
+  if (msg) useUiStore.getState().showToast(msg)
+  useNavStore.getState().refreshAll()
+  return res
+}
+
 export async function pasteInto(destDir: string): Promise<void> {
   const clip = useUiStore.getState().clipboard
   if (!clip || !destDir) return
-  const op = clip.mode === 'cut' ? window.api.fs.move : window.api.fs.copy
-  const res = await op(clip.paths, destDir)
+  const res = await copyOrMove(clip.mode === 'cut' ? 'move' : 'copy', clip.paths, destDir)
   // Un couper n'est « consommé » que si au moins un élément a bougé : un échec
-  // total ne doit pas faire perdre le contenu coupé.
-  if (clip.mode === 'cut' && res.ok > 0) useUiStore.getState().setClipboard(null)
-  const msg = opFeedback(res, clip.mode === 'cut' ? 'Déplacement' : 'Copie')
-  if (msg) useUiStore.getState().showToast(msg)
-  useNavStore.getState().refreshAll()
+  // total (ou une annulation) ne doit pas faire perdre le contenu coupé.
+  if (clip.mode === 'cut' && res && res.ok > 0) useUiStore.getState().setClipboard(null)
 }
 
 /**
