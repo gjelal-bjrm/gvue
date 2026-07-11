@@ -37,6 +37,7 @@ import ComparePanes from './components/ComparePanes'
 import ConflictDialog from './components/ConflictDialog'
 import CustomCommandsDialog from './components/CustomCommandsDialog'
 import ArchiveViewer from './components/ArchiveViewer'
+import ShortcutsHelp from './components/ShortcutsHelp'
 import { useCustomCommandsStore } from './state/useCustomCommandsStore'
 import PaneTabs from './components/PaneTabs'
 import { pathKey, baseName } from './lib/format'
@@ -141,6 +142,9 @@ export default function App(): JSX.Element {
       } else if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === 'e' || e.key === 'E')) {
         e.preventDefault()
         useUiStore.getState().toggleFileFinder()
+      } else if (e.key === 'F1') {
+        e.preventDefault()
+        useUiStore.getState().setShortcuts(!useUiStore.getState().shortcutsOpen)
       }
     }
     window.addEventListener('keydown', onKey)
@@ -347,6 +351,7 @@ export default function App(): JSX.Element {
       <ConflictDialog />
       <CustomCommandsDialog />
       <ArchiveViewer />
+      <ShortcutsHelp />
 
       <div className="min-h-0 flex-1">
         {terminalOpen && terminalMax ? (

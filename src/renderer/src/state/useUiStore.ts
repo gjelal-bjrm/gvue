@@ -39,6 +39,9 @@ interface UiState {
   /** Archive dont on parcourt le contenu (null = fermé). */
   archivePath: string | null
   setArchive: (p: string | null) => void
+  /** Antisèche des raccourcis clavier (F1) ouverte ? */
+  shortcutsOpen: boolean
+  setShortcuts: (v: boolean) => void
   /** Créateur de dossiers en lot ouvert ? */
   folderCreatorOpen: boolean
   /** Dossier cible du créateur (null = volet actif). */
@@ -105,6 +108,8 @@ export const useUiStore = create<UiState>((set) => ({
   setCustomCmd: (v) => set({ customCmdOpen: v }),
   archivePath: null,
   setArchive: (p) => set({ archivePath: p }),
+  shortcutsOpen: false,
+  setShortcuts: (v) => set({ shortcutsOpen: v }),
   folderCreatorOpen: false,
   folderCreatorBase: null,
   whatsNewSince: null,

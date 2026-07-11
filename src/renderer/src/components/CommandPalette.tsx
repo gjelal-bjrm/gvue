@@ -30,7 +30,8 @@ import {
   Sparkles,
   FileText,
   Undo2,
-  GitCompareArrows
+  GitCompareArrows,
+  Keyboard
 } from 'lucide-react'
 import { useUiStore } from '../state/useUiStore'
 import { useNavStore, activePane } from '../state/useNavStore'
@@ -176,6 +177,7 @@ export default function CommandPalette(): JSX.Element | null {
             )
           })
       },
+      { id: 'shortcuts', title: 'Raccourcis clavier…', hint: 'F1', icon: <Keyboard size={15} />, run: () => ui().setShortcuts(true) },
       { id: 'open-log', title: 'Ouvrir le journal de diagnostic', icon: <FileText size={15} />, run: () => void window.api.log.path().then((p) => window.api.fs.reveal(p)) },
       { id: 'new-tab', title: 'Nouvel onglet', hint: 'Ctrl+T', icon: <Plus size={15} />, run: () => void nav().addTab() },
       { id: 'view-mode', title: 'Basculer vue liste / grille', icon: <LayoutGrid size={15} />, run: () => nav().toggleViewMode() },
