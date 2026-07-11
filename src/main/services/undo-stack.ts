@@ -46,7 +46,17 @@ async function trashAll(paths: string[]): Promise<void> {
 async function revertPairs(pairs: { from: string; to: string }[]): Promise<void> {
   // Ordre inverse : évite les collisions transitoires entre éléments du lot.
   for (const p of [...pairs].reverse()) {
-    await fs.rename(p.to, p.from)
+    try {
+      await fs.rename(p.to, p.from)
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code === 'EXDEV') {
+        // Déplacement inter-volumes à l'aller → même stratégie au retour.
+        await fs.cp(p.to, p.from, { recursive: true })
+        await fs.rm(p.to, { recursive: true, force: true })
+      } else {
+        throw e
+      }
+    }
   }
 }
 
