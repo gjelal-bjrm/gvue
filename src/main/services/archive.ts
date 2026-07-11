@@ -112,8 +112,9 @@ export async function extractArchive(
   const outDir = await freeName(parent, basename(file, extname(file)))
   const esc = (s: string): string => s.replace(/'/g, "''")
   const script = `Expand-Archive -LiteralPath '${esc(file)}' -DestinationPath '${esc(outDir)}'`
+  // PAS de `detached: true` : PowerShell (app console) spawné détaché meurt
+  // avant d'exécuter son script (même cause que showProperties, vérifié).
   spawn('powershell.exe', ['-NoProfile', '-WindowStyle', 'Hidden', '-Command', script], {
-    detached: true,
     stdio: 'ignore',
     windowsHide: true
   }).unref()

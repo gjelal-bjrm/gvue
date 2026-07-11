@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.1.16",
+    "notes": [
+      "Panneau « Parametres » a sections (Apparence / General / A propos)",
+      "Fix « Proprietes » sans effet (verbe COM localise)",
+      "Terminaux lies a l'onglet de dossier actif (mode optionnel, persiste)"
+    ]
+  },
+  {
     "version": "0.1.15",
     "notes": [
       "Parcourir les archives sans extraction (zip/7z...)",

@@ -90,9 +90,13 @@ export function showProperties(input: string): void {
     `Start-Sleep -Seconds 1800`
   ].join('; ')
   // -EncodedCommand : aucun souci d'échappement (guillemets du C# inline).
+  // PAS de `detached: true` ici : PowerShell est une application CONSOLE — spawné
+  // détaché (DETACHED_PROCESS, donc sans console), son hôte meurt avant
+  // d'exécuter le script (vérifié par bissection). Sans détachement, le script
+  // tourne et la boîte s'affiche ; elle se fermera avec GVue, comme celle de
+  // l'explorateur se ferme avec lui.
   const encoded = Buffer.from(script, 'utf16le').toString('base64')
   spawn('powershell.exe', ['-NoProfile', '-WindowStyle', 'Hidden', '-EncodedCommand', encoded], {
-    detached: true,
     stdio: 'ignore',
     windowsHide: true
   }).unref()
