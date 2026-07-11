@@ -23,6 +23,7 @@ personnalisable. 100 % local, aucun appel réseau sortant hors fonctions explici
 - [Architecture](#architecture)
 - [Structure du projet](#structure-du-projet)
 - [Prérequis & démarrage](#prérequis--démarrage)
+- [Commandes personnalisées](#commandes-personnalisées)
 - [Terminal natif (node-pty)](#terminal-natif-node-pty)
 - [Feuille de route — ce qui est fait / ce qu'il reste](#feuille-de-route)
 - [Sécurité](#sécurité)
@@ -351,6 +352,46 @@ qui collecte les messages de commit **depuis la dernière publication** (repère
 version dans `whatsNew.json`. Tes commits *sont* donc les notes affichées dans la
 pop-up : garde des messages clairs. Tu peux aussi éditer `whatsNew.json` à la main
 avant de publier pour curer le résultat.
+
+---
+
+## Commandes personnalisées
+
+Ajoute tes propres actions au menu contextuel (« **Commandes ▸** »), exécutées
+dans le **terminal intégré**. Gestionnaire : **palette → « Commandes
+personnalisées… »** ou **⚙ Paramètres → Général** (le dialogue contient un
+tutoriel intégré et des exemples cliquables).
+
+**En 3 étapes :**
+
+1. Définis un **nom**, une **commande shell** et sa **cible** (fichiers,
+   dossiers, ou les deux).
+2. Clic droit sur un fichier/dossier → **Commandes ▸** → ta commande.
+3. Elle s'exécute dans le terminal intégré, **dans le dossier de l'élément**
+   (le parent pour un fichier, le dossier lui-même sinon), jetons remplacés.
+
+**Jetons** (exemple avec `C:\Dev\app\src\main.ts`) :
+
+| Jeton | Remplacé par | Exemple |
+|---|---|---|
+| `{path}` | Chemin complet | `C:\Dev\app\src\main.ts` |
+| `{dir}` | Dossier d'exécution | `C:\Dev\app\src` |
+| `{name}` | Nom avec extension | `main.ts` |
+| `{stem}` | Nom sans extension | `main` |
+| `{ext}` | Extension sans point | `ts` |
+
+**Exemples :**
+
+```text
+Ouvrir dans VS Code      code "{path}"                          (fichiers et dossiers)
+Historique du fichier    git log --oneline -10 -- "{name}"      (fichiers)
+npm install ici          npm install                            (dossiers)
+Convertir en MP4         ffmpeg -i "{path}" "{stem}.mp4"        (fichiers)
+```
+
+Conseils : entoure les jetons de **guillemets** (chemins avec espaces) ; les
+commandes `cmd /c …` sont automatiquement routées vers cmd (fiable même si le
+shell par défaut est Git Bash).
 
 ---
 
