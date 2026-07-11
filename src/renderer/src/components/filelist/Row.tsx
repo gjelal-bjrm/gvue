@@ -2,7 +2,7 @@ import type { DirEntry, GitFileChange } from '@shared/types'
 import { formatSize, formatRelativeDate, formatDate } from '../../lib/format'
 import { fileIconSpec } from '../../lib/fileIcon'
 import { useOsIcon } from '../../lib/osIcons'
-import { gitBadge } from './helpers'
+import { gitBadge, extOf } from './helpers'
 import RenameInput from './RenameInput'
 
 /** Une ligne (virtualisée) de la liste de fichiers. */
@@ -97,6 +97,9 @@ export default function Row(props: {
             {badge.letter}
           </span>
         )}
+      </div>
+      <div className="w-14 px-1 text-right text-[11px] uppercase text-fg-muted">
+        {entry.kind === 'directory' ? '' : extOf(entry.name)}
       </div>
       <div className="w-24 px-2 text-right text-[12px] text-fg-muted tabular-nums">
         {formatSize(entry.size, entry.kind)}

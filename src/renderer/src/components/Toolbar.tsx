@@ -21,7 +21,9 @@ import {
   PanelRight,
   Columns2,
   AppWindow,
-  Loader2
+  Loader2,
+  LayoutGrid,
+  List
 } from 'lucide-react'
 import { useNavStore, activePane } from '../state/useNavStore'
 import { useUiStore } from '../state/useUiStore'
@@ -53,6 +55,8 @@ export default function Toolbar(): JSX.Element {
   const toggleHidden = useNavStore((s) => s.toggleHidden)
   const hideGitIgnored = useNavStore((s) => s.hideGitIgnored)
   const toggleGitIgnored = useNavStore((s) => s.toggleGitIgnored)
+  const viewMode = useNavStore((s) => s.viewMode)
+  const toggleViewMode = useNavStore((s) => s.toggleViewMode)
   const paneCount = useNavStore((s) => s.panes.length)
   const addPane = useNavStore((s) => s.addPane)
   const appearanceOpen = useUiStore((s) => s.appearanceOpen)
@@ -163,6 +167,13 @@ export default function Toolbar(): JSX.Element {
           active={!hideGitIgnored}
         >
           {hideGitIgnored ? <FilterX size={16} /> : <Filter size={16} />}
+        </NavBtn>
+        <NavBtn
+          onClick={toggleViewMode}
+          title={viewMode === 'grid' ? 'Vue liste' : 'Vue grille (vignettes)'}
+          active={viewMode === 'grid'}
+        >
+          {viewMode === 'grid' ? <List size={16} /> : <LayoutGrid size={16} />}
         </NavBtn>
       </div>
 

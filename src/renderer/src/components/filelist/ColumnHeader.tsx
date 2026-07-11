@@ -21,6 +21,9 @@ export default function ColumnHeader(props: {
         Nom <Arrow k="name" />
       </button>
       <span className="w-6 shrink-0" />
+      <button className="w-14 px-1 py-2 text-right hover:text-fg-secondary" onClick={() => props.onSort('type')}>
+        Type <Arrow k="type" />
+      </button>
       <button className="w-24 px-2 py-2 text-right hover:text-fg-secondary" onClick={() => props.onSort('size')}>
         Taille <Arrow k="size" />
       </button>

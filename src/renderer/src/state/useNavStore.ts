@@ -2,8 +2,16 @@ import { create } from 'zustand'
 import type { DirEntry, NavLocations, WorkspacePane } from '@shared/types'
 import { useUiStore } from './useUiStore'
 
-export type SortKey = 'name' | 'size' | 'modifiedMs'
+export type SortKey = 'name' | 'size' | 'modifiedMs' | 'type'
 export type SortDir = 'asc' | 'desc'
+export type ViewMode = 'list' | 'grid'
+
+/** Extension (minuscule) servant de « type » pour le tri ; '' pour les dossiers. */
+function typeOf(e: DirEntry): string {
+  if (e.kind === 'directory') return ''
+  const d = e.name.lastIndexOf('.')
+  return d > 0 ? e.name.slice(d + 1).toLowerCase() : ''
+}
 
 /**
  * État de navigation d'un onglet. Les onglets sont regroupés en colonnes
@@ -41,6 +49,9 @@ interface NavState {
   locations: NavLocations | null
   showHidden: boolean
   hideGitIgnored: boolean
+  /** Mode d'affichage (liste détaillée / grille de vignettes), persisté. */
+  viewMode: ViewMode
+  toggleViewMode: () => void
 
   init: () => Promise<void>
 
@@ -114,6 +125,10 @@ function sortEntries(entries: DirEntry[], key: SortKey, dir: SortDir): DirEntry[
     let cmp = 0
     if (key === 'name') cmp = a.name.localeCompare(b.name, undefined, { numeric: true })
     else if (key === 'size') cmp = a.size - b.size
+    else if (key === 'type')
+      cmp =
+        typeOf(a).localeCompare(typeOf(b)) ||
+        a.name.localeCompare(b.name, undefined, { numeric: true })
     else cmp = a.modifiedMs - b.modifiedMs
     return cmp * factor
   })
@@ -163,11 +178,19 @@ export const useNavStore = create<NavState>((set, get) => {
     locations: null,
     showHidden: false,
     hideGitIgnored: true,
+    viewMode: 'list',
+
+    toggleViewMode: () => {
+      const next: ViewMode = get().viewMode === 'list' ? 'grid' : 'list'
+      set({ viewMode: next })
+      void window.api.config.set('viewMode', next)
+    },
 
     init: async () => {
       const locations = await window.api.fs.locations()
       const hideGitIgnored = await window.api.config.get('hideGitIgnored').catch(() => true)
-      set({ locations, hideGitIgnored })
+      const viewMode = await window.api.config.get('viewMode').catch(() => 'list' as const)
+      set({ locations, hideGitIgnored, viewMode: viewMode === 'grid' ? 'grid' : 'list' })
 
       // Restauration de session : rouvre colonnes + onglets de la dernière
       // fois (option « Rouvrir les dossiers au démarrage », activée par défaut).

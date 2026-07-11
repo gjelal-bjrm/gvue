@@ -1,5 +1,4 @@
 import { useEffect, type Dispatch, type MutableRefObject, type SetStateAction } from 'react'
-import type { Virtualizer } from '@tanstack/react-virtual'
 import type { DirEntry } from '@shared/types'
 import { useNavStore } from '../../state/useNavStore'
 
@@ -7,14 +6,18 @@ import { useNavStore } from '../../state/useNavStore'
  * Navigation clavier de la liste (volet actif) : flèches / Home / Fin / PgUp /
  * PgDn déplacent la sélection, Entrée ouvre, Retour arrière remonte, Ctrl+F
  * bascule le filtre, et taper-pour-sélectionner saute au 1er nom correspondant.
- * Extrait du composant pour l'alléger ; comportement identique.
+ * En vue grille (`cols` > 1), Haut/Bas sautent d'une rangée et Gauche/Droite
+ * d'une tuile. Extrait du composant pour l'alléger.
  */
 export function useFileListKeyboard(p: {
   isActive: boolean
   visible: DirEntry[]
   selected: string[]
   renaming: string | null
-  rowVirtualizer: Virtualizer<HTMLDivElement, Element>
+  /** Fait défiler jusqu'à l'index (dépend du mode liste/grille). */
+  scrollToIndex: (index: number) => void
+  /** Tuiles par rangée (1 = vue liste). */
+  cols?: number
   anchorRef: MutableRefObject<number | null>
   typeBuf: MutableRefObject<{ s: string; t: number }>
   setSelected: (paths: string[]) => void
@@ -26,13 +29,14 @@ export function useFileListKeyboard(p: {
     visible,
     selected,
     renaming,
-    rowVirtualizer,
+    scrollToIndex,
     anchorRef,
     typeBuf,
     setSelected,
     setFilterOn,
     onActivate
   } = p
+  const cols = Math.max(1, p.cols ?? 1)
 
   useEffect(() => {
     if (!isActive) return
@@ -58,16 +62,23 @@ export function useFileListKeyboard(p: {
         const i = Math.max(0, Math.min(len - 1, idx))
         setSelected([visible[i].path])
         anchorRef.current = i
-        rowVirtualizer.scrollToIndex(i, { align: 'auto' })
+        scrollToIndex(i)
       }
+      const page = cols > 1 ? cols * 4 : 12
 
       switch (e.key) {
-        case 'ArrowDown': e.preventDefault(); move(cur + 1); break
-        case 'ArrowUp': e.preventDefault(); move(cur - 1); break
+        case 'ArrowDown': e.preventDefault(); move(cur + cols); break
+        case 'ArrowUp': e.preventDefault(); move(cur - cols); break
+        case 'ArrowRight':
+          if (cols > 1) { e.preventDefault(); move(cur + 1) }
+          break
+        case 'ArrowLeft':
+          if (cols > 1) { e.preventDefault(); move(cur - 1) }
+          break
         case 'Home': e.preventDefault(); move(0); break
         case 'End': e.preventDefault(); move(len - 1); break
-        case 'PageDown': e.preventDefault(); move(cur + 12); break
-        case 'PageUp': e.preventDefault(); move(cur - 12); break
+        case 'PageDown': e.preventDefault(); move(cur + page); break
+        case 'PageUp': e.preventDefault(); move(cur - page); break
         case 'Enter': {
           e.preventDefault()
           const en = visible[cur]
@@ -92,5 +103,5 @@ export function useFileListKeyboard(p: {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isActive, visible, selected, renaming, rowVirtualizer])
+  }, [isActive, visible, selected, renaming, scrollToIndex, cols])
 }

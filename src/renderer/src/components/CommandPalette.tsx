@@ -177,6 +177,7 @@ export default function CommandPalette(): JSX.Element | null {
       },
       { id: 'open-log', title: 'Ouvrir le journal de diagnostic', icon: <FileText size={15} />, run: () => void window.api.log.path().then((p) => window.api.fs.reveal(p)) },
       { id: 'new-tab', title: 'Nouvel onglet', hint: 'Ctrl+T', icon: <Plus size={15} />, run: () => void nav().addTab() },
+      { id: 'view-mode', title: 'Basculer vue liste / grille', icon: <LayoutGrid size={15} />, run: () => nav().toggleViewMode() },
       { id: 'split', title: 'Diviser — nouveau volet', icon: <Columns2 size={15} />, run: () => void nav().addPane() },
       { id: 'preview', title: "Panneau d'aperçu", icon: <PanelRight size={15} />, run: () => ui().togglePreview() },
       { id: 'appearance', title: "Panneau d'apparence", icon: <Palette size={15} />, run: () => ui().toggleAppearance() },

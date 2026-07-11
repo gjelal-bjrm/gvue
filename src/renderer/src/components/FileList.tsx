@@ -12,6 +12,7 @@ import { copyOrMove } from '../lib/fileActions'
 import ContextMenu from './ContextMenu'
 import BulkRenameDialog from './BulkRenameDialog'
 import Row from './filelist/Row'
+import GridTile from './filelist/GridTile'
 import ColumnHeader from './filelist/ColumnHeader'
 import StatusBar from './filelist/StatusBar'
 import { useFileListKeyboard } from './filelist/useFileListKeyboard'
@@ -37,6 +38,7 @@ export default function FileList(props: { paneId: string }): JSX.Element {
   const setRenaming = useNavStore((s) => s.setRenaming)
   const showHidden = useNavStore((s) => s.showHidden)
   const hideGitIgnored = useNavStore((s) => s.hideGitIgnored)
+  const viewMode = useNavStore((s) => s.viewMode)
   const density = useAppearanceStore((s) => s.appearance.density)
   const repo = useGitStore((s) => s.repo)
   const statusByPath = useGitStore((s) => s.statusByPath)
@@ -80,6 +82,20 @@ export default function FileList(props: { paneId: string }): JSX.Element {
 
   const rowHeight = density === 'compact' ? 26 : 34
 
+  // Vue grille : tuiles de ~112×96, nombre de colonnes selon la largeur réelle.
+  const TILE_W = 112
+  const TILE_H = 96
+  const [gridWidth, setGridWidth] = useState(0)
+  useEffect(() => {
+    const el = parentRef.current
+    if (!el || viewMode !== 'grid') return
+    const ro = new ResizeObserver((entries) => setGridWidth(entries[0]?.contentRect.width ?? 0))
+    ro.observe(el)
+    setGridWidth(el.clientWidth)
+    return () => ro.disconnect()
+  }, [viewMode])
+  const cols = viewMode === 'grid' ? Math.max(1, Math.floor((gridWidth - 8) / TILE_W)) : 1
+
   const visible = useMemo(() => {
     let v = showHidden ? entries : entries.filter((e) => !e.hidden)
     if (hideGitIgnored && ignored.size > 0) {
@@ -107,15 +123,21 @@ export default function FileList(props: { paneId: string }): JSX.Element {
     return () => window.clearTimeout(t)
   }, [loading])
 
+  // En grille, on virtualise par RANGÉE de `cols` tuiles (même virtualiseur).
   const rowVirtualizer = useVirtualizer({
-    count: visible.length,
+    count: viewMode === 'grid' ? Math.ceil(visible.length / cols) : visible.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => rowHeight,
+    estimateSize: () => (viewMode === 'grid' ? TILE_H : rowHeight),
     overscan: 14
   })
 
-  // Recalcule les positions quand la densité (donc la hauteur de ligne) change.
-  useEffect(() => rowVirtualizer.measure(), [rowHeight, rowVirtualizer])
+  // Recalcule les positions quand la densité/le mode/la largeur changent.
+  useEffect(() => rowVirtualizer.measure(), [rowHeight, viewMode, cols, rowVirtualizer])
+
+  // Défilement clavier : en grille, l'index d'élément se convertit en rangée.
+  const scrollToIndex = (i: number): void => {
+    rowVirtualizer.scrollToIndex(viewMode === 'grid' ? Math.floor(i / cols) : i, { align: 'auto' })
+  }
 
   const clearRenameTimer = (): void => {
     if (renameTimer.current) {
@@ -136,7 +158,8 @@ export default function FileList(props: { paneId: string }): JSX.Element {
     visible,
     selected,
     renaming,
-    rowVirtualizer,
+    scrollToIndex,
+    cols,
     anchorRef,
     typeBuf,
     setSelected,
@@ -391,7 +414,65 @@ export default function FileList(props: { paneId: string }): JSX.Element {
           <div className="p-8 text-center text-[13px] text-fg-muted">Dossier vide</div>
         )}
         <div style={{ height: rowVirtualizer.getTotalSize(), position: 'relative' }}>
-          {rowVirtualizer.getVirtualItems().map((vi) => {
+          {viewMode === 'grid'
+            ? rowVirtualizer.getVirtualItems().map((vi) => {
+                const start = vi.index * cols
+                return (
+                  <div
+                    key={vi.index}
+                    className="absolute left-0 grid w-full px-1"
+                    style={{
+                      top: vi.start,
+                      height: TILE_H,
+                      gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`
+                    }}
+                  >
+                    {visible.slice(start, start + cols).map((entry, j) => {
+                      const index = start + j
+                      const key = pathKey(entry.path)
+                      const isDir = entry.kind === 'directory'
+                      return (
+                        <GridTile
+                          key={entry.path}
+                          entry={entry}
+                          selected={selectedSet.has(entry.path)}
+                          renaming={renaming === entry.path}
+                          git={gitMap[key]}
+                          gitDir={isDir && gitDirty.has(key)}
+                          dropActive={dragOver === entry.path}
+                          onClick={(e) => onRowClick(e, entry, index)}
+                          onActivate={() => onActivate(entry)}
+                          onContext={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            if (!selectedSet.has(entry.path)) setSelected([entry.path])
+                            setMenu({ x: e.clientX, y: e.clientY, entry })
+                          }}
+                          onCommitRename={(name) => void commitRename(entry.path, name)}
+                          onCancelRename={() => setRenaming(null)}
+                          dropDir={isDir ? entry.path : undefined}
+                          onDragStart={(e) => {
+                            const sel = selectedSet.has(entry.path) ? selected : [entry.path]
+                            e.dataTransfer.setData('application/x-gvue-paths', JSON.stringify(sel))
+                            e.dataTransfer.effectAllowed = 'copyMove'
+                          }}
+                          onDirOver={
+                            isDir
+                              ? (e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  setDragOver(entry.path)
+                                }
+                              : undefined
+                          }
+                          onDirDrop={isDir ? (e) => void doDrop(e, entry.path) : undefined}
+                        />
+                      )
+                    })}
+                  </div>
+                )
+              })
+            : rowVirtualizer.getVirtualItems().map((vi) => {
             const entry = visible[vi.index]
             const key = pathKey(entry.path)
             const isDir = entry.kind === 'directory'
