@@ -1,5 +1,11 @@
 [
   {
+    "version": "0.1.18",
+    "notes": [
+      "Serveur MCP — le contexte GVue expose aux agents IA (Claude Code...)"
+    ]
+  },
+  {
     "version": "0.1.17",
     "notes": [
       "Tutoriel integre des commandes personnalisees + section README",
