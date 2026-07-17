@@ -39,6 +39,7 @@ export default function FileList(props: { paneId: string }): JSX.Element {
   const showHidden = useNavStore((s) => s.showHidden)
   const hideGitIgnored = useNavStore((s) => s.hideGitIgnored)
   const viewMode = useNavStore((s) => s.viewMode)
+  const gridSize = useNavStore((s) => s.gridSize)
   const density = useAppearanceStore((s) => s.appearance.density)
   const repo = useGitStore((s) => s.repo)
   const statusByPath = useGitStore((s) => s.statusByPath)
@@ -82,9 +83,9 @@ export default function FileList(props: { paneId: string }): JSX.Element {
 
   const rowHeight = density === 'compact' ? 26 : 34
 
-  // Vue grille : tuiles de ~112×96, nombre de colonnes selon la largeur réelle.
-  const TILE_W = 112
-  const TILE_H = 96
+  // Vue grille : taille de tuile réglable (persistée), colonnes selon la largeur.
+  const TILE_W = gridSize
+  const TILE_H = Math.round(gridSize * 0.86)
   const [gridWidth, setGridWidth] = useState(0)
   useEffect(() => {
     const el = parentRef.current
@@ -131,8 +132,8 @@ export default function FileList(props: { paneId: string }): JSX.Element {
     overscan: 14
   })
 
-  // Recalcule les positions quand la densité/le mode/la largeur changent.
-  useEffect(() => rowVirtualizer.measure(), [rowHeight, viewMode, cols, rowVirtualizer])
+  // Recalcule les positions quand la densité/le mode/la largeur/la taille changent.
+  useEffect(() => rowVirtualizer.measure(), [rowHeight, viewMode, cols, gridSize, rowVirtualizer])
 
   // Défilement clavier : en grille, l'index d'élément se convertit en rangée.
   const scrollToIndex = (i: number): void => {
@@ -324,6 +325,13 @@ export default function FileList(props: { paneId: string }): JSX.Element {
     trashPaths
   }
 
+  // Ctrl+molette en vue grille : agrandit / réduit les tuiles (persisté).
+  const onWheel = (e: React.WheelEvent): void => {
+    if (viewMode !== 'grid' || !(e.ctrlKey || e.metaKey)) return
+    e.preventDefault()
+    useNavStore.getState().setGridSize(gridSize + (e.deltaY < 0 ? 12 : -12))
+  }
+
   // Ouvre le menu du dossier courant (utile quand la liste est pleine : on peut
   // toujours faire clic droit sur l'en-tête ou la barre d'état).
   const openBackgroundMenu = (e: React.MouseEvent): void => {
@@ -380,6 +388,7 @@ export default function FileList(props: { paneId: string }): JSX.Element {
       <div
         ref={parentRef}
         data-gvue-dir={path || undefined}
+        onWheel={onWheel}
         className={`relative flex-1 overflow-auto ${
           dragOver === '__pane__' && path ? 'ring-2 ring-inset ring-accent' : ''
         }`}

@@ -52,6 +52,16 @@ interface NavState {
   /** Mode d'affichage (liste détaillée / grille de vignettes), persisté. */
   viewMode: ViewMode
   toggleViewMode: () => void
+  /** Largeur d'une tuile en vue grille (px), persistée. */
+  gridSize: number
+  setGridSize: (px: number) => void
+  /** Applique un lot de préférences de vue (restauration d'espace de travail). */
+  setViewPrefs: (p: {
+    showHidden?: boolean
+    hideGitIgnored?: boolean
+    viewMode?: ViewMode
+    gridSize?: number
+  }) => void
 
   init: () => Promise<void>
 
@@ -179,6 +189,7 @@ export const useNavStore = create<NavState>((set, get) => {
     showHidden: false,
     hideGitIgnored: true,
     viewMode: 'list',
+    gridSize: 112,
 
     toggleViewMode: () => {
       const next: ViewMode = get().viewMode === 'list' ? 'grid' : 'list'
@@ -186,11 +197,39 @@ export const useNavStore = create<NavState>((set, get) => {
       void window.api.config.set('viewMode', next)
     },
 
+    setGridSize: (px) => {
+      const clamped = Math.max(72, Math.min(220, Math.round(px)))
+      set({ gridSize: clamped })
+      void window.api.config.set('gridSize', clamped)
+    },
+
+    setViewPrefs: (p) => {
+      const patchState: Partial<NavState> = {}
+      if (p.showHidden !== undefined) patchState.showHidden = p.showHidden
+      if (p.hideGitIgnored !== undefined) patchState.hideGitIgnored = p.hideGitIgnored
+      if (p.viewMode !== undefined) patchState.viewMode = p.viewMode
+      if (p.gridSize !== undefined) patchState.gridSize = Math.max(72, Math.min(220, p.gridSize))
+      set(patchState)
+      // Ces préférences sont aussi les valeurs globales : on les persiste.
+      if (p.showHidden !== undefined) void window.api.config.set('showHidden', p.showHidden)
+      if (p.hideGitIgnored !== undefined) void window.api.config.set('hideGitIgnored', p.hideGitIgnored)
+      if (p.viewMode !== undefined) void window.api.config.set('viewMode', p.viewMode)
+      if (patchState.gridSize !== undefined) void window.api.config.set('gridSize', patchState.gridSize)
+    },
+
     init: async () => {
       const locations = await window.api.fs.locations()
       const hideGitIgnored = await window.api.config.get('hideGitIgnored').catch(() => true)
       const viewMode = await window.api.config.get('viewMode').catch(() => 'list' as const)
-      set({ locations, hideGitIgnored, viewMode: viewMode === 'grid' ? 'grid' : 'list' })
+      const showHidden = await window.api.config.get('showHidden').catch(() => false)
+      const gridSize = await window.api.config.get('gridSize').catch(() => 112)
+      set({
+        locations,
+        hideGitIgnored,
+        showHidden: !!showHidden,
+        viewMode: viewMode === 'grid' ? 'grid' : 'list',
+        gridSize: typeof gridSize === 'number' ? gridSize : 112
+      })
 
       // Restauration de session : rouvre colonnes + onglets de la dernière
       // fois (option « Rouvrir les dossiers au démarrage », activée par défaut).
@@ -377,7 +416,11 @@ export const useNavStore = create<NavState>((set, get) => {
 
     setRenaming: (p) => patch(get().activeId, { renaming: p }),
 
-    toggleHidden: () => set((s) => ({ showHidden: !s.showHidden })),
+    toggleHidden: () => {
+      const next = !get().showHidden
+      set({ showHidden: next })
+      void window.api.config.set('showHidden', next)
+    },
 
     toggleGitIgnored: () => {
       const next = !get().hideGitIgnored

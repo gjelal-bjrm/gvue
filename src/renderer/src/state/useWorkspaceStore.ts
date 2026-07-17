@@ -59,7 +59,11 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
       sidebarOrder: sb.order,
       sidebarCollapsed: sb.collapsed,
       terminalSplit: ui.terminalSplit,
-      terminals: term.tabs.filter((t) => !t.exited).map((t) => t.shell.id)
+      terminals: term.tabs.filter((t) => !t.exited).map((t) => t.shell.id),
+      showHidden: nav.showHidden,
+      hideGitIgnored: nav.hideGitIgnored,
+      viewMode: nav.viewMode,
+      gridSize: nav.gridSize
     }
     const workspaces = { ...get().workspaces, [key]: data }
     set({ workspaces })
@@ -82,6 +86,14 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
     if (data.sidebarOrder || data.sidebarCollapsed || data.treeExpand !== undefined) {
       useSidebarStore.getState().applyState(data.sidebarOrder, data.sidebarCollapsed, data.treeExpand)
     }
+
+    // Préférences de vue de l'espace (éléments masqués/ignorés, mode, grille).
+    useNavStore.getState().setViewPrefs({
+      showHidden: data.showHidden,
+      hideGitIgnored: data.hideGitIgnored,
+      viewMode: data.viewMode,
+      gridSize: data.gridSize
+    })
 
     await useNavStore.getState().applyWorkspace(data.panes, data.activeIndex)
 

@@ -288,6 +288,12 @@ function AppearanceSection(): JSX.Element {
 function GeneralSection(): JSX.Element {
   const viewMode = useNavStore((s) => s.viewMode)
   const toggleViewMode = useNavStore((s) => s.toggleViewMode)
+  const gridSize = useNavStore((s) => s.gridSize)
+  const setGridSize = useNavStore((s) => s.setGridSize)
+  const showHidden = useNavStore((s) => s.showHidden)
+  const toggleHidden = useNavStore((s) => s.toggleHidden)
+  const hideGitIgnored = useNavStore((s) => s.hideGitIgnored)
+  const toggleGitIgnored = useNavStore((s) => s.toggleGitIgnored)
   const linked = useTerminalStore((s) => s.linked)
   const toggleLinked = useTerminalStore((s) => s.toggleLinked)
   const [restore, setRestore] = useState<boolean | null>(null)
@@ -348,6 +354,49 @@ function GeneralSection(): JSX.Element {
             if (v !== viewMode) toggleViewMode()
           }}
         />
+        {viewMode === 'grid' && (
+          <div className="mt-2">
+            <p className="mb-1 text-[11px] text-fg-muted">Taille des vignettes — {gridSize}px</p>
+            <input
+              type="range"
+              min={72}
+              max={220}
+              step={4}
+              value={gridSize}
+              onChange={(e) => setGridSize(Number(e.target.value))}
+              className="w-full accent-[var(--accent)]"
+            />
+            <p className="mt-0.5 text-[11px] text-fg-muted">Astuce : Ctrl + molette sur la grille.</p>
+          </div>
+        )}
+      </Field>
+
+      <Field label="Éléments masqués et ignorés">
+        <div className="flex flex-col gap-2">
+          <Segmented<'on' | 'off'>
+            value={showHidden ? 'on' : 'off'}
+            options={[
+              { value: 'off', label: 'Masquer les cachés' },
+              { value: 'on', label: 'Afficher les cachés' }
+            ]}
+            onChange={(v) => {
+              if ((v === 'on') !== showHidden) toggleHidden()
+            }}
+          />
+          <Segmented<'on' | 'off'>
+            value={hideGitIgnored ? 'off' : 'on'}
+            options={[
+              { value: 'off', label: 'Masquer les ignorés (.gitignore)' },
+              { value: 'on', label: 'Afficher les ignorés' }
+            ]}
+            onChange={(v) => {
+              if ((v === 'off') !== hideGitIgnored) toggleGitIgnored()
+            }}
+          />
+        </div>
+        <p className="mt-1.5 text-[11px] text-fg-muted">
+          Aussi via les icônes 👁 / filtre de la barre d'outils. Mémorisé (et par espace de travail).
+        </p>
       </Field>
 
       <Field label="Terminaux liés aux onglets de dossier">

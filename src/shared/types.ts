@@ -268,6 +268,11 @@ export interface WorkspaceData {
   terminalSplit?: boolean
   /** Shells des terminaux ouverts (un par onglet), pour les rouvrir. */
   terminals?: string[]
+  /** Préférences de vue (éléments masqués, ignorés, mode, taille de grille). */
+  showHidden?: boolean
+  hideGitIgnored?: boolean
+  viewMode?: 'list' | 'grid'
+  gridSize?: number
 }
 
 export interface AppConfig {
@@ -308,6 +313,10 @@ export interface AppConfig {
   lastSession: { panes: WorkspacePane[]; activeIndex: number }
   /** Mode d'affichage de la liste de fichiers. */
   viewMode: 'list' | 'grid'
+  /** Largeur d'une tuile en vue grille (px). */
+  gridSize: number
+  /** Afficher les fichiers/dossiers masqués (dotfiles, système). */
+  showHidden: boolean
   /** Terminaux liés à l'onglet de dossier actif (filtrage du panneau). */
   linkTerminals: boolean
   /** Serveur MCP local (agents IA) activé ? */
