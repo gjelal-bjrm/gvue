@@ -59,6 +59,9 @@ export function acquire(ptyId: string, meta?: TermMeta): TermEntry {
     fontSize: 13,
     cursorBlink: true,
     allowProposedApi: true,
+    // Historique généreux : les serveurs de dev sont verbeux (le défaut de
+    // 1000 lignes se remplit trop vite pour remonter aux anciens logs).
+    scrollback: 10000,
     theme: buildTheme()
   })
   const fit = new FitAddon()

@@ -22,11 +22,16 @@ export default function Terminal(props: {
     container.appendChild(entry.element)
 
     const refit = (): void => {
+      // Ne JAMAIS ajuster un conteneur masqué (onglet inactif : taille 0) :
+      // xterm calculerait ~0 colonne, redimensionnerait le pty en conséquence
+      // et détruirait le scrollback du terminal caché (perte des logs) tout en
+      // reformatant le programme en cours d'exécution.
+      if (!container.clientWidth || !container.clientHeight) return
       try {
         entry.fit.fit()
         window.api.terminal.resize(props.ptyId, entry.term.cols, entry.term.rows)
       } catch {
-        /* conteneur masqué */
+        /* ignore */
       }
     }
     refit()
@@ -45,6 +50,8 @@ export default function Terminal(props: {
     if (!props.active) return
     const entry = acquire(props.ptyId)
     requestAnimationFrame(() => {
+      const el = containerRef.current
+      if (!el || !el.clientWidth || !el.clientHeight) return
       try {
         entry.fit.fit()
         window.api.terminal.resize(props.ptyId, entry.term.cols, entry.term.rows)
