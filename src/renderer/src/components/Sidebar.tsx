@@ -105,12 +105,13 @@ export default function Sidebar(): JSX.Element {
     showLauncher()
   }
 
-  // Clic sur ▶ d'un projet : arrête si en cours, lance si défini, sinon configure.
-  const onProjectPlay = (e: React.MouseEvent, p: GitProject): void => {
+  // Clic sur ▶ d'un dossier (projet ou favori) : arrête si en cours, lance si
+  // une commande est définie, sinon ouvre la configuration.
+  const onPlay = (e: React.MouseEvent, root: string, name: string): void => {
     e.stopPropagation()
-    if (running[projKey(p.root)]) stopProject(p.root)
-    else if (projectLaunch[p.root]) void runProject(p.root, p.name)
-    else setConfig({ root: p.root, name: p.name })
+    if (running[projKey(root)]) stopProject(root)
+    else if (projectLaunch[root]) void runProject(root, name)
+    else setConfig({ root, name })
   }
 
   // Regroupe les lancements selon l'axe choisi (projet ou catégorie).
@@ -192,8 +193,15 @@ export default function Sidebar(): JSX.Element {
               key={f}
               path={f}
               active={isActive(f)}
+              running={!!running[projKey(f)]}
+              configured={!!projectLaunch[f]}
               onOpen={() => navigate(f)}
               onRemove={() => removeFavorite(f)}
+              onPlay={(e) => onPlay(e, f, baseName(f))}
+              onConfig={(e) => {
+                e.stopPropagation()
+                setConfig({ root: f, name: baseName(f) })
+              }}
               onContextMenu={(e) => openCtx(e, f)}
             />
           ))
@@ -213,7 +221,7 @@ export default function Sidebar(): JSX.Element {
               running={!!running[projKey(p.root)]}
               configured={!!projectLaunch[p.root]}
               onClick={() => navigate(p.root)}
-              onPlay={(e) => onProjectPlay(e, p)}
+              onPlay={(e) => onPlay(e, p.root, p.name)}
               onConfig={(e) => {
                 e.stopPropagation()
                 setConfig({ root: p.root, name: p.name })
