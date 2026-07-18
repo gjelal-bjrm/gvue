@@ -84,8 +84,9 @@ export default function FileList(props: { paneId: string }): JSX.Element {
   const rowHeight = density === 'compact' ? 26 : 34
 
   // Vue grille : taille de tuile réglable (persistée), colonnes selon la largeur.
+  // Tuile ≈ vignette carrée pleine case + libellé sur 2 lignes (façon Explorer).
   const TILE_W = gridSize
-  const TILE_H = Math.round(gridSize * 0.86)
+  const TILE_H = gridSize + 18
   const [gridWidth, setGridWidth] = useState(0)
   useEffect(() => {
     const el = parentRef.current
@@ -444,6 +445,7 @@ export default function FileList(props: { paneId: string }): JSX.Element {
                         <GridTile
                           key={entry.path}
                           entry={entry}
+                          tileSize={gridSize}
                           selected={selectedSet.has(entry.path)}
                           renaming={renaming === entry.path}
                           git={gitMap[key]}

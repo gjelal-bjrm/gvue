@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.1.19",
+    "notes": [
+      "Boutons Play/Stop + config sur les favoris (comme les projets)",
+      "Preferences de vue persistees (masques/ignores + taille de grille)",
+      "Fix terminal — perte des logs a l'ouverture d'un 2e terminal + scrollback"
+    ]
+  },
+  {
     "version": "0.1.18",
     "notes": [
       "Serveur MCP — le contexte GVue expose aux agents IA (Claude Code...)"

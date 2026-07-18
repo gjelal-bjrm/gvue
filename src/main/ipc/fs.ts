@@ -27,37 +27,40 @@ const iconCache = new Map<string, string>()
 /**
  * Renvoie une data URL d'icône système (ou vignette pour les images) pour un
  * fichier — comme l'explorateur Windows. Mémoïsé par extension (icône de type)
- * ou par chemin (exe/lnk/images, dont l'icône est propre).
+ * ou par chemin (exe/lnk/images, dont l'icône est propre), ET par taille :
+ * la vue liste demande 48 px, la vue grille demande la taille de ses tuiles
+ * (jusqu'à 256 px) pour des vignettes nettes.
  */
-async function getFileIconUrl(input: string): Promise<string> {
+async function getFileIconUrl(input: string, size = 48): Promise<string> {
   let file: string
   try {
     file = filesystem.assertAbsolute(input)
   } catch {
     return ''
   }
+  const px = Math.min(256, Math.max(16, Math.round(size) || 48))
   const ext = extname(file).slice(1).toLowerCase()
   const isThumb = THUMBNAILABLE.has(ext)
-  const key = isThumb || PER_FILE_ICON.has(ext) || ext === '' ? file : `ext:${ext}`
+  const key = `${px}:${isThumb || PER_FILE_ICON.has(ext) || ext === '' ? file : `ext:${ext}`}`
   const cached = iconCache.get(key)
   if (cached !== undefined) return cached
 
   let img = null
   try {
     if (isThumb) {
-      img = await nativeImage.createThumbnailFromPath(file, { width: 48, height: 48 })
+      img = await nativeImage.createThumbnailFromPath(file, { width: px, height: px })
     } else if (ext === 'lnk' && process.platform === 'win32') {
       // Un raccourci affiche l'icône de sa cible : on la résout explicitement.
       const link = shell.readShortcutLink(file)
       const src = link.icon && link.icon.trim() ? link.icon : link.target
-      if (src) img = await app.getFileIcon(src, { size: 'normal' })
+      if (src) img = await app.getFileIcon(src, { size: px > 32 ? 'large' : 'normal' })
     }
   } catch {
     img = null
   }
   if (!img || img.isEmpty()) {
     try {
-      img = await app.getFileIcon(file, { size: 'normal' })
+      img = await app.getFileIcon(file, { size: px > 32 ? 'large' : 'normal' })
     } catch {
       img = null
     }
@@ -183,8 +186,8 @@ export function registerFsHandlers(): void {
     return readPreview(targetPath)
   })
 
-  ipcMain.handle(IPC.fsIcon, async (_e, targetPath: string) => {
-    return getFileIconUrl(targetPath)
+  ipcMain.handle(IPC.fsIcon, async (_e, targetPath: string, size?: number) => {
+    return getFileIconUrl(targetPath, size)
   })
 
   ipcMain.handle(IPC.fsConflicts, async (_e, paths: string[], destDir: string) => {

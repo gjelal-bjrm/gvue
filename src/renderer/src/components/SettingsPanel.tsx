@@ -360,7 +360,7 @@ function GeneralSection(): JSX.Element {
             <input
               type="range"
               min={72}
-              max={220}
+              max={256}
               step={4}
               value={gridSize}
               onChange={(e) => setGridSize(Number(e.target.value))}

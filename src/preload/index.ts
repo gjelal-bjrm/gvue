@@ -95,7 +95,8 @@ const api = {
       ipcRenderer.invoke(IPC.fsMakeDirs, baseDir, rels),
     trash: (path: string): Promise<void> => ipcRenderer.invoke(IPC.fsTrash, path),
     preview: (path: string): Promise<PreviewData> => ipcRenderer.invoke(IPC.fsPreview, path),
-    icon: (path: string): Promise<string> => ipcRenderer.invoke(IPC.fsIcon, path),
+    icon: (path: string, size?: number): Promise<string> =>
+      ipcRenderer.invoke(IPC.fsIcon, path, size),
     copy: (paths: string[], destDir: string, mode?: ConflictMode): Promise<FileOpResult> =>
       ipcRenderer.invoke(IPC.fsCopy, paths, destDir, mode),
     move: (paths: string[], destDir: string, mode?: ConflictMode): Promise<FileOpResult> =>

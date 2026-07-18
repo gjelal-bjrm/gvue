@@ -198,7 +198,7 @@ export const useNavStore = create<NavState>((set, get) => {
     },
 
     setGridSize: (px) => {
-      const clamped = Math.max(72, Math.min(220, Math.round(px)))
+      const clamped = Math.max(72, Math.min(256, Math.round(px)))
       set({ gridSize: clamped })
       void window.api.config.set('gridSize', clamped)
     },
@@ -208,7 +208,7 @@ export const useNavStore = create<NavState>((set, get) => {
       if (p.showHidden !== undefined) patchState.showHidden = p.showHidden
       if (p.hideGitIgnored !== undefined) patchState.hideGitIgnored = p.hideGitIgnored
       if (p.viewMode !== undefined) patchState.viewMode = p.viewMode
-      if (p.gridSize !== undefined) patchState.gridSize = Math.max(72, Math.min(220, p.gridSize))
+      if (p.gridSize !== undefined) patchState.gridSize = Math.max(72, Math.min(256, p.gridSize))
       set(patchState)
       // Ces préférences sont aussi les valeurs globales : on les persiste.
       if (p.showHidden !== undefined) void window.api.config.set('showHidden', p.showHidden)

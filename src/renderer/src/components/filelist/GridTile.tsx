@@ -4,9 +4,15 @@ import { useOsIcon } from '../../lib/osIcons'
 import { gitBadge } from './helpers'
 import RenameInput from './RenameInput'
 
-/** Tuile de la vue grille : grande icône/vignette + nom sur deux lignes. */
+/**
+ * Tuile de la vue grille, façon explorateur Windows : la vignette occupe toute
+ * la case (générée à la résolution de la tuile — agrandir la grille agrandit
+ * réellement les images), nom sur deux lignes dessous.
+ */
 export default function GridTile(props: {
   entry: DirEntry
+  /** Largeur de la tuile (px) — pilote la taille de la vignette demandée. */
+  tileSize: number
   selected: boolean
   renaming: boolean
   git?: GitFileChange
@@ -24,7 +30,9 @@ export default function GridTile(props: {
 }): JSX.Element {
   const { entry, git } = props
   const { Icon, color } = fileIconSpec(entry)
-  const osIcon = useOsIcon(entry)
+  // Zone d'image : la tuile moins le padding — la vignette est générée à cette taille.
+  const box = Math.max(40, props.tileSize - 20)
+  const osIcon = useOsIcon(entry, box)
   const badge = git ? gitBadge(git.category) : null
 
   return (
@@ -38,7 +46,7 @@ export default function GridTile(props: {
       onDoubleClick={props.onActivate}
       onContextMenu={props.onContext}
       title={entry.path}
-      className={`flex h-full w-full cursor-default flex-col items-center gap-1 rounded-app p-2 ${
+      className={`flex h-full w-full cursor-default flex-col items-center gap-1 rounded-app p-1.5 ${
         props.dropActive
           ? 'bg-accent-soft ring-1 ring-inset ring-accent'
           : props.selected
@@ -46,15 +54,23 @@ export default function GridTile(props: {
             : 'hover:bg-bg-hover'
       } ${entry.hidden ? 'opacity-55' : ''}`}
     >
-      <span className="relative grid h-10 w-10 shrink-0 place-items-center">
+      <span
+        className="relative grid shrink-0 place-items-center overflow-hidden"
+        style={{ width: box, height: box }}
+      >
         {osIcon ? (
-          <img src={osIcon} alt="" className="max-h-10 max-w-10 object-contain" draggable={false} />
+          <img
+            src={osIcon}
+            alt=""
+            className="max-h-full max-w-full rounded-[3px] object-contain"
+            draggable={false}
+          />
         ) : (
-          <Icon size={34} style={{ color }} />
+          <Icon size={Math.round(box * 0.52)} style={{ color }} strokeWidth={1.5} />
         )}
         {badge && (
           <span
-            className="absolute -right-1 -top-1 font-mono text-[10px] font-bold"
+            className="absolute right-0.5 top-0.5 rounded bg-bg/80 px-0.5 font-mono text-[10px] font-bold"
             style={{ color: badge.color }}
             title={git?.category}
           >
@@ -63,7 +79,7 @@ export default function GridTile(props: {
         )}
         {props.gitDir && !badge && (
           <span
-            className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full"
+            className="absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full"
             style={{ background: 'var(--warning-fg)' }}
           />
         )}
