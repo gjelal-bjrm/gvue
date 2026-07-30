@@ -127,6 +127,7 @@ export async function connect(
 
     client.on('error', (err) => {
       const msg = err.message ?? String(err)
+      logError('sftp', `Connexion ${key} : ${msg}`)
       // Toutes les méthodes d'authentification ont échoué → demander un mot de passe.
       if (/authentication/i.test(msg) && !opts.password) {
         done({ status: 'password' })
@@ -139,6 +140,10 @@ export async function connect(
 
     void (async () => {
       const keys = await defaultKeys()
+      logInfo(
+        'sftp',
+        `Connexion à ${key} (agent: ${agentPath() ? 'oui' : 'non'}, clés: ${keys.length}, mdp: ${opts.password ? 'oui' : 'non'})…`
+      )
       try {
         client.connect({
           host: target,
