@@ -1,4 +1,20 @@
 import { describe, it, expect } from 'vitest'
+import { looksLikePasswordPrompt } from '../src/main/services/pty-manager'
+
+describe('looksLikePasswordPrompt', () => {
+  it("reconnaît les invites d'OpenSSH (anglais, français, phrase de passe)", () => {
+    expect(looksLikePasswordPrompt("demo@test.rebex.net's password: ")).toBe(true)
+    expect(looksLikePasswordPrompt('Password:')).toBe(true)
+    expect(looksLikePasswordPrompt('Mot de passe : ')).toBe(true)
+    expect(looksLikePasswordPrompt("Enter passphrase for key '/c/id_rsa': ")).toBe(true)
+  })
+
+  it('ignore le mot croisé dans des logs (invite = fin de fragment)', () => {
+    expect(looksLikePasswordPrompt('Wrong password: retry later\nuser@host:~$ ')).toBe(false)
+    expect(looksLikePasswordPrompt('changed the password of the DB')).toBe(false)
+    expect(looksLikePasswordPrompt('')).toBe(false)
+  })
+})
 import { stripAnsi, tailLines } from '../src/main/services/strip-ansi'
 import { appendCapped } from '../src/main/services/pty-manager'
 

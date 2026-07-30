@@ -1,5 +1,7 @@
 import type { IPty } from 'node-pty'
 import type { TerminalCreateOptions } from '@shared/types'
+import { loadPassword } from './secrets'
+import { logInfo } from './logger'
 
 /**
  * Gestionnaire de pseudo-terminaux (node-pty).
@@ -40,6 +42,17 @@ let counter = 0
 const MAX_BUFFER_CHARS = 200_000
 const buffers = new Map<string, { chunks: string[]; size: number }>()
 
+/**
+ * Détecte une invite de mot de passe SSH dans un fragment de sortie (pure).
+ * Couvre les formulations d'OpenSSH, y compris localisées et les phrases de
+ * passe de clé. Ancré en fin de fragment : c'est là que se trouve l'invite,
+ * et cela évite de réagir à un mot croisé dans des logs.
+ */
+export function looksLikePasswordPrompt(s: string): boolean {
+  const tail = s.slice(-200).toLowerCase()
+  return /(password|mot de passe|passphrase)\s*(for [^:]*)?:\s*$/.test(tail)
+}
+
 /** Ajoute un fragment au tampon en respectant le plafond (logique pure). */
 export function appendCapped(
   buf: { chunks: string[]; size: number },
@@ -72,8 +85,32 @@ export function createPty(opts: TerminalCreateOptions, onData: DataCb, onExit: E
   })
   const buf = { chunks: [] as string[], size: 0 }
   buffers.set(id, buf)
+
+  /*
+   * Réponse automatique à l'invite de mot de passe SSH.
+   *
+   * Le terminal lance le binaire `ssh` du système : il ignore évidemment le
+   * coffre de GVue et redemande le mot de passe. Quand l'onglet est ouvert
+   * pour un serveur dont le mot de passe est enregistré, le processus
+   * PRINCIPAL répond à l'invite — le secret ne transite jamais par
+   * l'interface. Garde-fous : une seule réponse, et uniquement dans les
+   * premières secondes (au-delà, c'est une invite d'autre chose : sudo, etc.).
+   */
+  const autoPassword = opts.sshHostKey ? loadPassword(opts.sshHostKey) : null
+  let answered = !autoPassword
+  const answerDeadline = Date.now() + 20_000
+
   proc.onData((d) => {
     appendCapped(buf, d)
+    if (!answered && Date.now() < answerDeadline && looksLikePasswordPrompt(d)) {
+      answered = true
+      try {
+        proc.write(`${autoPassword}\r`)
+        logInfo('terminal', `Mot de passe enregistré fourni à l'invite SSH (${id}).`)
+      } catch {
+        /* terminal déjà fermé */
+      }
+    }
     onData(id, d)
   })
   proc.onExit(({ exitCode }) => {

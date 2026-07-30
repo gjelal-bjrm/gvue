@@ -531,6 +531,12 @@ export interface TerminalCreateOptions {
   cwd: string
   cols: number
   rows: number
+  /**
+   * Clé de session d'un serveur SSH : si un mot de passe est enregistré pour
+   * lui, le processus principal répondra à l'invite du binaire `ssh`. Seule la
+   * CLÉ circule ici — jamais le mot de passe.
+   */
+  sshHostKey?: string
 }
 
 export interface TerminalDataEvent {

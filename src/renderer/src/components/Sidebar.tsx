@@ -33,7 +33,7 @@ import ServerItem from './sidebar/ServerItem'
 import ServerAddForm from './sidebar/ServerAddForm'
 import ServerImportDialog from './sidebar/ServerImportDialog'
 import { useTerminalStore } from '../state/useTerminalStore'
-import { sshCommandFor, mergeHosts } from '../lib/ssh'
+import { sshCommandFor, mergeHosts, hostKeyOf } from '../lib/ssh'
 
 /**
  * Sidebar : lanceur, accès rapide, lecteurs, favoris et projets — orchestration
@@ -107,7 +107,8 @@ export default function Sidebar(): JSX.Element {
     void useTerminalStore.getState().openTaskTab({
       cwd: home || '.',
       title: host.name,
-      command: sshCommandFor(host)
+      command: sshCommandFor(host),
+      sshHostKey: hostKeyOf(host)
     })
   }
 

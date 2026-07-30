@@ -34,7 +34,13 @@ interface TerminalState {
   setDefaultShell: (id: string) => void
   openTab: (shellId?: string, cwd?: string) => Promise<void>
   /** Ouvre un onglet pour une tâche (cwd/titre/commande) et renvoie son ptyId. */
-  openTaskTab: (opts: { cwd: string; title: string; command: string }) => Promise<string | null>
+  openTaskTab: (opts: {
+    cwd: string
+    title: string
+    command: string
+    /** Serveur SSH visé : permet la réponse auto à l'invite de mot de passe. */
+    sshHostKey?: string
+  }) => Promise<string | null>
   ensureTab: () => Promise<void>
   /** Ferme tous les onglets puis rouvre un terminal par shell (espaces de travail). */
   restore: (shellIds: string[]) => Promise<void>
@@ -128,7 +134,7 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
     }
   },
 
-  openTaskTab: async ({ cwd, title, command }) => {
+  openTaskTab: async ({ cwd, title, command, sshHostKey }) => {
     if (get().shells.length === 0) await get().loadShells()
     const list = get().shells
     // Une commande « cmd /c … » (ex. lancer un .bat/.exe) doit tourner dans cmd :
@@ -149,7 +155,10 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
         args: shell.args,
         cwd: cwd || shell.path,
         cols: 80,
-        rows: 24
+        rows: 24,
+        // Terminal SSH : le main répondra à l'invite si un mot de passe est
+        // enregistré pour ce serveur (le secret ne passe pas par ici).
+        sshHostKey
       })
       const disposeExit = window.api.terminal.onExit(ptyId, () => {
         set((s) => ({

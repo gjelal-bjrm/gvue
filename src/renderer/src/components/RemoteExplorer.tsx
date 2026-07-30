@@ -78,6 +78,7 @@ export default function RemoteExplorer(): JSX.Element | null {
   const [lastDeploy, setLastDeploy] = useState<Deploy | null>(null)
   const [recentDirs, setRecentDirs] = useState<string[]>([])
   const [recentOpen, setRecentOpen] = useState(false)
+  const [creating, setCreating] = useState(false)
   // Retenir le mot de passe (chiffré par l'OS) + présence d'un enregistrement.
   const [remember, setRemember] = useState(true)
   const [savedPwd, setSavedPwd] = useState(false)
@@ -277,11 +278,14 @@ export default function RemoteExplorer(): JSX.Element | null {
     ? `${lastDeploy.paths.map((p) => baseName(p)).join(', ')}${lastDeploy.contents ? '/*' : ''} → ${lastDeploy.remoteDir}`
     : ''
 
-  const mkdirHere = async (): Promise<void> => {
-    const name = window.prompt('Nom du nouveau dossier distant :')
-    if (!name?.trim()) return
-    const r = await window.api.sftp.mkdir(hostKey, path === '/' ? `/${name}` : `${path}/${name}`)
-    if (r.error) toast(`mkdir : ${r.error}`)
+  // Création d'un dossier distant : saisie EN LIGNE en tête de liste.
+  // (window.prompt n'existe pas dans Electron : le bouton ne faisait rien.)
+  const mkdirHere = async (name: string): Promise<void> => {
+    setCreating(false)
+    const clean = name.trim()
+    if (!clean) return
+    const r = await window.api.sftp.mkdir(hostKey, path === '/' ? `/${clean}` : `${path}/${clean}`)
+    if (r.error) toast(`Nouveau dossier : ${r.error}`)
     else void refresh(hostKey, path)
   }
 
@@ -387,7 +391,8 @@ export default function RemoteExplorer(): JSX.Element | null {
               void useTerminalStore.getState().openTaskTab({
                 cwd: localDir || '.',
                 title: `${host.name}:${path}`,
-                command: sshCdCommandFor(host, path)
+                command: sshCdCommandFor(host, path),
+                sshHostKey: hostKey
               })
             }}
             title={`Ouvrir un terminal SSH dans ${path}`}
@@ -556,7 +561,7 @@ export default function RemoteExplorer(): JSX.Element | null {
                 </>
               )}
             </div>
-            <IconBtn onClick={() => void mkdirHere()} title="Nouveau dossier distant" disabled={busy}>
+            <IconBtn onClick={() => setCreating(true)} title="Nouveau dossier distant" disabled={busy}>
               <FolderPlus size={14} />
             </IconBtn>
             <IconBtn
@@ -616,13 +621,32 @@ export default function RemoteExplorer(): JSX.Element | null {
               <p className="flex items-center justify-center gap-2 py-8 text-[12px] text-fg-muted">
                 <Loader2 size={14} className="animate-spin" /> Chargement…
               </p>
-            ) : entries.length === 0 ? (
+            ) : entries.length === 0 && !creating ? (
               <p className="px-3 py-10 text-center text-[13px] text-fg-muted">
                 Dossier vide — glissez des fichiers du volet local pour les téléverser.
               </p>
             ) : (
               <table className="w-full text-[12px]">
                 <tbody>
+                  {creating && (
+                    <tr className="border-b border-border/40 bg-accent-soft">
+                      <td className="w-6 px-1.5 py-1.5">
+                        <Folder size={14} className="text-accent" />
+                      </td>
+                      <td colSpan={4} className="px-0.5 py-1.5">
+                        <input
+                          autoFocus
+                          placeholder="Nom du nouveau dossier…"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') void mkdirHere((e.target as HTMLInputElement).value)
+                            if (e.key === 'Escape') setCreating(false)
+                          }}
+                          onBlur={(e) => void mkdirHere(e.target.value)}
+                          className="w-full rounded border border-accent bg-bg px-1 py-0.5 text-[12px] text-fg outline-none"
+                        />
+                      </td>
+                    </tr>
+                  )}
                   {entries.map((entry) => {
                     const isSel = sel.has(entry.path)
                     const Icon =

@@ -1,5 +1,11 @@
 [
   {
+    "version": "0.2.1",
+    "notes": [
+      "SFTP — mémoire de session façon WinSCP + noms de dossiers tronqués à tort"
+    ]
+  },
+  {
     "version": "0.1.25",
     "notes": [
       "Fix cadre Néon — la lueur était invisible (filter appliqué avant le masque)",
