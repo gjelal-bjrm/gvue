@@ -32,6 +32,28 @@ export function sshCdCommandFor(host: SshHost, remoteDir: string): string {
   return `ssh -t ${port}${target} "${remote}"`
 }
 
+/**
+ * Fusionne des hôtes importés dans la liste existante (pur, testable).
+ * Même nom + même cible → ignoré (déjà là) ; même nom mais cible différente →
+ * suffixe « (2) », « (3) »… pour ne rien écraser.
+ */
+export function mergeHosts(existing: SshHost[], incoming: SshHost[]): SshHost[] {
+  const out = [...existing]
+  const sameTarget = (a: SshHost, b: SshHost): boolean =>
+    (a.hostName ?? '') === (b.hostName ?? '') &&
+    (a.user ?? '') === (b.user ?? '') &&
+    (a.port ?? 22) === (b.port ?? 22)
+
+  for (const host of incoming) {
+    const dup = out.find((h) => h.name === host.name)
+    if (dup && sameTarget(dup, host)) continue
+    let name = host.name
+    for (let n = 2; out.some((h) => h.name === name); n++) name = `${host.name} (${n})`
+    out.push({ ...host, name })
+  }
+  return out
+}
+
 /** Sous-titre d'affichage : « user@hôte:port » (ce que la connexion fera). */
 export function sshSubtitle(host: SshHost): string {
   const target = host.hostName ?? (host.source === 'config' ? '' : host.name)

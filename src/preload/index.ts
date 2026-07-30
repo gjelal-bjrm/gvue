@@ -165,7 +165,10 @@ const api = {
     /** Hôtes lus dans ~/.ssh/config (lecture seule, jamais modifié par GVue). */
     configHosts: (): Promise<SshHost[]> => ipcRenderer.invoke(IPC.sshConfigHosts),
     /** OpenSSH (client ssh) est-il disponible sur la machine ? */
-    available: (): Promise<boolean> => ipcRenderer.invoke(IPC.sshAvailable)
+    available: (): Promise<boolean> => ipcRenderer.invoke(IPC.sshAvailable),
+    /** Sessions PuTTY/WinSCP trouvées sur la machine (registre + WinSCP.ini). */
+    importSources: (): Promise<{ putty: SshHost[]; winscp: SshHost[] }> =>
+      ipcRenderer.invoke(IPC.sshImportSources)
   },
   sftp: {
     connect: (

@@ -21,6 +21,7 @@ export const IPC = {
   // SSH (section Serveurs)
   sshConfigHosts: 'ssh:configHosts',
   sshAvailable: 'ssh:available',
+  sshImportSources: 'ssh:importSources',
 
   // SFTP (explorateur distant)
   sftpConnect: 'sftp:connect',

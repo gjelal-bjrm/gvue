@@ -31,8 +31,9 @@ import ProjectItem from './sidebar/ProjectItem'
 import LaunchConfigDialog from './sidebar/LaunchConfigDialog'
 import ServerItem from './sidebar/ServerItem'
 import ServerAddForm from './sidebar/ServerAddForm'
+import ServerImportDialog from './sidebar/ServerImportDialog'
 import { useTerminalStore } from '../state/useTerminalStore'
-import { sshCommandFor } from '../lib/ssh'
+import { sshCommandFor, mergeHosts } from '../lib/ssh'
 
 /**
  * Sidebar : lanceur, accès rapide, lecteurs, favoris et projets — orchestration
@@ -76,6 +77,7 @@ export default function Sidebar(): JSX.Element {
   const [manualHosts, setManualHosts] = useState<SshHost[]>([])
   const [sshOk, setSshOk] = useState(true)
   const [addServerOpen, setAddServerOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
   const [launchOpen, setLaunchOpen] = useState(false)
   const [groupAxis, setGroupAxis] = useState<'project' | 'category'>('project')
   const [config, setConfig] = useState<{ root: string; name: string } | null>(null)
@@ -339,12 +341,32 @@ export default function Sidebar(): JSX.Element {
           {addServerOpen ? (
             <ServerAddForm onAdd={addServer} onClose={() => setAddServerOpen(false)} />
           ) : (
-            <button
-              onClick={() => setAddServerOpen(true)}
-              className="mt-0.5 w-full rounded-app px-2 py-1 text-left text-[11px] text-fg-muted hover:bg-bg-hover hover:text-fg"
-            >
-              + Ajouter un serveur…
-            </button>
+            <>
+              <button
+                onClick={() => setAddServerOpen(true)}
+                className="mt-0.5 w-full rounded-app px-2 py-1 text-left text-[11px] text-fg-muted hover:bg-bg-hover hover:text-fg"
+              >
+                + Ajouter un serveur…
+              </button>
+              <button
+                onClick={() => setImportOpen(true)}
+                title="Récupérer les sessions déjà configurées dans PuTTY ou WinSCP"
+                className="w-full rounded-app px-2 py-1 text-left text-[11px] text-fg-muted hover:bg-bg-hover hover:text-fg"
+              >
+                ⇪ Importer depuis PuTTY / WinSCP…
+              </button>
+            </>
+          )}
+          {importOpen && (
+            <ServerImportDialog
+              existing={[...configHosts, ...manualHosts]}
+              onImport={(hosts) => {
+                const next = mergeHosts(manualHosts, hosts)
+                setManualHosts(next)
+                void window.api.config.set('sshHosts', next)
+              }}
+              onClose={() => setImportOpen(false)}
+            />
           )}
         </>
       )
