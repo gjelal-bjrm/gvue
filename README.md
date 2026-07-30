@@ -234,6 +234,7 @@ jamais à Node directement.
 gvue/
 ├─ electron.vite.config.ts
 ├─ electron-builder.yml         # config installeur NSIS + publication GitHub
+├─ justfile                     # tâches de dev (just --list) : dev, check, dist, doctor…
 ├─ run.bat                      # lancement guidé (vérif Node, install, rebuild, dev)
 ├─ build.bat                    # build de l'installeur Windows
 ├─ publish.bat                  # assistant de publication d'une mise à jour
@@ -284,7 +285,34 @@ Ou, sous Windows, un simple double-clic sur **`run.bat`** : il vérifie la versi
 Node, installe les dépendances si besoin, tente la recompilation native, puis lance
 l'app.
 
-Autres scripts :
+### Tâches de développement (`just`)
+
+Le projet fournit un **[justfile](justfile)** qui regroupe toutes les tâches de dev
+avec leur description ([just](https://just.systems) : `winget install --id Casey.Just`).
+
+```bash
+just              # liste toutes les commandes disponibles
+just dev          # lance l'app en développement
+just check        # porte d'entrée avant commit : types + tests + build
+just dist         # construit l'installeur Windows
+just doctor       # diagnostic de l'environnement (Node, node-pty, outils)
+```
+
+| Recette | Rôle |
+| --- | --- |
+| `dev` / `start` | mode développement (HMR) / prévisualisation du build |
+| `setup` / `rebuild` | installe les dépendances / recompile node-pty pour Electron |
+| `typecheck` / `test [args]` / `test-watch` | typage strict / tests vitest / mode watch |
+| `check` | **types + tests + build** — à lancer avant chaque commit |
+| `dist` / `dist-dir` / `build` | installeur NSIS / build non empaqueté / installeur + ouverture de `dist/` |
+| `bump [niveau]` / `notes` | version sans tag git (patch par défaut) / notes « Nouveautés » |
+| `publish` | relaie `publish.bat` (assistant interactif : token, version, upload) |
+| `clean` / `clean-all` | supprime `out/` + `dist/` / y compris `node_modules` |
+| `doctor` / `logs [n]` / `data-dir` | diagnostic / journal de l'app / dossier de données |
+| `mcp-cmd` | affiche la commande d'enregistrement du serveur MCP |
+
+Les `.bat` restent disponibles pour un usage au double-clic (`run.bat`,
+`build.bat`, `publish.bat`), et les scripts npm sous-jacents sont inchangés :
 
 ```bash
 npm run typecheck   # typage strict (main + renderer)
