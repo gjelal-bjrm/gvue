@@ -1,5 +1,11 @@
 [
   {
+    "version": "0.1.20",
+    "notes": [
+      "Vue grille — les vignettes grandissent VRAIMENT avec la tuile"
+    ]
+  },
+  {
     "version": "0.1.19",
     "notes": [
       "Boutons Play/Stop + config sur les favoris (comme les projets)",
