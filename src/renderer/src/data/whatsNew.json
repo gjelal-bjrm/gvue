@@ -1,5 +1,11 @@
 [
   {
+    "version": "0.1.21",
+    "notes": [
+      "Git — graphe des branches, staging instantané, sélection multiple, accès visible"
+    ]
+  },
+  {
     "version": "0.1.20",
     "notes": [
       "Vue grille — les vignettes grandissent VRAIMENT avec la tuile",
