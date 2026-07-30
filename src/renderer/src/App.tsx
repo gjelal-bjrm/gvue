@@ -143,6 +143,11 @@ export default function App(): JSX.Element {
       } else if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === 'e' || e.key === 'E')) {
         e.preventDefault()
         useUiStore.getState().toggleFileFinder()
+      } else if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === 'g' || e.key === 'G')) {
+        e.preventDefault()
+        const ui = useUiStore.getState()
+        if (!ui.gitViewOpen) useSearchStore.getState().close()
+        ui.toggleGitView()
       } else if (e.key === 'F1') {
         e.preventDefault()
         useUiStore.getState().setShortcuts(!useUiStore.getState().shortcutsOpen)
@@ -164,6 +169,10 @@ export default function App(): JSX.Element {
         void undoLastOp()
         return
       }
+
+      // La vue Git remplace les volets : les raccourcis fichiers (Ctrl+A/C/X/V,
+      // F2, Suppr, onglets) ne doivent pas agir sur la liste masquée.
+      if (useUiStore.getState().gitViewOpen) return
 
       const s = useNavStore.getState()
 

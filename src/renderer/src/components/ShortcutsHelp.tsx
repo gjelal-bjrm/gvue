@@ -58,6 +58,16 @@ const GROUPS: Group[] = [
     ]
   },
   {
+    title: 'Git',
+    rows: [
+      { keys: ['Ctrl', 'G'], label: 'Ouvrir / fermer le panneau Git' },
+      { keys: ['Ctrl+clic', 'Maj+clic'], label: 'Sélection multiple / plage de fichiers modifiés' },
+      { keys: ['Ctrl', 'A'], label: 'Sélectionner tous les fichiers modifiés' },
+      { keys: ['Espace'], label: 'Indexer / désindexer la sélection' },
+      { keys: ['Échap'], label: 'Vider la sélection' }
+    ]
+  },
+  {
     title: 'Terminal',
     rows: [
       { keys: ['Ctrl', 'F'], label: 'Rechercher dans le terminal' },

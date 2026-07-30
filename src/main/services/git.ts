@@ -207,19 +207,21 @@ export async function projects(roots: string[]): Promise<GitProject[]> {
   return infos.filter((p): p is GitProject => p !== null)
 }
 
-/** Indexe un fichier (git add). */
-export async function stage(dir: string, file: string): Promise<GitActionResult> {
+/** Indexe un ou plusieurs fichiers en une seule commande (git add). */
+export async function stage(dir: string, files: string[]): Promise<GitActionResult> {
+  if (files.length === 0) return { ok: true, output: 'OK' }
   try {
-    return run(['add', '--', file], assertAbsolute(dir))
+    return run(['add', '--', ...files], assertAbsolute(dir))
   } catch (e) {
     return { ok: false, output: e instanceof Error ? e.message : String(e) }
   }
 }
 
-/** Désindexe un fichier (git restore --staged). */
-export async function unstage(dir: string, file: string): Promise<GitActionResult> {
+/** Désindexe un ou plusieurs fichiers en une seule commande (git restore --staged). */
+export async function unstage(dir: string, files: string[]): Promise<GitActionResult> {
+  if (files.length === 0) return { ok: true, output: 'OK' }
   try {
-    return run(['restore', '--staged', '--', file], assertAbsolute(dir))
+    return run(['restore', '--staged', '--', ...files], assertAbsolute(dir))
   } catch (e) {
     return { ok: false, output: e instanceof Error ? e.message : String(e) }
   }
@@ -365,21 +367,37 @@ function mapNameStatus(letter: string): GitCategory {
 // Séparateurs de champ/enregistrement pour parser `git log` sans ambiguïté.
 const LOG_SEP = '\x1f'
 const LOG_REC = '\x1e'
-const LOG_FMT = ['%H', '%h', '%an', '%ad', '%s'].join(LOG_SEP) + LOG_REC
+const LOG_FMT = ['%H', '%h', '%an', '%ad', '%at', '%s', '%P', '%D'].join(LOG_SEP) + LOG_REC
 
-function parseLog(raw: string): GitCommit[] {
+export function parseLog(raw: string): GitCommit[] {
   return raw
     .split(LOG_REC)
     .map((r) => r.trim())
     .filter(Boolean)
     .map((rec) => {
-      const [hash, shortHash, author, date, subject] = rec.split(LOG_SEP)
-      return { hash, shortHash, author, date, subject: subject ?? '' }
+      const [hash, shortHash, author, date, at, subject, parents, refs] = rec.split(LOG_SEP)
+      return {
+        hash,
+        shortHash,
+        author,
+        date,
+        ts: Number(at) || 0,
+        subject: subject ?? '',
+        parents: (parents ?? '').split(' ').filter(Boolean),
+        refs: (refs ?? '')
+          .split(', ')
+          .map((s) => s.trim())
+          .filter(Boolean)
+      }
     })
 }
 
-/** Historique des commits (du plus récent au plus ancien), limité à `limit`. */
-export async function log(dir: string, limit = 100): Promise<GitCommit[]> {
+/**
+ * Historique des commits (du plus récent au plus ancien), limité à `limit`.
+ * `all` inclut toutes les branches (graphe) ; --date-order garde les enfants
+ * avant leurs parents, ce qui est requis pour le calcul des couloirs.
+ */
+export async function log(dir: string, limit = 100, all = false): Promise<GitCommit[]> {
   let cwd: string
   try {
     cwd = assertAbsolute(dir)
@@ -387,10 +405,16 @@ export async function log(dir: string, limit = 100): Promise<GitCommit[]> {
     return []
   }
   try {
-    const raw = await git(
-      ['log', '-n', String(limit), '--date=format:%Y-%m-%d %H:%M', `--pretty=format:${LOG_FMT}`],
-      cwd
-    )
+    const args = [
+      'log',
+      '-n',
+      String(limit),
+      '--date-order',
+      '--date=format:%Y-%m-%d %H:%M',
+      `--pretty=format:${LOG_FMT}`
+    ]
+    if (all) args.splice(1, 0, '--branches', '--tags', '--remotes')
+    const raw = await git(args, cwd)
     return parseLog(raw)
   } catch {
     return []

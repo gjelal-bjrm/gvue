@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { GitFileChange, GitBranches } from '@shared/types'
+import type { GitFileChange, GitBranches, GitActionResult } from '@shared/types'
 import { pathKey } from '../lib/format'
 
 /**
@@ -30,6 +30,14 @@ interface GitState {
   branches: GitBranches
   refresh: (dir: string) => Promise<void>
   loadBranches: (dir: string) => Promise<void>
+  /**
+   * (Dés)indexe des fichiers avec retour visuel immédiat : l'état `staged` est
+   * basculé localement AVANT l'aller-retour git (une seule commande pour tout
+   * le lot), puis le statut est resynchronisé en arrière-plan.
+   */
+  setStaged: (root: string, paths: string[], staged: boolean) => Promise<GitActionResult>
+  /** Indexe/désindexe tout, avec la même bascule optimiste. */
+  setAllStaged: (root: string, staged: boolean) => Promise<GitActionResult>
   clear: () => void
 }
 
@@ -48,7 +56,21 @@ const EMPTY = {
 }
 const NO_BRANCHES: GitBranches = { current: '', all: [] }
 
-export const useGitStore = create<GitState>((set) => ({
+/** Bascule `staged` sur les fichiers dont la clé est dans `keys`. */
+function flipStaged(
+  s: Pick<GitState, 'files' | 'statusByPath'>,
+  keys: Set<string>,
+  staged: boolean
+): Pick<GitState, 'files' | 'statusByPath'> {
+  const files = s.files.map((f) => (keys.has(pathKey(f.path)) ? { ...f, staged } : f))
+  const statusByPath: Record<string, GitFileChange> = {}
+  for (const [k, f] of Object.entries(s.statusByPath)) {
+    statusByPath[k] = keys.has(k) ? { ...f, staged } : f
+  }
+  return { files, statusByPath }
+}
+
+export const useGitStore = create<GitState>((set, get) => ({
   repo: null,
   statusByPath: {},
   files: [],
@@ -110,6 +132,34 @@ export const useGitStore = create<GitState>((set) => ({
     } catch {
       set({ branches: NO_BRANCHES })
     }
+  },
+
+  setStaged: async (root, paths, staged) => {
+    const keys = new Set(paths.map(pathKey))
+    set((s) => flipStaged(s, keys, staged))
+    let r: GitActionResult
+    try {
+      r = staged
+        ? await window.api.git.stage(root, paths)
+        : await window.api.git.unstage(root, paths)
+    } catch (e) {
+      r = { ok: false, output: e instanceof Error ? e.message : String(e) }
+    }
+    // Resynchronisation silencieuse (corrige aussi l'optimisme en cas d'échec).
+    await get().refresh(root)
+    return r
+  },
+
+  setAllStaged: async (root, staged) => {
+    set((s) => flipStaged(s, new Set(s.files.map((f) => pathKey(f.path))), staged))
+    let r: GitActionResult
+    try {
+      r = staged ? await window.api.git.stageAll(root) : await window.api.git.unstageAll(root)
+    } catch (e) {
+      r = { ok: false, output: e instanceof Error ? e.message : String(e) }
+    }
+    await get().refresh(root)
+    return r
   },
 
   clear: () => set({ ...EMPTY, branches: NO_BRANCHES })

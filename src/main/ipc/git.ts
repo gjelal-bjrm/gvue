@@ -28,12 +28,12 @@ export function registerGitHandlers(): void {
     return git.push(dir)
   })
 
-  ipcMain.handle(IPC.gitStage, async (_e, dir: string, file: string) => {
-    return git.stage(dir, file)
+  ipcMain.handle(IPC.gitStage, async (_e, dir: string, files: string[]) => {
+    return git.stage(dir, files)
   })
 
-  ipcMain.handle(IPC.gitUnstage, async (_e, dir: string, file: string) => {
-    return git.unstage(dir, file)
+  ipcMain.handle(IPC.gitUnstage, async (_e, dir: string, files: string[]) => {
+    return git.unstage(dir, files)
   })
 
   ipcMain.handle(IPC.gitDiscard, async (_e, dir: string, file: string) => {
@@ -79,8 +79,8 @@ export function registerGitHandlers(): void {
     return git.ignore(dir, patterns)
   })
 
-  ipcMain.handle(IPC.gitLog, async (_e, dir: string, limit?: number) => {
-    return git.log(dir, limit)
+  ipcMain.handle(IPC.gitLog, async (_e, dir: string, limit?: number, all?: boolean) => {
+    return git.log(dir, limit, all)
   })
 
   ipcMain.handle(IPC.gitFileLog, async (_e, dir: string, file: string, limit?: number) => {

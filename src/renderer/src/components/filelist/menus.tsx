@@ -397,13 +397,13 @@ export function buildItemMenu(entry: DirEntry, ctx: MenuCtx): MenuEntry[] {
     entries.push({
       label: 'Indexer',
       icon: <Plus size={14} />,
-      onClick: () => void window.api.git.stage(path, entry.path).then(ctx.refreshAfter)
+      onClick: () => void window.api.git.stage(path, [entry.path]).then(ctx.refreshAfter)
     })
     entries.push({
       label: 'Désindexer',
       icon: <Minus size={14} />,
       disabled: !git.staged,
-      onClick: () => void window.api.git.unstage(path, entry.path).then(ctx.refreshAfter)
+      onClick: () => void window.api.git.unstage(path, [entry.path]).then(ctx.refreshAfter)
     })
     if (git.category !== 'untracked') {
       entries.push({

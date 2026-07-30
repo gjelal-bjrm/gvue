@@ -2,7 +2,10 @@
   {
     "version": "0.1.20",
     "notes": [
-      "Vue grille — les vignettes grandissent VRAIMENT avec la tuile"
+      "Vue grille — les vignettes grandissent VRAIMENT avec la tuile",
+      "Git — graphe des branches dans l'historique (toutes branches, tags, filtre, charger plus)",
+      "Git — indexation instantanée (plus d'attente d'1 s par case), sélection multiple Ctrl/Maj+clic mise en valeur",
+      "Git — bouton dédié dans la barre d'outils avec compteur, raccourci Ctrl+G, vue simple repensée"
     ]
   },
   {

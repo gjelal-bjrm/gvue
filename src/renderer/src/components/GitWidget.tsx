@@ -1,19 +1,30 @@
 import { useState } from 'react'
-import { GitBranch, GitCommit, ArrowUp, ArrowDown, Loader2, PanelsTopLeft } from 'lucide-react'
+import {
+  GitBranch,
+  GitCommit,
+  ArrowUp,
+  ArrowDown,
+  Loader2,
+  PanelsTopLeft
+} from 'lucide-react'
 import { useGitStore } from '../state/useGitStore'
 import { useUiStore } from '../state/useUiStore'
 import { useSearchStore } from '../state/useSearchStore'
 import { useNavStore, activePane } from '../state/useNavStore'
+import { badge } from './git/badge'
 import type { GitActionResult } from '@shared/types'
+
+// Nombre de fichiers montrés dans l'aperçu de la vue simple.
+const PREVIEW_MAX = 6
 
 /**
  * Indicateur Git de la barre d'état : branche + avance/retard, cliquable pour
- * ouvrir un panneau d'actions (commit tout, pull, push). Ne s'affiche que dans
- * un dépôt. Après chaque action réussie, statut Git et liste sont rafraîchis.
+ * ouvrir la vue simple — aperçu des fichiers modifiés, commit rapide,
+ * pull/push, et accès mis en avant au panneau Git complet (Ctrl+G).
  */
 export default function GitWidget(): JSX.Element | null {
   const repo = useGitStore((s) => s.repo)
-  const statusByPath = useGitStore((s) => s.statusByPath)
+  const files = useGitStore((s) => s.files)
   const path = useNavStore((s) => activePane(s).path)
 
   const [open, setOpen] = useState(false)
@@ -23,7 +34,9 @@ export default function GitWidget(): JSX.Element | null {
 
   if (!repo) return null
 
-  const changes = Object.values(statusByPath).filter((f) => f.category !== 'ignored').length
+  const changes = files.length
+  const relOf = (p: string): string =>
+    p.startsWith(repo.root + '/') ? p.slice(repo.root.length + 1) : p
 
   const refreshAll = async (): Promise<void> => {
     await useGitStore.getState().refresh(path)
@@ -50,11 +63,17 @@ export default function GitWidget(): JSX.Element | null {
   const doPull = (): Promise<void> => act(() => window.api.git.pull(path))
   const doPush = (): Promise<void> => act(() => window.api.git.push(path))
 
+  const openDetailed = (): void => {
+    setOpen(false)
+    useSearchStore.getState().close()
+    useUiStore.getState().setGitView(true)
+  }
+
   return (
     <span className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
-        title="Actions Git"
+        title="Git — vue simple (clic) · panneau complet : Ctrl+G"
         className={`flex shrink-0 items-center gap-1 rounded px-1 hover:bg-bg-hover ${
           open ? 'text-fg' : 'text-fg-secondary'
         }`}
@@ -63,31 +82,84 @@ export default function GitWidget(): JSX.Element | null {
         {repo.branch}
         {repo.ahead > 0 && <span className="text-fg-muted">↑{repo.ahead}</span>}
         {repo.behind > 0 && <span className="text-fg-muted">↓{repo.behind}</span>}
-        {changes > 0 && <span className="text-warning-fg">●</span>}
+        {changes > 0 && (
+          <span className="rounded-full bg-accent-soft px-1 text-[10px] font-medium leading-[14px] text-accent">
+            {changes}
+          </span>
+        )}
       </button>
 
       {open && (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-          <div className="absolute bottom-full left-0 z-40 mb-1.5 w-72 rounded-app border border-border bg-bg-secondary p-2.5 text-[12px] shadow-lg">
+          <div className="absolute bottom-full left-0 z-40 mb-1.5 w-80 rounded-app border border-border bg-bg-secondary p-2.5 text-[12px] shadow-lg">
+            {/* En-tête : branche + état de synchro en clair */}
             <div className="mb-2 flex items-center gap-1.5 text-fg-secondary">
-              <GitBranch size={13} className="text-accent" />
-              <span className="font-medium text-fg">{repo.branch}</span>
-              <span className="text-fg-muted">
-                · {changes} changement{changes > 1 ? 's' : ''}
+              <GitBranch size={13} className="shrink-0 text-accent" />
+              <span className="min-w-0 truncate font-medium text-fg">{repo.branch}</span>
+              <span className="ml-auto flex shrink-0 items-center gap-1">
+                {repo.ahead > 0 && (
+                  <span
+                    title={`${repo.ahead} commit${repo.ahead > 1 ? 's' : ''} à pousser`}
+                    className="flex items-center gap-0.5 rounded-full border border-border px-1.5 text-[11px] text-fg-secondary"
+                  >
+                    <ArrowUp size={10} /> {repo.ahead}
+                  </span>
+                )}
+                {repo.behind > 0 && (
+                  <span
+                    title={`${repo.behind} commit${repo.behind > 1 ? 's' : ''} à récupérer`}
+                    className="flex items-center gap-0.5 rounded-full border border-border px-1.5 text-[11px] text-fg-secondary"
+                  >
+                    <ArrowDown size={10} /> {repo.behind}
+                  </span>
+                )}
+                {repo.ahead === 0 && repo.behind === 0 && (
+                  <span className="text-[11px] text-fg-muted">à jour</span>
+                )}
               </span>
             </div>
 
+            {/* Aperçu des fichiers modifiés */}
+            {changes > 0 ? (
+              <div className="mb-2 rounded-app border border-border bg-bg p-1">
+                {files.slice(0, PREVIEW_MAX).map((f) => {
+                  const b = badge(f.category)
+                  return (
+                    <div key={f.path} className="flex items-center gap-1.5 px-1 py-0.5">
+                      <span className={`w-3 shrink-0 text-center font-mono text-[11px] font-bold ${b.cls}`}>
+                        {b.letter}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-[11px] text-fg-secondary" title={relOf(f.path)}>
+                        {relOf(f.path)}
+                      </span>
+                      {f.staged && <span className="shrink-0 text-[10px] text-accent">indexé</span>}
+                    </div>
+                  )
+                })}
+                {changes > PREVIEW_MAX && (
+                  <button
+                    onClick={openDetailed}
+                    className="w-full px-1 py-0.5 text-left text-[11px] text-fg-muted hover:text-accent"
+                  >
+                    … et {changes - PREVIEW_MAX} autre{changes - PREVIEW_MAX > 1 ? 's' : ''} — tout voir
+                  </button>
+                )}
+              </div>
+            ) : (
+              <p className="mb-2 rounded-app border border-border bg-bg px-2 py-1.5 text-[11px] text-fg-muted">
+                Aucune modification en attente.
+              </p>
+            )}
+
+            {/* Accès mis en avant au panneau complet */}
             <button
-              onClick={() => {
-                setOpen(false)
-                useSearchStore.getState().close()
-                useUiStore.getState().setGitView(true)
-              }}
-              className="mb-2 flex w-full items-center justify-center gap-1.5 rounded-app border border-border px-2 py-1.5 text-[12px] text-fg-secondary hover:bg-bg-hover hover:text-fg"
+              onClick={openDetailed}
+              className="mb-2 flex w-full items-center justify-center gap-1.5 rounded-app bg-accent px-2 py-1.5 text-[12px] font-medium text-white hover:opacity-90"
             >
               <PanelsTopLeft size={14} />
-              Vue détaillée (fichiers + diff)
+              Ouvrir le panneau Git
+              <kbd className="rounded bg-white/20 px-1 text-[10px] font-normal">Ctrl+G</kbd>
             </button>
 
             <textarea
@@ -99,16 +171,15 @@ export default function GitWidget(): JSX.Element | null {
               className="mb-1.5 w-full resize-none rounded-app border border-border bg-bg px-2 py-1.5 text-[12px] text-fg outline-none placeholder:text-fg-muted focus:border-accent"
             />
 
-            <button
-              onClick={() => void doCommit()}
-              disabled={busy || !message.trim() || changes === 0}
-              className="mb-2 flex w-full items-center justify-center gap-1.5 rounded-app bg-accent px-2 py-1.5 text-[12px] font-medium text-white hover:opacity-90 disabled:opacity-40"
-            >
-              <GitCommit size={14} />
-              Commit tout{changes > 0 ? ` (${changes})` : ''}
-            </button>
-
             <div className="flex gap-1.5">
+              <ActionBtn
+                onClick={() => void doCommit()}
+                disabled={busy || !message.trim() || changes === 0}
+                label="Commiter toutes les modifications"
+              >
+                <GitCommit size={13} />
+                Commit tout{changes > 0 ? ` (${changes})` : ''}
+              </ActionBtn>
               <ActionBtn onClick={() => void doPull()} disabled={busy} label="Pull">
                 <ArrowDown size={13} />
                 Pull{repo.behind > 0 ? ` ${repo.behind}` : ''}
@@ -154,7 +225,7 @@ function ActionBtn(props: {
       onClick={props.onClick}
       disabled={props.disabled}
       title={props.label}
-      className="flex flex-1 items-center justify-center gap-1.5 rounded-app border border-border px-2 py-1.5 text-[12px] text-fg-secondary hover:bg-bg-hover disabled:opacity-40"
+      className="flex flex-1 items-center justify-center gap-1 rounded-app border border-border px-1.5 py-1.5 text-[12px] text-fg-secondary hover:bg-bg-hover disabled:opacity-40"
     >
       {props.children}
     </button>

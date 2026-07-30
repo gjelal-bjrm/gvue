@@ -79,6 +79,27 @@ export default function GitPanel(): JSX.Element {
     if (root) void useGitStore.getState().loadBranches(root)
   }, [root])
 
+  // Ctrl+A : tout sélectionner · Espace : (dés)indexer la sélection · Échap : vider.
+  useEffect(() => {
+    if (tab !== 'changes') return
+    const onKey = (e: KeyboardEvent): void => {
+      const t = e.target as HTMLElement | null
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'a') {
+        e.preventDefault()
+        setSel(new Set(order.map((f) => pathKey(f.path))))
+      } else if (e.key === ' ' && selectedFiles.length) {
+        e.preventDefault()
+        toggleStaged(selectedFiles, selectedFiles.some((f) => !f.staged))
+      } else if (e.key === 'Escape' && sel.size) {
+        setSel(new Set())
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, order, selectedFiles, sel.size])
+
   // Recharge le diff quand la sélection ou la liste change.
   useEffect(() => {
     void loadDiff(selected)
@@ -116,6 +137,28 @@ export default function GitPanel(): JSX.Element {
 
   const relOf = (p: string): string =>
     repo && p.startsWith(repo.root + '/') ? p.slice(repo.root.length + 1) : p
+
+  // (Dés)indexation instantanée : bascule optimiste dans le store + une seule
+  // commande git pour tout le lot (plus d'attente d'1 s par case cochée).
+  const toggleStaged = (targets: GitFileChange[], staged: boolean): void => {
+    const paths = targets.filter((f) => f.staged !== staged).map((f) => f.path)
+    if (!paths.length) return
+    void useGitStore
+      .getState()
+      .setStaged(root, paths, staged)
+      .then((r) => {
+        if (!r.ok) setResult(r)
+      })
+  }
+
+  const toggleAllStaged = (staged: boolean): void => {
+    void useGitStore
+      .getState()
+      .setAllStaged(root, staged)
+      .then((r) => {
+        if (!r.ok) setResult(r)
+      })
+  }
 
   // Sélection : clic = simple, Ctrl = bascule, Maj = plage. selPath = diff affiché.
   const onRowClick = (e: React.MouseEvent, f: GitFileChange): void => {
@@ -196,21 +239,13 @@ export default function GitPanel(): JSX.Element {
       entries.push({
         label: `Indexer${suffix}`,
         icon: <Plus size={14} />,
-        onClick: () =>
-          void act(async () => {
-            for (const f of targets) if (!f.staged) await window.api.git.stage(root, f.path)
-            return { ok: true, output: 'OK' }
-          })
+        onClick: () => toggleStaged(targets, true)
       })
     if (targets.some((f) => f.staged))
       entries.push({
         label: `Désindexer${suffix}`,
         icon: <Minus size={14} />,
-        onClick: () =>
-          void act(async () => {
-            for (const f of targets) if (f.staged) await window.api.git.unstage(root, f.path)
-            return { ok: true, output: 'OK' }
-          })
+        onClick: () => toggleStaged(targets, false)
       })
     entries.push({
       label: `Annuler les modifications${suffix}…`,
@@ -342,13 +377,7 @@ export default function GitPanel(): JSX.Element {
                   ref={(el) => {
                     if (el) el.indeterminate = staged.length > 0 && staged.length < files.length
                   }}
-                  onChange={() =>
-                    void act(() =>
-                      staged.length === files.length
-                        ? window.api.git.unstageAll(root)
-                        : window.api.git.stageAll(root)
-                    )
-                  }
+                  onChange={() => toggleAllStaged(staged.length !== files.length)}
                   className="accent-[var(--accent)]"
                 />
                 <span>
@@ -357,6 +386,31 @@ export default function GitPanel(): JSX.Element {
                   <span className="text-fg-muted"> · {staged.length} indexé{staged.length > 1 ? 's' : ''}</span>
                 </span>
               </label>
+            )}
+            {selectedFiles.length > 1 ? (
+              <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-border bg-accent-soft px-2.5 py-1 text-[11px]">
+                <span className="font-medium text-fg">
+                  {selectedFiles.length} sélectionnés
+                </span>
+                <SelBtn onClick={() => toggleStaged(selectedFiles, true)}>Indexer</SelBtn>
+                <SelBtn onClick={() => toggleStaged(selectedFiles, false)}>Désindexer</SelBtn>
+                <SelBtn danger onClick={() => discardTargets(selectedFiles)}>
+                  Annuler…
+                </SelBtn>
+                <button
+                  onClick={() => setSel(new Set())}
+                  title="Vider la sélection (Échap)"
+                  className="ml-auto rounded px-1 text-fg-muted hover:bg-bg-hover hover:text-fg"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              files.length > 1 && (
+                <div className="shrink-0 border-b border-border px-2.5 py-1 text-[11px] text-fg-muted">
+                  Astuce : Ctrl+clic pour choisir plusieurs fichiers, Maj+clic pour une plage.
+                </div>
+              )
             )}
             <div className="min-h-0 flex-1 overflow-auto p-1.5">
               {files.length === 0 ? (
@@ -371,13 +425,11 @@ export default function GitPanel(): JSX.Element {
                     lead={selPath != null && pathKey(f.path) === pathKey(selPath)}
                     onClick={(e) => onRowClick(e, f)}
                     onContextMenu={(e) => onRowContext(e, f)}
-                    onToggleStaged={() =>
-                      void act(() =>
-                        f.staged
-                          ? window.api.git.unstage(root, f.path)
-                          : window.api.git.stage(root, f.path)
-                      )
-                    }
+                    onToggleStaged={() => {
+                      // La case d'une ligne sélectionnée agit sur toute la sélection.
+                      const inSel = sel.has(pathKey(f.path)) && selectedFiles.length > 1
+                      toggleStaged(inSel ? selectedFiles : [f], !f.staged)
+                    }}
                     onDiscard={() => discardTargets([f])}
                   />
                 ))
@@ -431,5 +483,23 @@ export default function GitPanel(): JSX.Element {
         <ContextMenu x={menu.x} y={menu.y} entries={buildMenu()} onClose={() => setMenu(null)} />
       )}
     </div>
+  )
+}
+
+/** Petit bouton d'action de la barre de sélection multiple. */
+function SelBtn(props: {
+  onClick: () => void
+  danger?: boolean
+  children: React.ReactNode
+}): JSX.Element {
+  return (
+    <button
+      onClick={props.onClick}
+      className={`rounded border border-border bg-bg px-1.5 py-0.5 hover:bg-bg-hover ${
+        props.danger ? 'text-danger-fg' : 'text-fg-secondary hover:text-fg'
+      }`}
+    >
+      {props.children}
+    </button>
   )
 }

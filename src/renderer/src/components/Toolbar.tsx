@@ -24,11 +24,13 @@ import {
   Loader2,
   LayoutGrid,
   List,
-  HelpCircle
+  HelpCircle,
+  GitBranch
 } from 'lucide-react'
 import { useNavStore, activePane } from '../state/useNavStore'
 import { useUiStore } from '../state/useUiStore'
 import { useSearchStore } from '../state/useSearchStore'
+import { useGitStore } from '../state/useGitStore'
 import { breadcrumbSegments } from '../lib/format'
 import WorkspaceMenu from './WorkspaceMenu'
 
@@ -179,6 +181,7 @@ export default function Toolbar(): JSX.Element {
         >
           {viewMode === 'grid' ? <List size={16} /> : <LayoutGrid size={16} />}
         </NavBtn>
+        <GitButton />
       </div>
 
       {/* Barre d'adresse */}
@@ -287,6 +290,39 @@ export default function Toolbar(): JSX.Element {
 /** Séparateur fin entre groupes de boutons de la barre d'outils. */
 function Sep(): JSX.Element {
   return <div className="mx-0.5 h-5 w-px shrink-0 bg-border" />
+}
+
+/**
+ * Bouton Git de la barre d'outils : visible dès qu'on est dans un dépôt,
+ * pastille avec le nombre de fichiers modifiés, bascule le panneau Git (Ctrl+G).
+ */
+function GitButton(): JSX.Element | null {
+  const repo = useGitStore((s) => s.repo)
+  const changes = useGitStore((s) => s.files.length)
+  const gitViewOpen = useUiStore((s) => s.gitViewOpen)
+  if (!repo) return null
+  return (
+    <>
+      <Sep />
+      <button
+        onClick={() => {
+          if (!gitViewOpen) useSearchStore.getState().close()
+          useUiStore.getState().toggleGitView()
+        }}
+        title={`Panneau Git — ${repo.branch}${changes ? ` · ${changes} modification${changes > 1 ? 's' : ''}` : ''} (Ctrl+G)`}
+        className={`relative grid h-8 w-8 shrink-0 place-items-center rounded-app transition-colors hover:bg-bg-hover ${
+          gitViewOpen ? 'bg-accent-soft text-accent' : 'text-fg-secondary hover:text-fg'
+        }`}
+      >
+        <GitBranch size={17} />
+        {changes > 0 && (
+          <span className="absolute -right-0.5 -top-0.5 min-w-[15px] rounded-full bg-accent px-0.5 text-center text-[9px] font-bold leading-[15px] text-white">
+            {changes > 99 ? '99+' : changes}
+          </span>
+        )}
+      </button>
+    </>
+  )
 }
 
 /**

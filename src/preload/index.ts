@@ -157,10 +157,10 @@ const api = {
       ipcRenderer.invoke(IPC.gitCommit, dir, message),
     pull: (dir: string): Promise<GitActionResult> => ipcRenderer.invoke(IPC.gitPull, dir),
     push: (dir: string): Promise<GitActionResult> => ipcRenderer.invoke(IPC.gitPush, dir),
-    stage: (dir: string, file: string): Promise<GitActionResult> =>
-      ipcRenderer.invoke(IPC.gitStage, dir, file),
-    unstage: (dir: string, file: string): Promise<GitActionResult> =>
-      ipcRenderer.invoke(IPC.gitUnstage, dir, file),
+    stage: (dir: string, files: string[]): Promise<GitActionResult> =>
+      ipcRenderer.invoke(IPC.gitStage, dir, files),
+    unstage: (dir: string, files: string[]): Promise<GitActionResult> =>
+      ipcRenderer.invoke(IPC.gitUnstage, dir, files),
     discard: (dir: string, file: string): Promise<GitActionResult> =>
       ipcRenderer.invoke(IPC.gitDiscard, dir, file),
     projects: (): Promise<GitProject[]> => ipcRenderer.invoke(IPC.gitProjects),
@@ -182,8 +182,8 @@ const api = {
       ipcRenderer.invoke(IPC.gitCommitStaged, dir, message),
     ignore: (dir: string, patterns: string[]): Promise<GitActionResult> =>
       ipcRenderer.invoke(IPC.gitIgnore, dir, patterns),
-    log: (dir: string, limit?: number): Promise<GitCommit[]> =>
-      ipcRenderer.invoke(IPC.gitLog, dir, limit),
+    log: (dir: string, limit?: number, all?: boolean): Promise<GitCommit[]> =>
+      ipcRenderer.invoke(IPC.gitLog, dir, limit, all),
     fileLog: (dir: string, file: string, limit?: number): Promise<GitCommit[]> =>
       ipcRenderer.invoke(IPC.gitFileLog, dir, file, limit),
     commitFiles: (dir: string, hash: string): Promise<GitFileChange[]> =>

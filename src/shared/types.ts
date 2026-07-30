@@ -429,7 +429,13 @@ export interface GitCommit {
   author: string
   /** Date formatée « AAAA-MM-JJ HH:MM ». */
   date: string
+  /** Date du commit en secondes Unix (affichage relatif). */
+  ts: number
   subject: string
+  /** Hash(s) des parents — 2+ pour un commit de fusion (graphe). */
+  parents: string[]
+  /** Décorations : branches/tags pointant sur ce commit (ex. « main », « tag: v1 », « HEAD -> main »). */
+  refs: string[]
 }
 
 export interface GitStatus {
