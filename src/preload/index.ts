@@ -329,7 +329,28 @@ const api = {
     toggle: (enabled: boolean): Promise<{ enabled: boolean; port: number; bridgePath: string }> =>
       ipcRenderer.invoke(IPC.mcpToggle, enabled),
     status: (): Promise<{ enabled: boolean; port: number; bridgePath: string }> =>
-      ipcRenderer.invoke(IPC.mcpStatus)
+      ipcRenderer.invoke(IPC.mcpStatus),
+    /** Un agent demande un terminal visible (cwd + commande optionnelle). */
+    onOpenTerminal: (
+      cb: (req: { cwd: string; command: string; title: string }) => void
+    ): (() => void) => {
+      const listener = (_e: unknown, req: { cwd: string; command: string; title: string }): void =>
+        cb(req)
+      ipcRenderer.on(IPC.mcpOpenTerminal, listener)
+      return () => ipcRenderer.removeListener(IPC.mcpOpenTerminal, listener)
+    },
+    /** Un agent demande de révéler un fichier/dossier (naviguer + sélectionner). */
+    onReveal: (cb: (path: string) => void): (() => void) => {
+      const listener = (_e: unknown, path: string): void => cb(path)
+      ipcRenderer.on(IPC.mcpReveal, listener)
+      return () => ipcRenderer.removeListener(IPC.mcpReveal, listener)
+    },
+    /** Un agent affiche une notification (toast) dans GVue. */
+    onNotify: (cb: (message: string) => void): (() => void) => {
+      const listener = (_e: unknown, message: string): void => cb(message)
+      ipcRenderer.on(IPC.mcpNotify, listener)
+      return () => ipcRenderer.removeListener(IPC.mcpNotify, listener)
+    }
   },
   log: {
     report: (report: RendererErrorReport): Promise<void> =>

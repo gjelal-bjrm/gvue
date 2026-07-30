@@ -142,6 +142,63 @@ const TOOLS = [
       },
       additionalProperties: false
     }
+  },
+  {
+    name: 'screenshot',
+    description:
+      "Capture d'écran de la fenêtre GVue (rendu réel de l'interface). Renvoie le chemin " +
+      "d'un PNG temporaire à ouvrir avec l'outil de lecture d'images. Indispensable pour " +
+      'vérifier visuellement un bug ou un changement d’UI.',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false }
+  },
+  {
+    name: 'open_terminal',
+    description:
+      'Ouvre un terminal intégré VISIBLE dans GVue (et y lance une commande si fournie). ' +
+      "À préférer pour les commandes longues (serveurs de dev…) : l'utilisateur voit la " +
+      "sortie en direct et le processus survit à la session de l'agent.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        cwd: { type: 'string', description: 'Dossier de travail (chemin absolu)' },
+        command: { type: 'string', description: 'Commande à lancer (optionnel : sinon shell vide)' },
+        title: { type: 'string', description: "Titre de l'onglet (optionnel)" }
+      },
+      required: ['cwd'],
+      additionalProperties: false
+    }
+  },
+  {
+    name: 'reveal',
+    description:
+      "Révèle un fichier ou dossier dans GVue : navigue jusqu'à lui et le sélectionne. " +
+      "Utile pour MONTRER à l'utilisateur un fichier généré ou pertinent.",
+    inputSchema: {
+      type: 'object',
+      properties: { path: { type: 'string', description: 'Chemin absolu' } },
+      required: ['path'],
+      additionalProperties: false
+    }
+  },
+  {
+    name: 'notify',
+    description:
+      "Affiche une notification (toast) dans GVue — ex. « Build terminé ✓ ». Le message " +
+      'est préfixé « Agent : » côté interface.',
+    inputSchema: {
+      type: 'object',
+      properties: { message: { type: 'string' } },
+      required: ['message'],
+      additionalProperties: false
+    }
+  },
+  {
+    name: 'get_ui_state',
+    description:
+      "État de l'interface GVue : panneaux ouverts (Git, aperçu, terminal, recherche, " +
+      'paramètres), mode liste/grille, thème actif, contenu de l’étagère. Utile pour ' +
+      'déboguer « je ne vois pas X ».',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false }
   }
 ]
 

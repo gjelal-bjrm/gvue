@@ -4,6 +4,20 @@
 export type DirEntryKind = 'file' | 'directory'
 
 /** Instantané du contexte GVue poussé au serveur MCP (renderer → main). */
+/** État de l'interface (panneaux, vue, thème) exposé aux agents via MCP. */
+export interface McpUiState {
+  gitViewOpen: boolean
+  previewOpen: boolean
+  terminalOpen: boolean
+  searchActive: boolean
+  settingsOpen: boolean
+  viewMode: 'list' | 'grid'
+  gridSize: number
+  /** Thème effectif : 'auto' | 'light' | 'dark' | id de palette. */
+  theme: string
+  shelfCount: number
+}
+
 export interface McpContext {
   panes: {
     id: string
@@ -15,6 +29,7 @@ export interface McpContext {
   }[]
   repo: { root: string; branch: string } | null
   terminals: { ptyId: string; title: string; cwd: string; exited: boolean; paneId?: string }[]
+  ui?: McpUiState
 }
 
 /** Entrée sérialisable d'un menu contextuel NATIF (Menu.popup côté main). */

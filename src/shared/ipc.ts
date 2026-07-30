@@ -125,6 +125,10 @@ export const IPC = {
   mcpContext: 'mcp:context',
   mcpToggle: 'mcp:toggle',
   mcpStatus: 'mcp:status',
+  // Actions demandées par un agent (main → renderer)
+  mcpOpenTerminal: 'mcp:openTerminal',
+  mcpReveal: 'mcp:reveal',
+  mcpNotify: 'mcp:notify',
 
   // Journalisation / diagnostic
   logReport: 'log:report',

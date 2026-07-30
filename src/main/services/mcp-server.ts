@@ -2,7 +2,7 @@ import { createServer, type Server } from 'node:http'
 import { randomBytes } from 'node:crypto'
 import { writeFileSync, unlinkSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { app } from 'electron'
+import { app, BrowserWindow } from 'electron'
 import { IPC } from '@shared/ipc'
 import type { McpContext } from '@shared/types'
 import { getPtyBuffer } from './pty-manager'
@@ -49,7 +49,7 @@ export function bridgePath(): string {
 
 type ToolResult = unknown
 
-function callTool(name: string, args: Record<string, unknown>): ToolResult {
+async function callTool(name: string, args: Record<string, unknown>): Promise<ToolResult> {
   switch (name) {
     case 'get_context': {
       return {
@@ -115,6 +115,50 @@ function callTool(name: string, args: Record<string, unknown>): ToolResult {
       return { ok: true, started: task.name }
     }
 
+    case 'get_ui_state': {
+      if (!context.ui) throw new Error("État UI indisponible (fenêtre pas encore prête).")
+      return context.ui
+    }
+
+    case 'screenshot': {
+      // Capture la fenêtre GVue (rendu réel) → PNG temporaire, chemin renvoyé.
+      const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0]
+      if (!win || win.isDestroyed()) throw new Error('Aucune fenêtre GVue ouverte.')
+      const img = await win.webContents.capturePage()
+      const file = join(app.getPath('temp'), `gvue-screenshot-${Date.now()}.png`)
+      writeFileSync(file, img.toPNG())
+      const { width, height } = img.getSize()
+      return { path: file, width, height }
+    }
+
+    case 'open_terminal': {
+      const cwd = typeof args.cwd === 'string' ? args.cwd.trim() : ''
+      const command = typeof args.command === 'string' ? args.command.trim() : ''
+      const title = typeof args.title === 'string' ? args.title.trim() : ''
+      if (!cwd) throw new Error('Paramètre « cwd » requis (dossier de travail).')
+      sendToWindow(IPC.mcpOpenTerminal, { cwd, command, title })
+      return {
+        ok: true,
+        note: command
+          ? 'Terminal ouvert dans GVue, commande lancée sous les yeux de l’utilisateur (le processus survit à la session de l’agent).'
+          : 'Terminal ouvert dans GVue.'
+      }
+    }
+
+    case 'reveal': {
+      const p = typeof args.path === 'string' ? args.path.trim() : ''
+      if (!p) throw new Error('Paramètre « path » requis.')
+      sendToWindow(IPC.mcpReveal, p)
+      return { ok: true, revealed: p }
+    }
+
+    case 'notify': {
+      const message = typeof args.message === 'string' ? args.message.trim() : ''
+      if (!message) throw new Error('Paramètre « message » requis.')
+      sendToWindow(IPC.mcpNotify, message)
+      return { ok: true }
+    }
+
     default:
       throw new Error(`Outil inconnu : ${name}`)
   }
@@ -142,15 +186,17 @@ export function startMcpServer(): void {
       if (body.length > 1_000_000) req.destroy()
     })
     req.on('end', () => {
-      try {
-        const { tool, args } = JSON.parse(body) as { tool: string; args?: Record<string, unknown> }
-        const result = callTool(tool, args ?? {})
-        res.writeHead(200, { 'content-type': 'application/json' })
-        res.end(JSON.stringify({ ok: true, result }))
-      } catch (e) {
-        res.writeHead(200, { 'content-type': 'application/json' })
-        res.end(JSON.stringify({ ok: false, error: e instanceof Error ? e.message : String(e) }))
-      }
+      void (async () => {
+        try {
+          const { tool, args } = JSON.parse(body) as { tool: string; args?: Record<string, unknown> }
+          const result = await callTool(tool, args ?? {})
+          res.writeHead(200, { 'content-type': 'application/json' })
+          res.end(JSON.stringify({ ok: true, result }))
+        } catch (e) {
+          res.writeHead(200, { 'content-type': 'application/json' })
+          res.end(JSON.stringify({ ok: false, error: e instanceof Error ? e.message : String(e) }))
+        }
+      })()
     })
   })
 

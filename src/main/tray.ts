@@ -60,7 +60,7 @@ function showWindow(): BrowserWindow {
 
 // Envoie un message au renderer (fenêtre existante, ou nouvelle après chargement).
 // Exporté : réutilisé par le serveur MCP (navigate / run_launch_task).
-export function sendToWindow(channel: string, payload: string): void {
+export function sendToWindow(channel: string, payload: unknown): void {
   const existing = BrowserWindow.getAllWindows()[0]
   if (existing) {
     if (existing.isMinimized()) existing.restore()

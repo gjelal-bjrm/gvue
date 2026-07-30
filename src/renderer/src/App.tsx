@@ -303,6 +303,8 @@ export default function App(): JSX.Element {
         const nav = useNavStore.getState()
         const git = useGitStore.getState()
         const term = useTerminalStore.getState()
+        const ui = useUiStore.getState()
+        const ap = useAppearanceStore.getState().appearance
         window.api.mcp.pushContext({
           panes: nav.panes.map((p) => ({
             id: p.id,
@@ -319,19 +321,85 @@ export default function App(): JSX.Element {
             cwd: tb.cwd,
             exited: tb.exited,
             paneId: tb.paneId
-          }))
+          })),
+          ui: {
+            gitViewOpen: ui.gitViewOpen,
+            previewOpen: ui.previewOpen,
+            terminalOpen: ui.terminalOpen,
+            searchActive: useSearchStore.getState().active,
+            settingsOpen: ui.appearanceOpen,
+            viewMode: nav.viewMode,
+            gridSize: nav.gridSize,
+            theme: ap.themeId || ap.theme,
+            shelfCount: useShelfStore.getState().items.length
+          }
         })
       }, 400)
     }
-    const u1 = useNavStore.subscribe(push)
-    const u2 = useGitStore.subscribe(push)
-    const u3 = useTerminalStore.subscribe(push)
+    const subs = [
+      useNavStore.subscribe(push),
+      useGitStore.subscribe(push),
+      useTerminalStore.subscribe(push),
+      useUiStore.subscribe(push),
+      useSearchStore.subscribe(push),
+      useShelfStore.subscribe(push),
+      useAppearanceStore.subscribe(push)
+    ]
     push()
     return () => {
-      u1()
-      u2()
-      u3()
+      subs.forEach((u) => u())
       if (t) window.clearTimeout(t)
+    }
+  }, [])
+
+  // Actions demandées par un agent via MCP : terminal visible, révéler, toast.
+  useEffect(() => {
+    const offTerm = window.api.mcp.onOpenTerminal(({ cwd, command, title }) => {
+      useUiStore.getState().setTerminalOpen(true)
+      if (command) {
+        void useTerminalStore.getState().openTaskTab({ cwd, title: title || 'Agent', command })
+      } else {
+        void useTerminalStore.getState().openTab(undefined, cwd)
+      }
+    })
+    const offReveal = window.api.mcp.onReveal((p) => {
+      void (async () => {
+        const norm = p.replace(/\//g, '\\')
+        const kind = await window.api.fs.probe(norm).catch(() => 'missing' as const)
+        const s = useNavStore.getState()
+        if (kind === 'directory') {
+          s.navigate(norm)
+          return
+        }
+        if (kind === 'missing') {
+          useUiStore.getState().showToast(`Agent : chemin introuvable — ${p}`)
+          return
+        }
+        const cut = norm.lastIndexOf('\\')
+        const parent = cut > 2 ? norm.slice(0, cut) : norm
+        s.navigate(parent)
+        // Attend la fin de la navigation puis sélectionne le fichier révélé.
+        const t0 = Date.now()
+        const tick = (): void => {
+          const st = useNavStore.getState()
+          const pane = activePane(st)
+          if (pathKey(pane.path) === pathKey(parent) && !pane.loading) {
+            const en = pane.entries.find((e) => pathKey(e.path) === pathKey(norm))
+            if (en) st.setSelected([en.path])
+            return
+          }
+          if (Date.now() - t0 < 3000) window.setTimeout(tick, 120)
+        }
+        tick()
+      })()
+    })
+    const offNotify = window.api.mcp.onNotify((m) =>
+      useUiStore.getState().showToast(`Agent : ${m}`)
+    )
+    return () => {
+      offTerm()
+      offReveal()
+      offNotify()
     }
   }, [])
 
