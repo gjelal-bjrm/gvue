@@ -173,8 +173,19 @@ const api = {
   sftp: {
     connect: (
       host: SshHost,
-      opts?: { password?: string; acceptFingerprint?: string }
+      opts?: { password?: string; acceptFingerprint?: string; savePassword?: boolean }
     ): Promise<SftpConnectResult> => ipcRenderer.invoke(IPC.sftpConnect, host, opts),
+    /** Un mot de passe est-il enregistré (chiffré) pour cet hôte ? */
+    hasPassword: (hostKey: string): Promise<boolean> =>
+      ipcRenderer.invoke(IPC.sftpHasPassword, hostKey),
+    /** Oublie le mot de passe enregistré d'un hôte. */
+    forgetPassword: (hostKey: string): Promise<void> =>
+      ipcRenderer.invoke(IPC.sftpForgetPassword, hostKey),
+    /** Enregistre (chiffré par l'OS) le mot de passe d'un hôte. */
+    savePassword: (hostKey: string, password: string): Promise<boolean> =>
+      ipcRenderer.invoke(IPC.sftpSavePassword, hostKey, password),
+    /** Le chiffrement OS est-il disponible sur cette machine ? */
+    secretsAvailable: (): Promise<boolean> => ipcRenderer.invoke(IPC.sftpSecretsAvailable),
     disconnect: (hostKey: string): Promise<void> => ipcRenderer.invoke(IPC.sftpDisconnect, hostKey),
     list: (hostKey: string, dir: string): Promise<{ entries?: SftpEntry[]; error?: string }> =>
       ipcRenderer.invoke(IPC.sftpList, hostKey, dir),

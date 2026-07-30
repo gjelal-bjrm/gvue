@@ -24,7 +24,7 @@ import type { SftpEntry, SftpProgress } from '@shared/types'
 import { useUiStore } from '../state/useUiStore'
 import { useNavStore, activePane } from '../state/useNavStore'
 import { formatSize, baseName } from '../lib/format'
-import { sshSubtitle, sshCdCommandFor } from '../lib/ssh'
+import { sshSubtitle, sshCdCommandFor, hostKeyOf } from '../lib/ssh'
 import { useTerminalStore } from '../state/useTerminalStore'
 
 /** Chemin parent d'un chemin distant POSIX (« / » reste « / »). */
@@ -37,7 +37,7 @@ function remoteParent(p: string): string {
 type Phase =
   | { step: 'connecting' }
   | { step: 'fingerprint'; fingerprint: string }
-  | { step: 'password'; message?: string }
+  | { step: 'password'; message?: string; canSave?: boolean }
   | { step: 'error'; message: string }
   | { step: 'ready' }
 
@@ -72,6 +72,9 @@ export default function RemoteExplorer(): JSX.Element | null {
   const [transfer, setTransfer] = useState<SftpProgress | null>(null)
   const [dropOver, setDropOver] = useState(false)
   const [lastDeploy, setLastDeploy] = useState<Deploy | null>(null)
+  // Retenir le mot de passe (chiffré par l'OS) + présence d'un enregistrement.
+  const [remember, setRemember] = useState(true)
+  const [savedPwd, setSavedPwd] = useState(false)
   const passwordRef = useRef<HTMLInputElement>(null)
   // Empreinte acceptée dans CE flux : re-transmise avec le mot de passe.
   const acceptedFpRef = useRef<string | undefined>(undefined)
@@ -100,14 +103,19 @@ export default function RemoteExplorer(): JSX.Element | null {
 
   // Connexion (machine à états : empreinte → mot de passe → prêt).
   const attempt = useCallback(
-    async (opts?: { password?: string; acceptFingerprint?: string }): Promise<void> => {
+    async (opts?: {
+      password?: string
+      acceptFingerprint?: string
+      savePassword?: boolean
+    }): Promise<void> => {
       if (!host) return
       setPhase({ step: 'connecting' })
       const r = await window.api.sftp.connect(host, opts)
       if (r.status === 'ok') {
-        const key = `${host.hostName ?? host.name}:${host.port ?? 22}:${host.user ?? ''}`
+        const key = hostKeyOf(host)
         setHostKey(key)
         setPhase({ step: 'ready' })
+        void window.api.sftp.hasPassword(key).then(setSavedPwd).catch(() => setSavedPwd(false))
         // Reprend le dernier dossier visité sur CE serveur (déploiements répétés).
         const lastDirs = await window.api.config
           .get('sftpLastDirs')
@@ -128,7 +136,7 @@ export default function RemoteExplorer(): JSX.Element | null {
       } else if (r.status === 'fingerprint') {
         setPhase({ step: 'fingerprint', fingerprint: r.fingerprint })
       } else if (r.status === 'password') {
-        setPhase({ step: 'password', message: r.message })
+        setPhase({ step: 'password', message: r.message, canSave: r.canSave })
       } else {
         setPhase({ step: 'error', message: r.message })
       }
@@ -334,6 +342,19 @@ export default function RemoteExplorer(): JSX.Element | null {
         <Server size={15} className="shrink-0 text-accent" />
         <span className="min-w-0 truncate text-[13px] font-medium text-fg">{host.name}</span>
         <span className="min-w-0 truncate text-[11px] text-fg-muted">{sshSubtitle(host)}</span>
+        {phase.step === 'ready' && savedPwd && (
+          <button
+            onClick={() => {
+              void window.api.sftp.forgetPassword(hostKey)
+              setSavedPwd(false)
+              toast('Mot de passe enregistré oublié.')
+            }}
+            title="Oublier le mot de passe enregistré pour ce serveur"
+            className="grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-danger-fg"
+          >
+            <KeyRound size={13} />
+          </button>
+        )}
         {phase.step === 'ready' && (
           <button
             onClick={() => {
@@ -414,17 +435,31 @@ export default function RemoteExplorer(): JSX.Element | null {
               if (e.key === 'Enter')
                 void attempt({
                   password: passwordRef.current?.value ?? '',
-                  acceptFingerprint: acceptedFpRef.current
+                  acceptFingerprint: acceptedFpRef.current,
+                  savePassword: remember && phase.canSave === true
                 })
             }}
             className="w-full max-w-[240px] rounded-app border border-border bg-bg px-2.5 py-1.5 text-[13px] text-fg outline-none focus:border-accent"
           />
-          <p className="text-[11px] text-fg-muted">Utilisé pour cette session, jamais stocké.</p>
+          {phase.canSave ? (
+            <label className="flex items-center gap-1.5 text-[11px] text-fg-secondary">
+              <input
+                type="checkbox"
+                checked={remember}
+                onChange={(e) => setRemember(e.target.checked)}
+                className="accent-[var(--accent)]"
+              />
+              Retenir le mot de passe (chiffré par Windows)
+            </label>
+          ) : (
+            <p className="text-[11px] text-fg-muted">Utilisé pour cette session, jamais stocké.</p>
+          )}
           <button
             onClick={() =>
               void attempt({
                 password: passwordRef.current?.value ?? '',
-                acceptFingerprint: acceptedFpRef.current
+                acceptFingerprint: acceptedFpRef.current,
+                savePassword: remember && phase.canSave === true
               })
             }
             className="rounded-app bg-accent px-3 py-1.5 text-[12px] font-medium text-white hover:opacity-90"

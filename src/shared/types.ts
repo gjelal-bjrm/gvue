@@ -33,7 +33,8 @@ export interface SftpEntry {
 export type SftpConnectResult =
   | { status: 'ok'; home: string }
   | { status: 'fingerprint'; fingerprint: string }
-  | { status: 'password'; message?: string }
+  /** `canSave` : le chiffrement OS est dispo → proposer « retenir ». */
+  | { status: 'password'; message?: string; canSave?: boolean }
   | { status: 'error'; message: string }
 
 /** Progression d'un transfert SFTP (événement main → renderer). */
@@ -421,6 +422,11 @@ export interface AppConfig {
   sshHosts: SshHost[]
   /** Empreintes d'hôtes SSH acceptées (TOFU) : « hôte:port » → empreinte SHA256. */
   sshFingerprints: Record<string, string>
+  /**
+   * Mots de passe SFTP enregistrés, CHIFFRÉS par l'OS (safeStorage) et encodés
+   * en base64 : clé de session → blob. Jamais de mot de passe en clair.
+   */
+  sshPasswords: Record<string, string>
   /** Dernier dossier distant visité par serveur (clé de session). */
   sftpLastDirs: Record<string, string>
   /** Dernier envoi par serveur (redéploiement en un clic). */

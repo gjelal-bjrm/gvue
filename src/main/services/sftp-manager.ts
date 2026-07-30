@@ -7,6 +7,7 @@ import { app, BrowserWindow } from 'electron'
 import { IPC } from '@shared/ipc'
 import type { SshHost, SftpEntry, SftpConnectResult, SftpProgress } from '@shared/types'
 import { getConfig, setConfig } from './config-store'
+import { savePassword, loadPassword, forgetPassword, secretsAvailable } from './secrets'
 import { logInfo, logError } from './logger'
 
 /**
@@ -83,16 +84,45 @@ function sendToRenderer(channel: string, payload: unknown): void {
  */
 export async function connect(
   host: SshHost,
-  opts: { password?: string; acceptFingerprint?: string } = {}
+  opts: { password?: string; acceptFingerprint?: string; savePassword?: boolean } = {}
 ): Promise<SftpConnectResult> {
   const key = hostKeyOf(host)
   if (sessions.has(key)) {
     return { status: 'ok', home: sessions.get(key)!.home }
   }
+
+  // Mot de passe enregistré (chiffré par l'OS) : tenté avant toute invite.
+  let usedSaved = false
+  if (!opts.password) {
+    const saved = loadPassword(key)
+    if (saved) {
+      opts = { ...opts, password: saved }
+      usedSaved = true
+      logInfo('sftp', `Mot de passe enregistré utilisé pour ${key}.`)
+    }
+  }
+
   const pendingKey = `${key}|${opts.acceptFingerprint ?? ''}|${opts.password ? 'pwd' : ''}`
   const inFlight = pending.get(pendingKey)
   if (inFlight) return inFlight
-  const promise = connectOnce(host, key, opts).finally(() => pending.delete(pendingKey))
+  const promise = connectOnce(host, key, opts)
+    .then((r) => {
+      if (r.status === 'ok' && opts.password && opts.savePassword) {
+        savePassword(key, opts.password)
+        logInfo('sftp', `Mot de passe enregistré (chiffré) pour ${key}.`)
+      }
+      // Un mot de passe enregistré refusé est oublié : on ne boucle pas dessus.
+      if (r.status === 'password' && usedSaved) {
+        forgetPassword(key)
+        logInfo('sftp', `Mot de passe enregistré refusé pour ${key} : oublié.`)
+        return {
+          ...r,
+          message: 'Le mot de passe enregistré a été refusé (il a été oublié).'
+        } satisfies SftpConnectResult
+      }
+      return r
+    })
+    .finally(() => pending.delete(pendingKey))
   pending.set(pendingKey, promise)
   return promise
 }
@@ -143,9 +173,13 @@ async function connectOnce(
       logError('sftp', `Connexion ${key} : ${msg}`)
       // Toutes les méthodes d'authentification ont échoué → demander un mot de passe.
       if (/authentication/i.test(msg) && !opts.password) {
-        done({ status: 'password' })
+        done({ status: 'password', canSave: secretsAvailable() })
       } else if (/authentication/i.test(msg)) {
-        done({ status: 'password', message: 'Mot de passe refusé, réessayez.' })
+        done({
+          status: 'password',
+          message: 'Mot de passe refusé, réessayez.',
+          canSave: secretsAvailable()
+        })
       } else {
         done({ status: 'error', message: msg })
       }

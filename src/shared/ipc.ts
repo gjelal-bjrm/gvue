@@ -34,6 +34,10 @@ export const IPC = {
   sftpUpload: 'sftp:upload',
   sftpEdit: 'sftp:edit',
   sftpOnProgress: 'sftp:onProgress',
+  sftpHasPassword: 'sftp:hasPassword',
+  sftpForgetPassword: 'sftp:forgetPassword',
+  sftpSavePassword: 'sftp:savePassword',
+  sftpSecretsAvailable: 'sftp:secretsAvailable',
 
   // Corbeille Windows (lecture, restauration, suppression définitive)
   binList: 'bin:list',

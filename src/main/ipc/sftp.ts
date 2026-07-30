@@ -2,6 +2,7 @@ import { ipcMain } from 'electron'
 import { IPC } from '@shared/ipc'
 import type { SshHost, SftpEntry } from '@shared/types'
 import * as sftp from '../services/sftp-manager'
+import { hasPassword, forgetPassword, savePassword, secretsAvailable } from '../services/secrets'
 
 /**
  * Handler IPC SFTP : adaptateur fin au gestionnaire de sessions. Les erreurs
@@ -10,9 +11,22 @@ import * as sftp from '../services/sftp-manager'
 export function registerSftpHandlers(): void {
   ipcMain.handle(
     IPC.sftpConnect,
-    async (_e, host: SshHost, opts?: { password?: string; acceptFingerprint?: string }) =>
-      sftp.connect(host, opts ?? {})
+    async (
+      _e,
+      host: SshHost,
+      opts?: { password?: string; acceptFingerprint?: string; savePassword?: boolean }
+    ) => sftp.connect(host, opts ?? {})
   )
+
+  ipcMain.handle(IPC.sftpHasPassword, async (_e, hostKey: string) => hasPassword(hostKey))
+
+  ipcMain.handle(IPC.sftpForgetPassword, async (_e, hostKey: string) => forgetPassword(hostKey))
+
+  ipcMain.handle(IPC.sftpSavePassword, async (_e, hostKey: string, password: string) =>
+    savePassword(hostKey, password)
+  )
+
+  ipcMain.handle(IPC.sftpSecretsAvailable, async () => secretsAvailable())
 
   ipcMain.handle(IPC.sftpDisconnect, async (_e, hostKey: string) => sftp.disconnect(hostKey))
 

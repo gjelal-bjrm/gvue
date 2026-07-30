@@ -1,6 +1,15 @@
 import type { SshHost } from '@shared/types'
 
 /**
+ * Clé de session d'un hôte — DOIT rester identique à `hostKeyOf` du
+ * sftp-manager (côté main) : c'est elle qui indexe sessions, dossiers
+ * mémorisés, derniers déploiements et mots de passe enregistrés.
+ */
+export function hostKeyOf(host: SshHost): string {
+  return `${host.hostName ?? host.name}:${host.port ?? 22}:${host.user ?? ''}`
+}
+
+/**
  * Commande de connexion d'un hôte SSH (pur, testable).
  * - Entrée du ~/.ssh/config : `ssh <alias>` — l'alias porte déjà tout
  *   (HostName, User, Port, clés…), on ne le double surtout pas.

@@ -1,86 +1,204 @@
-import { useState } from 'react'
-import { Check, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Server, X, Check, Info } from 'lucide-react'
 import type { SshHost } from '@shared/types'
+import { hostKeyOf } from '../../lib/ssh'
 
-/** Petit formulaire inline d'ajout d'un serveur SSH manuel. */
+/**
+ * Dialogue d'ajout d'un serveur SSH/SFTP : un champ = un libellé + une aide,
+ * seul l'hôte est obligatoire. Le mot de passe est facultatif et, s'il est
+ * fourni, stocké CHIFFRÉ par l'OS (jamais dans le fichier de config en clair).
+ */
 export default function ServerAddForm(props: {
   onAdd: (host: SshHost) => void
   onClose: () => void
 }): JSX.Element {
-  const [name, setName] = useState('')
-  const [target, setTarget] = useState('')
+  const [hostName, setHostName] = useState('')
+  const [user, setUser] = useState('')
   const [port, setPort] = useState('')
+  const [label, setLabel] = useState('')
+  const [password, setPassword] = useState('')
+  const [canSave, setCanSave] = useState(false)
+
+  useEffect(() => {
+    void window.api.sftp
+      .secretsAvailable()
+      .then(setCanSave)
+      .catch(() => setCanSave(false))
+  }, [])
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') props.onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [props])
+
+  const target = hostName.trim()
+  const valid = target.length > 0
 
   const submit = (): void => {
-    // Cible « user@hôte » ou « hôte » ; le libellé retombe sur l'hôte si vide.
-    const t = target.trim()
-    if (!t) return
-    const at = t.indexOf('@')
-    const user = at > 0 ? t.slice(0, at) : undefined
-    const hostName = at > 0 ? t.slice(at + 1) : t
-    if (!hostName) return
+    if (!valid) return
+    // Tolère « user@hôte » collé dans le champ hôte (réflexe SSH courant).
+    const at = target.indexOf('@')
+    const finalUser = at > 0 ? target.slice(0, at) : user.trim() || undefined
+    const finalHost = at > 0 ? target.slice(at + 1) : target
     const p = Number(port)
-    props.onAdd({
-      name: name.trim() || hostName,
+    const host: SshHost = {
+      name: label.trim() || finalHost,
       source: 'manual',
-      hostName,
-      user,
-      port: Number.isInteger(p) && p > 0 && p < 65536 ? p : undefined
-    })
+      hostName: finalHost,
+      user: finalUser,
+      port: Number.isInteger(p) && p > 0 && p < 65536 && p !== 22 ? p : undefined
+    }
+    if (password) {
+      void window.api.sftp.savePassword(hostKeyOf(host), password)
+    }
+    props.onAdd(host)
     props.onClose()
   }
 
   const onKey = (e: React.KeyboardEvent): void => {
     if (e.key === 'Enter') submit()
-    if (e.key === 'Escape') props.onClose()
   }
 
   const field =
-    'w-full rounded-app border border-border bg-bg px-2 py-1 text-[12px] text-fg outline-none placeholder:text-fg-muted focus:border-accent'
+    'w-full rounded-app border border-border bg-bg px-2 py-1.5 text-[12px] text-fg outline-none placeholder:text-fg-muted focus:border-accent'
+
+  const Field = (p: {
+    label: string
+    hint: string
+    required?: boolean
+    children: React.ReactNode
+  }): JSX.Element => (
+    <label className="flex flex-col gap-1">
+      <span className="text-[12px] text-fg">
+        {p.label}
+        {p.required && <span className="text-accent"> *</span>}
+      </span>
+      {p.children}
+      <span className="text-[11px] text-fg-muted">{p.hint}</span>
+    </label>
+  )
 
   return (
-    <div className="mx-1 mb-1 flex flex-col gap-1 rounded-app border border-accent bg-bg p-1.5">
-      <input
-        autoFocus
-        value={target}
-        onChange={(e) => setTarget(e.target.value)}
-        onKeyDown={onKey}
-        placeholder="user@serveur.exemple.com"
-        spellCheck={false}
-        className={field}
-      />
-      <div className="flex gap-1">
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={onKey}
-          placeholder="Libellé (optionnel)"
-          spellCheck={false}
-          className={field}
-        />
-        <input
-          value={port}
-          onChange={(e) => setPort(e.target.value.replace(/\D/g, ''))}
-          onKeyDown={onKey}
-          placeholder="22"
-          spellCheck={false}
-          className={`${field} w-14 shrink-0 text-center`}
-        />
-      </div>
-      <div className="flex gap-1">
-        <button
-          onClick={submit}
-          disabled={!target.trim()}
-          className="flex flex-1 items-center justify-center gap-1 rounded-app bg-accent px-2 py-1 text-[11px] font-medium text-white hover:opacity-90 disabled:opacity-40"
-        >
-          <Check size={12} /> Ajouter
-        </button>
-        <button
-          onClick={props.onClose}
-          className="flex flex-1 items-center justify-center gap-1 rounded-app border border-border px-2 py-1 text-[11px] text-fg-secondary hover:bg-bg-hover"
-        >
-          <X size={12} /> Annuler
-        </button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6" onMouseDown={props.onClose}>
+      <div className="absolute inset-0 bg-black/50" />
+      <div
+        className="relative z-10 flex max-h-[86vh] w-[min(420px,92vw)] flex-col overflow-hidden rounded-app border border-border bg-bg-secondary shadow-2xl"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-3">
+          <Server size={15} className="text-accent" />
+          <span className="text-[13px] font-medium text-fg">Ajouter un serveur</span>
+          <button
+            onClick={props.onClose}
+            title="Fermer (Échap)"
+            className="ml-auto grid h-6 w-6 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg"
+          >
+            <X size={15} />
+          </button>
+        </div>
+
+        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto p-4">
+          <Field
+            label="Serveur (hôte ou IP)"
+            hint="Ex. : serveur.exemple.com ou 192.168.1.10 — « user@hôte » est accepté aussi."
+            required
+          >
+            <input
+              autoFocus
+              value={hostName}
+              onChange={(e) => setHostName(e.target.value)}
+              onKeyDown={onKey}
+              placeholder="serveur.exemple.com"
+              spellCheck={false}
+              className={field}
+            />
+          </Field>
+
+          <div className="flex gap-2">
+            <div className="min-w-0 flex-1">
+              <Field label="Utilisateur" hint="Compte de connexion (root, ubuntu, deploy…).">
+                <input
+                  value={user}
+                  onChange={(e) => setUser(e.target.value)}
+                  onKeyDown={onKey}
+                  placeholder="root"
+                  spellCheck={false}
+                  className={field}
+                />
+              </Field>
+            </div>
+            <div className="w-24 shrink-0">
+              <Field label="Port" hint="22 par défaut.">
+                <input
+                  value={port}
+                  onChange={(e) => setPort(e.target.value.replace(/\D/g, ''))}
+                  onKeyDown={onKey}
+                  placeholder="22"
+                  spellCheck={false}
+                  className={`${field} text-center`}
+                />
+              </Field>
+            </div>
+          </div>
+
+          <Field label="Libellé" hint="Nom affiché dans la liste. Vide = le nom d'hôte.">
+            <input
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              onKeyDown={onKey}
+              placeholder="Prod — site vitrine"
+              spellCheck={false}
+              className={field}
+            />
+          </Field>
+
+          <Field
+            label="Mot de passe (facultatif)"
+            hint={
+              canSave
+                ? "Laissez vide pour qu'il soit demandé à la connexion. S'il est saisi, il est chiffré par Windows — les clés SSH restent plus sûres."
+                : "Chiffrement indisponible sur cette machine : le mot de passe sera demandé à chaque connexion."
+            }
+          >
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={onKey}
+              disabled={!canSave}
+              placeholder={canSave ? '••••••••' : 'indisponible'}
+              className={`${field} disabled:opacity-50`}
+            />
+          </Field>
+
+          <p className="flex items-start gap-1.5 rounded-app border border-border bg-bg px-2 py-1.5 text-[11px] text-fg-muted">
+            <Info size={13} className="mt-px shrink-0" />
+            <span>
+              Le clic ouvre un terminal SSH, l'icône dossier l'explorateur de fichiers (SFTP).
+              Les hôtes de votre <code className="font-mono">~/.ssh/config</code> apparaissent
+              automatiquement, sans passer par ce formulaire.
+            </span>
+          </p>
+        </div>
+
+        <div className="flex shrink-0 gap-1.5 border-t border-border px-4 py-2.5">
+          <button
+            onClick={submit}
+            disabled={!valid}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-app bg-accent px-2 py-1.5 text-[12px] font-medium text-white hover:opacity-90 disabled:opacity-40"
+          >
+            <Check size={13} /> Ajouter
+          </button>
+          <button
+            onClick={props.onClose}
+            className="flex-1 rounded-app border border-border px-2 py-1.5 text-[12px] text-fg-secondary hover:bg-bg-hover"
+          >
+            Annuler
+          </button>
+        </div>
       </div>
     </div>
   )
