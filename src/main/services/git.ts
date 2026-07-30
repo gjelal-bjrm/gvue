@@ -120,19 +120,41 @@ export async function status(dir: string): Promise<GitStatus> {
   try {
     // --ignored (mode traditionnel) ajoute les entrées ignorées, dossiers
     // regroupés (node_modules/ en une ligne, sans descendre dedans).
-    const raw = await git(['status', '--porcelain=v1', '--branch', '--ignored', '-z'], cwd)
+    // --no-optional-locks : le statut (appelé en continu par l'app) ne doit
+    // JAMAIS prendre index.lock, sinon il entre en collision avec les
+    // add/restore/commit (« fatal: Unable to create index.lock »).
+    const raw = await git(
+      ['--no-optional-locks', 'status', '--porcelain=v1', '--branch', '--ignored', '-z'],
+      cwd
+    )
     return parse(raw, root)
   } catch {
     return { ...EMPTY, isRepo: true, root }
   }
 }
 
-/**
- * Exécute une commande git et renvoie un résultat structuré (jamais d'exception
- * traversant l'IPC) : la sortie combinée stdout+stderr sert d'affichage, y
- * compris pour les erreurs (push rejeté, conflit de merge, etc.).
- */
-async function run(args: string[], cwd: string): Promise<GitActionResult> {
+// Deux protections contre « fatal: Unable to create …/index.lock » :
+// 1. les commandes qui écrivent (run) sont sérialisées par dépôt — cocher
+//    plusieurs cases à la suite ne lance plus de `git add` en parallèle ;
+// 2. si le verrou est tenu par un autre processus (IDE, autre outil), on
+//    réessaie brièvement avant de remonter l'erreur.
+const tails = new Map<string, Promise<unknown>>()
+
+function serialized<T>(cwd: string, fn: () => Promise<T>): Promise<T> {
+  const key = cwd.toLowerCase()
+  const prev = tails.get(key) ?? Promise.resolve()
+  const next = prev.then(fn) // la file stockée ne rejette jamais (voir dessous)
+  tails.set(
+    key,
+    next.then(
+      () => undefined,
+      () => undefined
+    )
+  )
+  return next
+}
+
+async function runOnce(args: string[], cwd: string): Promise<GitActionResult> {
   try {
     const { stdout, stderr } = await exec('git', args, {
       cwd,
@@ -144,6 +166,22 @@ async function run(args: string[], cwd: string): Promise<GitActionResult> {
     const err = e as { stdout?: string; stderr?: string; message?: string }
     return { ok: false, output: (err.stderr || err.stdout || err.message || 'Échec').trim() }
   }
+}
+
+/**
+ * Exécute une commande git qui modifie le dépôt et renvoie un résultat
+ * structuré (jamais d'exception traversant l'IPC) : la sortie combinée
+ * stdout+stderr sert d'affichage, y compris pour les erreurs (push rejeté,
+ * conflit de merge, etc.). Sérialisée par dépôt + réessai sur index.lock.
+ */
+function run(args: string[], cwd: string): Promise<GitActionResult> {
+  return serialized(cwd, async () => {
+    for (let attempt = 0; ; attempt++) {
+      const r = await runOnce(args, cwd)
+      if (r.ok || attempt >= 4 || !r.output.includes('index.lock')) return r
+      await new Promise((res) => setTimeout(res, 150 * (attempt + 1)))
+    }
+  })
 }
 
 /** Indexe tout (git add -A) puis commite avec le message fourni. */
@@ -194,7 +232,10 @@ async function projectInfo(root: string): Promise<GitProject | null> {
   }
   let dirty = false
   try {
-    dirty = (await git(['status', '--porcelain', '--untracked-files=no'], cwd)).trim().length > 0
+    dirty =
+      (
+        await git(['--no-optional-locks', 'status', '--porcelain', '--untracked-files=no'], cwd)
+      ).trim().length > 0
   } catch {
     /* dirty reste false */
   }
