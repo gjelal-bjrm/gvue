@@ -1,4 +1,5 @@
 import type { Terminal as XTerm } from '@xterm/xterm'
+import type { JustRecipe } from '@shared/types'
 
 /**
  * Autocomplétion « fantôme » (ghost text) pour le terminal — façon fish/zsh.
@@ -31,7 +32,7 @@ const GHOST_COLOR: Record<Family, string> = {
   other: 'rgba(160,160,170,0.55)'
 }
 
-const COMMON = ['git', 'npm', 'npx', 'node', 'python', 'pip', 'code', 'cls', 'clear', 'exit']
+const COMMON = ['git', 'npm', 'npx', 'node', 'python', 'pip', 'code', 'just', 'cls', 'clear', 'exit']
 
 const COMMANDS: Record<Family, string[]> = {
   powershell: [
@@ -71,9 +72,29 @@ export function attachSuggest(term: XTerm, opts: SuggestOptions): () => void {
 
   let line = ''
   let ghost = ''
+  /** Texte grisé affiché APRÈS le fantôme (description de recette just). */
+  let hint = ''
   let paused = false
   let cwd = opts.cwd
   let reqId = 0
+
+  // Recettes du justfile gouvernant le cwd (rechargées au changement de cwd).
+  let recipes: JustRecipe[] = []
+  let recipesCwd = ''
+  const loadRecipes = (): void => {
+    if (recipesCwd === cwd) return
+    recipesCwd = cwd
+    const at = cwd
+    void window.api.fs
+      .justRecipes(cwd)
+      .then((r) => {
+        if (recipesCwd === at) recipes = r
+      })
+      .catch(() => {
+        recipes = []
+      })
+  }
+  loadRecipes()
 
   const overlay = document.createElement('div')
   overlay.style.position = 'absolute'
@@ -87,12 +108,13 @@ export function attachSuggest(term: XTerm, opts: SuggestOptions): () => void {
 
   const hideGhost = (): void => {
     ghost = ''
+    hint = ''
     overlay.style.display = 'none'
   }
 
   const place = (): void => {
     const screen = host.querySelector('.xterm-screen') as HTMLElement | null
-    if (!screen || !ghost) {
+    if (!screen || (!ghost && !hint)) {
       overlay.style.display = 'none'
       return
     }
@@ -102,10 +124,15 @@ export function attachSuggest(term: XTerm, opts: SuggestOptions): () => void {
     const cellH = sRect.height / term.rows
     const cx = term.buffer.active.cursorX
     const cy = term.buffer.active.cursorY
-    // Ne pas déborder de la largeur du terminal.
-    if (cx + ghost.length > term.cols) {
-      overlay.style.display = 'none'
-      return
+    // Ne pas déborder de la largeur du terminal (fantôme + éventuel indice).
+    const full = ghost + hint
+    if (cx + full.length > term.cols) {
+      // L'indice est facultatif : on tente sans lui avant d'abandonner.
+      if (!ghost || cx + ghost.length > term.cols) {
+        overlay.style.display = 'none'
+        return
+      }
+      hint = ''
     }
     overlay.style.left = `${sRect.left - hRect.left + cx * cellW}px`
     overlay.style.top = `${sRect.top - hRect.top + cy * cellH}px`
@@ -113,7 +140,16 @@ export function attachSuggest(term: XTerm, opts: SuggestOptions): () => void {
     overlay.style.lineHeight = `${cellH}px`
     overlay.style.fontFamily = String(term.options.fontFamily || 'monospace')
     overlay.style.fontSize = `${term.options.fontSize || 13}px`
-    overlay.textContent = ghost
+    overlay.textContent = ''
+    if (ghost) overlay.appendChild(document.createTextNode(ghost))
+    if (hint) {
+      // Description de recette : plus estompée, jamais validée par Tab.
+      const span = document.createElement('span')
+      span.style.opacity = '0.6'
+      span.style.fontStyle = 'italic'
+      span.textContent = hint
+      overlay.appendChild(span)
+    }
     overlay.style.display = 'block'
   }
 
@@ -124,11 +160,40 @@ export function attachSuggest(term: XTerm, opts: SuggestOptions): () => void {
     return { token, isFirstWord: before.trim() === '' }
   }
 
+  /** Description compacte d'une recette : « — description (params) ». */
+  const recipeHint = (r: JustRecipe): string => {
+    const parts: string[] = []
+    if (r.params.length) parts.push(r.params.join(' '))
+    if (r.description) parts.push(r.description)
+    return parts.length ? `  ${parts.join(' — ')}` : ''
+  }
+
   const recompute = (): void => {
     if (paused) return hideGhost()
     const { token, isFirstWord } = splitToken()
-    if (!token) return hideGhost()
     const hasSep = token.includes('/') || token.includes('\\')
+
+    // Recettes du justfile : « just <recette> » (le cœur de la demande).
+    // Sans argument tapé, on montre déjà la première recette disponible.
+    const justMatch = /^\s*just\s+(\S*)$/.exec(line)
+    if (justMatch && recipes.length > 0 && !hasSep) {
+      const typed = justMatch[1]
+      const low = typed.toLowerCase()
+      const hit =
+        recipes.find((r) => r.name.toLowerCase().startsWith(low) && r.name.length > typed.length) ??
+        (typed === '' ? recipes[0] : undefined)
+      if (hit) {
+        ghost = hit.name.slice(typed.length)
+        hint = recipeHint(hit)
+        place()
+      } else {
+        hideGhost()
+      }
+      return
+    }
+
+    if (!token) return hideGhost()
+    hint = ''
 
     if (isFirstWord && !hasSep) {
       // Complétion de commande (synchrone).
@@ -171,6 +236,7 @@ export function attachSuggest(term: XTerm, opts: SuggestOptions): () => void {
         /* inconnu côté renderer : on laisse le cwd */
       } else if (/^([a-zA-Z]:[\\/]|[\\/])/.test(target)) cwd = target // chemin absolu
       else cwd = `${cwd.replace(/[\\/]+$/, '')}${sep}${target}` // relatif
+      loadRecipes() // le justfile gouvernant peut changer avec le dossier
     }
     line = ''
     paused = false

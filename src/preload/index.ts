@@ -39,7 +39,8 @@ import type {
   ConflictInfo,
   ArchiveEntry,
   McpContext,
-  SysClipboardFiles
+  SysClipboardFiles,
+  JustRecipe
 } from '@shared/types'
 
 /**
@@ -89,6 +90,9 @@ const api = {
       ipcRenderer.invoke(IPC.fsRunnableFiles, dir),
     complete: (cwd: string, token: string, sep: string): Promise<string[]> =>
       ipcRenderer.invoke(IPC.fsComplete, cwd, token, sep),
+    /** Recettes du justfile gouvernant `dir` (recherche ascendante). */
+    justRecipes: (dir: string): Promise<JustRecipe[]> =>
+      ipcRenderer.invoke(IPC.fsJustRecipes, dir),
     listTree: (dir: string, max?: number): Promise<TreeEntry[]> =>
       ipcRenderer.invoke(IPC.fsListTree, dir, max),
     usage: (dir: string): Promise<UsageEntry[]> => ipcRenderer.invoke(IPC.fsUsage, dir),

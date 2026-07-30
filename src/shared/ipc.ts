@@ -16,6 +16,7 @@ export const IPC = {
   fsMakeDirs: 'fs:makeDirs',
   fsTrash: 'fs:trash',
   fsPreview: 'fs:preview',
+  fsJustRecipes: 'fs:justRecipes',
   fsIcon: 'fs:icon',
   fsCopy: 'fs:copy',
   fsMove: 'fs:move',

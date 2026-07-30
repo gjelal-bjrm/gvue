@@ -4,6 +4,15 @@
 export type DirEntryKind = 'file' | 'directory'
 
 /** Instantané du contexte GVue poussé au serveur MCP (renderer → main). */
+/** Une recette d'un `justfile` (autocomplétion « just … » dans le terminal). */
+export interface JustRecipe {
+  name: string
+  /** Paramètres déclarés (ex. « version », « publish_dir="x" »). */
+  params: string[]
+  /** Commentaire précédant la recette (description façon `just --list`). */
+  description: string
+}
+
 /** État de l'interface (panneaux, vue, thème) exposé aux agents via MCP. */
 export interface McpUiState {
   gitViewOpen: boolean

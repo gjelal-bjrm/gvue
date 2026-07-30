@@ -5,6 +5,7 @@ import type { NavLocations, DirEntry, QuickAccessData, ConflictMode } from '@sha
 import * as filesystem from '../services/filesystem'
 import * as fileops from '../services/fileops'
 import { readPreview } from '../services/preview'
+import { justRecipes } from '../services/justfile'
 import { pushRecent, pushRecentFile, getConfig } from '../services/config-store'
 import { watchDir } from '../services/fs-watch'
 import { pushUndo, undoLast, peekUndo } from '../services/undo-stack'
@@ -160,6 +161,10 @@ export function registerFsHandlers(): void {
 
   ipcMain.handle(IPC.fsComplete, async (_e, cwd: string, token: string, sep: string) => {
     return filesystem.complete(cwd, token, sep)
+  })
+
+  ipcMain.handle(IPC.fsJustRecipes, async (_e, dir: string) => {
+    return justRecipes(dir)
   })
 
   ipcMain.handle(IPC.fsListTree, async (_e, dir: string, max?: number) => {
