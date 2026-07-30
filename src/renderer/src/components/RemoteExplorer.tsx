@@ -59,6 +59,8 @@ export default function RemoteExplorer(): JSX.Element | null {
   const [transfer, setTransfer] = useState<SftpProgress | null>(null)
   const [dropOver, setDropOver] = useState(false)
   const passwordRef = useRef<HTMLInputElement>(null)
+  // Empreinte acceptée dans CE flux : re-transmise avec le mot de passe.
+  const acceptedFpRef = useRef<string | undefined>(undefined)
 
   const toast = (m: string): void => useUiStore.getState().showToast(m)
 
@@ -294,7 +296,10 @@ export default function RemoteExplorer(): JSX.Element | null {
             </p>
             <div className="flex gap-2">
               <button
-                onClick={() => void attempt({ acceptFingerprint: phase.fingerprint })}
+                onClick={() => {
+                  acceptedFpRef.current = phase.fingerprint
+                  void attempt({ acceptFingerprint: phase.fingerprint })
+                }}
                 className="rounded-app bg-accent px-3 py-1.5 text-[12px] font-medium text-white hover:opacity-90"
               >
                 Faire confiance et continuer
@@ -322,13 +327,19 @@ export default function RemoteExplorer(): JSX.Element | null {
               type="password"
               autoFocus
               onKeyDown={(e) => {
-                if (e.key === 'Enter') void attempt({ password: passwordRef.current?.value ?? '' })
+                if (e.key === 'Enter') void attempt({
+                  password: passwordRef.current?.value ?? '',
+                  acceptFingerprint: acceptedFpRef.current
+                })
               }}
               className="w-64 rounded-app border border-border bg-bg px-2.5 py-1.5 text-[13px] text-fg outline-none focus:border-accent"
             />
             <p className="text-[11px] text-fg-muted">Utilisé pour cette session, jamais stocké.</p>
             <button
-              onClick={() => void attempt({ password: passwordRef.current?.value ?? '' })}
+              onClick={() => void attempt({
+                  password: passwordRef.current?.value ?? '',
+                  acceptFingerprint: acceptedFpRef.current
+                })}
               className="rounded-app bg-accent px-3 py-1.5 text-[12px] font-medium text-white hover:opacity-90"
             >
               Se connecter
@@ -339,8 +350,14 @@ export default function RemoteExplorer(): JSX.Element | null {
         {phase.step === 'error' && (
           <div className="flex flex-col items-center gap-3 px-6 py-10 text-center">
             <p className="max-w-lg break-words text-[12px] text-danger-fg">{phase.message}</p>
+            {/timed out/i.test(phase.message) && (
+              <p className="max-w-md text-[11px] text-fg-muted">
+                Le serveur n'a pas répondu — beaucoup limitent les connexions rapprochées
+                (anti-abus). Patientez ~30 secondes avant de réessayer.
+              </p>
+            )}
             <button
-              onClick={() => void attempt()}
+              onClick={() => void attempt({ acceptFingerprint: acceptedFpRef.current })}
               className="rounded-app border border-border px-3 py-1.5 text-[12px] text-fg-secondary hover:bg-bg-hover"
             >
               Réessayer

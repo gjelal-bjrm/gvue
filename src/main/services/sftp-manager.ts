@@ -111,7 +111,6 @@ async function connectOnce(
   // valider, sinon on interrompt pour la lui montrer.
   const known = getConfig('sshFingerprints')
   const fpKey = `${target}:${port}`
-  let pendingFp: string | null = null
 
   const client = new Client()
 
@@ -133,10 +132,6 @@ async function connectOnce(
         sftp.realpath('.', (err2, home) => {
           const h = err2 ? '/' : home
           sessions.set(key, { client, sftp, home: h })
-          // Persiste l'empreinte validée (première connexion).
-          if (pendingFp && known[fpKey] !== pendingFp) {
-            setConfig('sshFingerprints', { ...getConfig('sshFingerprints'), [fpKey]: pendingFp })
-          }
           logInfo('sftp', `Connecté à ${key}.`)
           done({ status: 'ok', home: h })
         })
@@ -180,7 +175,10 @@ async function connectOnce(
             const fp = fingerprintOf(keyBuf)
             if (known[fpKey] === fp) return true
             if (opts.acceptFingerprint === fp) {
-              pendingFp = fp
+              // Décision explicite de l'utilisateur : persistée IMMÉDIATEMENT
+              // (elle survit à un échec d'auth ensuite, et les tentatives
+              // suivantes n'ont plus besoin de la re-transporter).
+              setConfig('sshFingerprints', { ...getConfig('sshFingerprints'), [fpKey]: fp })
               return true
             }
             if (known[fpKey] && known[fpKey] !== fp) {
