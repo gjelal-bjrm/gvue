@@ -1,5 +1,5 @@
 import { Client, type SFTPWrapper } from 'ssh2'
-import { promises as fsp, watchFile, unwatchFile, type Stats } from 'node:fs'
+import { promises as fsp, existsSync, watchFile, unwatchFile, type Stats } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { join, basename } from 'node:path'
 import { homedir, tmpdir } from 'node:os'
@@ -38,6 +38,20 @@ export function hostKeyOf(host: SshHost): string {
 /** Empreinte SHA256 base64 d'une clé d'hôte, au format d'OpenSSH. */
 function fingerprintOf(key: Buffer): string {
   return 'SHA256:' + createHash('sha256').update(key).digest('base64').replace(/=+$/, '')
+}
+
+/**
+ * Chemin de l'agent SSH s'il est réellement joignable, sinon undefined.
+ * Passer un agent injoignable à ssh2 fait échouer TOUTE la connexion
+ * (« Failed to connect to agent ») au lieu d'essayer les autres méthodes —
+ * or le service Windows « ssh-agent » est désactivé par défaut.
+ */
+function agentPath(): string | undefined {
+  if (process.platform === 'win32') {
+    const pipe = '\\\\.\\pipe\\openssh-ssh-agent'
+    return existsSync(pipe) ? pipe : undefined
+  }
+  return process.env.SSH_AUTH_SOCK || undefined
 }
 
 /** Clés privées par défaut présentes sur la machine. */
@@ -131,8 +145,8 @@ export async function connect(
           port,
           username: user,
           password: opts.password,
-          // Agent OpenSSH de Windows (service « ssh-agent ») s'il tourne.
-          agent: process.platform === 'win32' ? '\\\\.\\pipe\\openssh-ssh-agent' : process.env.SSH_AUTH_SOCK,
+          // Agent SSH seulement s'il est joignable (service Windows souvent désactivé).
+          agent: agentPath(),
           privateKey: keys[0],
           tryKeyboard: false,
           readyTimeout: 15_000,
