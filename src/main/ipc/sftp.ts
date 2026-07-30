@@ -69,9 +69,9 @@ export function registerSftpHandlers(): void {
 
   ipcMain.handle(
     IPC.sftpUpload,
-    async (_e, hostKey: string, localPaths: string[], remoteDir: string) => {
+    async (_e, hostKey: string, localPaths: string[], remoteDir: string, contents?: boolean) => {
       try {
-        return await sftp.upload(hostKey, localPaths, remoteDir)
+        return await sftp.upload(hostKey, localPaths, remoteDir, contents)
       } catch (e) {
         return { ok: 0, errors: [e instanceof Error ? e.message : String(e)] }
       }

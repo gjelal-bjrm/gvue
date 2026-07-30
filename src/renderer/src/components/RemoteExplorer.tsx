@@ -15,12 +15,14 @@ import {
   Link2,
   FileEdit,
   ShieldQuestion,
-  KeyRound
+  KeyRound,
+  Rocket,
+  FolderInput
 } from 'lucide-react'
 import type { SftpEntry, SftpProgress } from '@shared/types'
 import { useUiStore } from '../state/useUiStore'
 import { useNavStore, activePane } from '../state/useNavStore'
-import { formatSize, formatDate } from '../lib/format'
+import { formatSize, baseName } from '../lib/format'
 import { sshSubtitle } from '../lib/ssh'
 
 /** Chemin parent d'un chemin distant POSIX (« / » reste « / »). */
@@ -37,16 +39,25 @@ type Phase =
   | { step: 'error'; message: string }
   | { step: 'ready' }
 
+interface Deploy {
+  paths: string[]
+  remoteDir: string
+  contents: boolean
+}
+
 /**
- * Explorateur SFTP (phase 2 de l'accès distant) : navigation dans les dossiers
- * du serveur, téléchargement vers le dossier local actif, téléversement
- * (bouton ou glisser-déposer local → distant), renommer/supprimer/mkdir, et
- * « Modifier » = ouverture locale avec ré-téléversement à chaque sauvegarde.
+ * Volet SFTP latéral — les fichiers locaux restent visibles À CÔTÉ (façon
+ * WinSCP) : on glisse depuis le volet local vers le serveur, on télécharge
+ * vers le dossier local actif. Pensé déploiement : dossier distant mémorisé
+ * par serveur, envoi du CONTENU d'un dossier (dist/ → /var/www sans dossier
+ * imbriqué), et « Redéployer » qui rejoue le dernier envoi en un clic.
  */
 export default function RemoteExplorer(): JSX.Element | null {
   const host = useUiStore((s) => s.remoteHost)
   const close = (): void => useUiStore.getState().setRemoteHost(null)
   const localDir = useNavStore((s) => activePane(s).path)
+  const localSel = useNavStore((s) => activePane(s).selected)
+  const localEntries = useNavStore((s) => activePane(s).entries)
 
   const [phase, setPhase] = useState<Phase>({ step: 'connecting' })
   const [hostKey, setHostKey] = useState('')
@@ -58,27 +69,32 @@ export default function RemoteExplorer(): JSX.Element | null {
   const [renaming, setRenaming] = useState<SftpEntry | null>(null)
   const [transfer, setTransfer] = useState<SftpProgress | null>(null)
   const [dropOver, setDropOver] = useState(false)
+  const [lastDeploy, setLastDeploy] = useState<Deploy | null>(null)
   const passwordRef = useRef<HTMLInputElement>(null)
   // Empreinte acceptée dans CE flux : re-transmise avec le mot de passe.
   const acceptedFpRef = useRef<string | undefined>(undefined)
 
   const toast = (m: string): void => useUiStore.getState().showToast(m)
 
-  const refresh = useCallback(
-    async (key: string, dir: string): Promise<void> => {
-      setLoading(true)
-      const r = await window.api.sftp.list(key, dir)
-      setLoading(false)
-      if (r.error) {
-        toast(`SFTP : ${r.error}`)
-        setEntries([])
-      } else {
-        setEntries(r.entries ?? [])
-      }
-      setSel(new Set())
-    },
-    []
-  )
+  // Sélection locale : un unique DOSSIER sélectionné → bouton « Contenu → ».
+  const localSingleDir =
+    localSel.length === 1 &&
+    localEntries.find((e) => e.path === localSel[0])?.kind === 'directory'
+      ? localSel[0]
+      : null
+
+  const refresh = useCallback(async (key: string, dir: string): Promise<void> => {
+    setLoading(true)
+    const r = await window.api.sftp.list(key, dir)
+    setLoading(false)
+    if (r.error) {
+      toast(`SFTP : ${r.error}`)
+      setEntries([])
+    } else {
+      setEntries(r.entries ?? [])
+    }
+    setSel(new Set())
+  }, [])
 
   // Connexion (machine à états : empreinte → mot de passe → prêt).
   const attempt = useCallback(
@@ -90,8 +106,23 @@ export default function RemoteExplorer(): JSX.Element | null {
         const key = `${host.hostName ?? host.name}:${host.port ?? 22}:${host.user ?? ''}`
         setHostKey(key)
         setPhase({ step: 'ready' })
-        setPath(r.home)
-        void refresh(key, r.home)
+        // Reprend le dernier dossier visité sur CE serveur (déploiements répétés).
+        const lastDirs = await window.api.config
+          .get('sftpLastDirs')
+          .catch(() => ({}) as Record<string, string>)
+        const start = lastDirs[key] ?? r.home
+        const listed = await window.api.sftp.list(key, start)
+        if (listed.error || !listed.entries) {
+          setPath(r.home)
+          void refresh(key, r.home)
+        } else {
+          setPath(start)
+          setEntries(listed.entries)
+        }
+        const deploys = await window.api.config
+          .get('sftpLastDeploy')
+          .catch(() => ({}) as Record<string, Deploy>)
+        setLastDeploy(deploys[key] ?? null)
       } else if (r.status === 'fingerprint') {
         setPhase({ step: 'fingerprint', fingerprint: r.fingerprint })
       } else if (r.status === 'password') {
@@ -118,22 +149,15 @@ export default function RemoteExplorer(): JSX.Element | null {
     return off
   }, [])
 
-  useEffect(() => {
-    if (!host) return
-    const onKey = (e: KeyboardEvent): void => {
-      const t = e.target as HTMLElement | null
-      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return
-      if (e.key === 'Escape') close()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [host])
-
   if (!host) return null
 
   const navigate = (dir: string): void => {
     setPath(dir)
     void refresh(hostKey, dir)
+    // Mémorise par serveur (repris à la prochaine connexion).
+    void window.api.config.get('sftpLastDirs').then((d) =>
+      window.api.config.set('sftpLastDirs', { ...d, [hostKey]: dir })
+    )
   }
 
   const selected = entries.filter((e) => sel.has(e.path))
@@ -171,32 +195,53 @@ export default function RemoteExplorer(): JSX.Element | null {
     toast(
       r.errors.length
         ? `Téléchargement : ${r.ok} OK, ${r.errors.length} échec(s) — ${r.errors[0]}`
-        : `${r.ok} élément${r.ok > 1 ? 's' : ''} téléchargé${r.ok > 1 ? 's' : ''} dans ${localDir}`
+        : `${r.ok} élément${r.ok > 1 ? 's' : ''} téléchargé${r.ok > 1 ? 's' : ''}.`
     )
     useNavStore.getState().refreshAll()
   }
 
-  const uploadPaths = async (paths: string[]): Promise<void> => {
+  // Téléversement (+ mémorisation du couple pour « Redéployer »).
+  const uploadPaths = async (paths: string[], contents = false): Promise<void> => {
     if (!paths.length) return
     setBusy(true)
-    const r = await window.api.sftp.upload(hostKey, paths, path)
+    const r = await window.api.sftp.upload(hostKey, paths, path, contents)
     setBusy(false)
     toast(
       r.errors.length
         ? `Téléversement : ${r.ok} OK, ${r.errors.length} échec(s) — ${r.errors[0]}`
-        : `${r.ok} élément${r.ok > 1 ? 's' : ''} téléversé${r.ok > 1 ? 's' : ''}.`
+        : `${r.ok} élément${r.ok > 1 ? 's' : ''} téléversé${r.ok > 1 ? 's' : ''} vers ${path}`
     )
+    if (r.ok > 0) {
+      const deploy: Deploy = { paths, remoteDir: path, contents }
+      setLastDeploy(deploy)
+      void window.api.config.get('sftpLastDeploy').then((d) =>
+        window.api.config.set('sftpLastDeploy', { ...d, [hostKey]: deploy })
+      )
+    }
     void refresh(hostKey, path)
   }
 
-  const uploadFromLocalSel = (): void => {
-    const localSel = activePane(useNavStore.getState()).selected
-    if (!localSel.length) {
-      toast('Sélectionnez d’abord des fichiers dans le volet local.')
-      return
-    }
-    void uploadPaths(localSel)
+  const redeploy = async (): Promise<void> => {
+    if (!lastDeploy) return
+    setBusy(true)
+    const r = await window.api.sftp.upload(
+      hostKey,
+      lastDeploy.paths,
+      lastDeploy.remoteDir,
+      lastDeploy.contents
+    )
+    setBusy(false)
+    toast(
+      r.errors.length
+        ? `Redéploiement : ${r.ok} OK, ${r.errors.length} échec(s) — ${r.errors[0]}`
+        : `Redéployé : ${r.ok} élément${r.ok > 1 ? 's' : ''} → ${lastDeploy.remoteDir}`
+    )
+    if (path === lastDeploy.remoteDir) void refresh(hostKey, path)
   }
+
+  const deployLabel = lastDeploy
+    ? `${lastDeploy.paths.map((p) => baseName(p)).join(', ')}${lastDeploy.contents ? '/*' : ''} → ${lastDeploy.remoteDir}`
+    : ''
 
   const mkdirHere = async (): Promise<void> => {
     const name = window.prompt('Nom du nouveau dossier distant :')
@@ -237,312 +282,332 @@ export default function RemoteExplorer(): JSX.Element | null {
     close()
   }
 
+  const IconBtn = (p: {
+    onClick: () => void
+    title: string
+    disabled?: boolean
+    danger?: boolean
+    children: React.ReactNode
+  }): JSX.Element => (
+    <button
+      onClick={p.onClick}
+      disabled={p.disabled}
+      title={p.title}
+      className={`grid h-7 w-7 shrink-0 place-items-center rounded-app hover:bg-bg-hover disabled:opacity-30 ${
+        p.danger ? 'text-fg-muted hover:text-danger-fg' : 'text-fg-secondary'
+      }`}
+    >
+      {p.children}
+    </button>
+  )
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6" onMouseDown={disconnect}>
-      <div className="absolute inset-0 bg-black/50" />
-      <div
-        className="relative z-10 flex max-h-[88vh] w-[min(880px,94vw)] flex-col overflow-hidden rounded-app border border-border bg-bg-secondary shadow-2xl"
-        onMouseDown={(e) => e.stopPropagation()}
-        onDragOver={(e) => {
-          if (phase.step !== 'ready') return
-          e.preventDefault()
-          setDropOver(true)
-        }}
-        onDragLeave={() => setDropOver(false)}
-        onDrop={(e) => {
-          e.preventDefault()
-          setDropOver(false)
-          if (phase.step !== 'ready') return
-          const internal = e.dataTransfer.getData('application/x-gvue-paths')
-          const paths = internal
-            ? (JSON.parse(internal) as string[])
-            : Array.from(e.dataTransfer.files)
-                .map((f) => window.api.fs.pathForFile(f))
-                .filter(Boolean)
-          void uploadPaths(paths)
-        }}
-      >
-        {/* En-tête */}
-        <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-3">
-          <Server size={15} className="shrink-0 text-accent" />
-          <span className="text-[13px] font-medium text-fg">{host.name}</span>
-          <span className="min-w-0 truncate text-[11px] text-fg-muted">{sshSubtitle(host)}</span>
-          <button
-            onClick={disconnect}
-            title="Se déconnecter et fermer (Échap)"
-            className="ml-auto grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg"
-          >
-            <X size={15} />
-          </button>
-        </div>
+    <aside
+      className={`flex h-full w-full flex-col border-l border-border bg-bg-secondary ${
+        dropOver ? 'ring-2 ring-inset ring-accent' : ''
+      }`}
+      onDragOver={(e) => {
+        if (phase.step !== 'ready') return
+        e.preventDefault()
+        setDropOver(true)
+      }}
+      onDragLeave={(e) => {
+        if (e.target === e.currentTarget) setDropOver(false)
+      }}
+      onDrop={(e) => {
+        e.preventDefault()
+        setDropOver(false)
+        if (phase.step !== 'ready') return
+        const internal = e.dataTransfer.getData('application/x-gvue-paths')
+        const paths = internal
+          ? (JSON.parse(internal) as string[])
+          : Array.from(e.dataTransfer.files)
+              .map((f) => window.api.fs.pathForFile(f))
+              .filter(Boolean)
+        void uploadPaths(paths)
+      }}
+    >
+      {/* En-tête */}
+      <div className="flex shrink-0 items-center gap-2 border-b border-border px-3 py-2.5">
+        <Server size={15} className="shrink-0 text-accent" />
+        <span className="min-w-0 truncate text-[13px] font-medium text-fg">{host.name}</span>
+        <span className="min-w-0 truncate text-[11px] text-fg-muted">{sshSubtitle(host)}</span>
+        <button
+          onClick={disconnect}
+          title="Se déconnecter et fermer"
+          className="ml-auto grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg"
+        >
+          <X size={15} />
+        </button>
+      </div>
 
-        {/* Étapes de connexion */}
-        {phase.step === 'connecting' && (
-          <p className="flex items-center justify-center gap-2 py-14 text-[13px] text-fg-muted">
-            <Loader2 size={15} className="animate-spin" /> Connexion à {host.name}…
+      {phase.step === 'connecting' && (
+        <p className="flex items-center justify-center gap-2 py-14 text-[13px] text-fg-muted">
+          <Loader2 size={15} className="animate-spin" /> Connexion à {host.name}…
+        </p>
+      )}
+
+      {phase.step === 'fingerprint' && (
+        <div className="flex flex-col items-center gap-3 px-4 py-8 text-center">
+          <ShieldQuestion size={26} className="text-warning-fg" />
+          <p className="text-[13px] text-fg">Première connexion à ce serveur.</p>
+          <p className="break-all text-[11px] text-fg-secondary">
+            Empreinte : <code className="font-mono">{phase.fingerprint}</code>
           </p>
-        )}
-
-        {phase.step === 'fingerprint' && (
-          <div className="flex flex-col items-center gap-3 px-6 py-10 text-center">
-            <ShieldQuestion size={28} className="text-warning-fg" />
-            <p className="text-[13px] text-fg">Première connexion à ce serveur.</p>
-            <p className="text-[12px] text-fg-secondary">
-              Empreinte de sa clé : <code className="font-mono text-[11px]">{phase.fingerprint}</code>
-            </p>
-            <p className="max-w-md text-[11px] text-fg-muted">
-              Vérifiez-la auprès de l'administrateur si le serveur est sensible. Elle sera
-              mémorisée : toute future différence bloquera la connexion.
-            </p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  acceptedFpRef.current = phase.fingerprint
-                  void attempt({ acceptFingerprint: phase.fingerprint })
-                }}
-                className="rounded-app bg-accent px-3 py-1.5 text-[12px] font-medium text-white hover:opacity-90"
-              >
-                Faire confiance et continuer
-              </button>
-              <button
-                onClick={disconnect}
-                className="rounded-app border border-border px-3 py-1.5 text-[12px] text-fg-secondary hover:bg-bg-hover"
-              >
-                Annuler
-              </button>
-            </div>
+          <p className="text-[11px] text-fg-muted">
+            Mémorisée après validation ; toute future différence bloquera la connexion.
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                acceptedFpRef.current = phase.fingerprint
+                void attempt({ acceptFingerprint: phase.fingerprint })
+              }}
+              className="rounded-app bg-accent px-3 py-1.5 text-[12px] font-medium text-white hover:opacity-90"
+            >
+              Faire confiance
+            </button>
+            <button
+              onClick={disconnect}
+              className="rounded-app border border-border px-3 py-1.5 text-[12px] text-fg-secondary hover:bg-bg-hover"
+            >
+              Annuler
+            </button>
           </div>
-        )}
+        </div>
+      )}
 
-        {phase.step === 'password' && (
-          <div className="flex flex-col items-center gap-3 px-6 py-10 text-center">
-            <KeyRound size={26} className="text-accent" />
-            <p className="text-[13px] text-fg">
-              Mot de passe pour {host.user ? `${host.user}@` : ''}
-              {host.hostName ?? host.name}
-            </p>
-            {phase.message && <p className="text-[12px] text-danger-fg">{phase.message}</p>}
-            <input
-              ref={passwordRef}
-              type="password"
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') void attempt({
+      {phase.step === 'password' && (
+        <div className="flex flex-col items-center gap-3 px-4 py-8 text-center">
+          <KeyRound size={24} className="text-accent" />
+          <p className="text-[13px] text-fg">
+            Mot de passe — {host.user ? `${host.user}@` : ''}
+            {host.hostName ?? host.name}
+          </p>
+          {phase.message && <p className="text-[12px] text-danger-fg">{phase.message}</p>}
+          <input
+            ref={passwordRef}
+            type="password"
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === 'Enter')
+                void attempt({
                   password: passwordRef.current?.value ?? '',
                   acceptFingerprint: acceptedFpRef.current
                 })
-              }}
-              className="w-64 rounded-app border border-border bg-bg px-2.5 py-1.5 text-[13px] text-fg outline-none focus:border-accent"
-            />
-            <p className="text-[11px] text-fg-muted">Utilisé pour cette session, jamais stocké.</p>
-            <button
-              onClick={() => void attempt({
-                  password: passwordRef.current?.value ?? '',
-                  acceptFingerprint: acceptedFpRef.current
-                })}
-              className="rounded-app bg-accent px-3 py-1.5 text-[12px] font-medium text-white hover:opacity-90"
-            >
-              Se connecter
-            </button>
-          </div>
-        )}
+            }}
+            className="w-full max-w-[240px] rounded-app border border-border bg-bg px-2.5 py-1.5 text-[13px] text-fg outline-none focus:border-accent"
+          />
+          <p className="text-[11px] text-fg-muted">Utilisé pour cette session, jamais stocké.</p>
+          <button
+            onClick={() =>
+              void attempt({
+                password: passwordRef.current?.value ?? '',
+                acceptFingerprint: acceptedFpRef.current
+              })
+            }
+            className="rounded-app bg-accent px-3 py-1.5 text-[12px] font-medium text-white hover:opacity-90"
+          >
+            Se connecter
+          </button>
+        </div>
+      )}
 
-        {phase.step === 'error' && (
-          <div className="flex flex-col items-center gap-3 px-6 py-10 text-center">
-            <p className="max-w-lg break-words text-[12px] text-danger-fg">{phase.message}</p>
-            {/timed out/i.test(phase.message) && (
-              <p className="max-w-md text-[11px] text-fg-muted">
-                Le serveur n'a pas répondu — beaucoup limitent les connexions rapprochées
-                (anti-abus). Patientez ~30 secondes avant de réessayer.
+      {phase.step === 'error' && (
+        <div className="flex flex-col items-center gap-3 px-4 py-8 text-center">
+          <p className="max-w-full break-words text-[12px] text-danger-fg">{phase.message}</p>
+          {/timed out/i.test(phase.message) && (
+            <p className="text-[11px] text-fg-muted">
+              Le serveur n'a pas répondu — beaucoup limitent les connexions rapprochées
+              (anti-abus). Patientez ~30 secondes avant de réessayer.
+            </p>
+          )}
+          <button
+            onClick={() => void attempt({ acceptFingerprint: acceptedFpRef.current })}
+            className="rounded-app border border-border px-3 py-1.5 text-[12px] text-fg-secondary hover:bg-bg-hover"
+          >
+            Réessayer
+          </button>
+        </div>
+      )}
+
+      {phase.step === 'ready' && (
+        <>
+          {/* Rangée 1 : navigation distante */}
+          <div className="flex shrink-0 items-center gap-1 border-b border-border px-2 py-1.5">
+            <IconBtn onClick={() => navigate(remoteParent(path))} title="Dossier parent" disabled={path === '/'}>
+              <ArrowUp size={15} />
+            </IconBtn>
+            <IconBtn onClick={() => void refresh(hostKey, path)} title="Actualiser">
+              <RotateCw size={13} />
+            </IconBtn>
+            <code
+              title={path}
+              className="min-w-0 flex-1 truncate rounded-app border border-border bg-bg px-2 py-1 font-mono text-[11px] text-fg-secondary"
+            >
+              {path}
+            </code>
+            <IconBtn onClick={() => void mkdirHere()} title="Nouveau dossier distant" disabled={busy}>
+              <FolderPlus size={14} />
+            </IconBtn>
+            <IconBtn
+              onClick={() => selected.length === 1 && setRenaming(selected[0])}
+              title="Renommer"
+              disabled={busy || selected.length !== 1}
+            >
+              <Pencil size={13} />
+            </IconBtn>
+            <IconBtn onClick={() => void deleteSel()} title="Supprimer du serveur (définitif)" disabled={busy || selected.length === 0} danger>
+              <Trash2 size={13} />
+            </IconBtn>
+          </div>
+
+          {/* Rangée 2 : transferts (le cœur du flux de déploiement) */}
+          <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-border px-2 py-1.5">
+            <button
+              onClick={() => void downloadSel()}
+              disabled={busy || selected.length === 0}
+              title={`Télécharger la sélection distante vers ${localDir || 'le volet local'}`}
+              className="flex items-center gap-1 rounded-app border border-border px-2 py-1 text-[11px] text-fg-secondary hover:bg-bg-hover disabled:opacity-40"
+            >
+              <Download size={12} /> ← Télécharger{selected.length > 0 ? ` (${selected.length})` : ''}
+            </button>
+            <button
+              onClick={() => void uploadPaths(localSel)}
+              disabled={busy || localSel.length === 0}
+              title="Téléverser la sélection du volet local ici (ou glissez-déposez)"
+              className="flex items-center gap-1 rounded-app border border-border px-2 py-1 text-[11px] text-fg-secondary hover:bg-bg-hover disabled:opacity-40"
+            >
+              <Upload size={12} /> Téléverser →{localSel.length > 0 ? ` (${localSel.length})` : ''}
+            </button>
+            {localSingleDir && (
+              <button
+                onClick={() => void uploadPaths([localSingleDir], true)}
+                disabled={busy}
+                title={`Envoyer le CONTENU de ${baseName(localSingleDir)}/ dans ${path} (sans créer le dossier — le geste « déployer dist »)`}
+                className="flex items-center gap-1 rounded-app border border-accent px-2 py-1 text-[11px] text-accent hover:bg-accent-soft disabled:opacity-40"
+              >
+                <FolderInput size={12} /> Contenu de {baseName(localSingleDir)}/ →
+              </button>
+            )}
+            {lastDeploy && (
+              <button
+                onClick={() => void redeploy()}
+                disabled={busy}
+                title={`Rejouer le dernier envoi : ${deployLabel}`}
+                className="flex items-center gap-1 rounded-app bg-accent px-2 py-1 text-[11px] font-medium text-white hover:opacity-90 disabled:opacity-40"
+              >
+                <Rocket size={12} /> Redéployer
+              </button>
+            )}
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-auto">
+            {loading ? (
+              <p className="flex items-center justify-center gap-2 py-8 text-[12px] text-fg-muted">
+                <Loader2 size={14} className="animate-spin" /> Chargement…
               </p>
-            )}
-            <button
-              onClick={() => void attempt({ acceptFingerprint: acceptedFpRef.current })}
-              className="rounded-app border border-border px-3 py-1.5 text-[12px] text-fg-secondary hover:bg-bg-hover"
-            >
-              Réessayer
-            </button>
-          </div>
-        )}
-
-        {/* Explorateur */}
-        {phase.step === 'ready' && (
-          <>
-            <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-border px-3 py-2">
-              <button
-                onClick={() => navigate(remoteParent(path))}
-                disabled={path === '/'}
-                title="Dossier parent"
-                className="grid h-7 w-7 place-items-center rounded-app text-fg-secondary hover:bg-bg-hover disabled:opacity-30"
-              >
-                <ArrowUp size={15} />
-              </button>
-              <button
-                onClick={() => void refresh(hostKey, path)}
-                title="Actualiser"
-                className="grid h-7 w-7 place-items-center rounded-app text-fg-secondary hover:bg-bg-hover"
-              >
-                <RotateCw size={13} />
-              </button>
-              <code className="min-w-0 flex-1 truncate rounded-app border border-border bg-bg px-2 py-1 font-mono text-[12px] text-fg-secondary">
-                {path}
-              </code>
-              <button
-                onClick={() => void downloadSel()}
-                disabled={busy || selected.length === 0}
-                title={`Télécharger la sélection vers ${localDir || 'le volet actif'}`}
-                className="flex items-center gap-1.5 rounded-app bg-accent px-2.5 py-1.5 text-[12px] font-medium text-white hover:opacity-90 disabled:opacity-40"
-              >
-                <Download size={13} /> Télécharger{selected.length > 0 ? ` (${selected.length})` : ''}
-              </button>
-              <button
-                onClick={uploadFromLocalSel}
-                disabled={busy}
-                title="Téléverser la sélection du volet local vers ce dossier distant (ou glissez-déposez)"
-                className="flex items-center gap-1.5 rounded-app border border-border px-2.5 py-1.5 text-[12px] text-fg-secondary hover:bg-bg-hover disabled:opacity-40"
-              >
-                <Upload size={13} /> Téléverser
-              </button>
-              <button
-                onClick={() => void mkdirHere()}
-                disabled={busy}
-                title="Nouveau dossier distant"
-                className="grid h-7 w-7 place-items-center rounded-app text-fg-secondary hover:bg-bg-hover disabled:opacity-40"
-              >
-                <FolderPlus size={14} />
-              </button>
-              <button
-                onClick={() => selected.length === 1 && setRenaming(selected[0])}
-                disabled={busy || selected.length !== 1}
-                title="Renommer"
-                className="grid h-7 w-7 place-items-center rounded-app text-fg-secondary hover:bg-bg-hover disabled:opacity-40"
-              >
-                <Pencil size={13} />
-              </button>
-              <button
-                onClick={() => void deleteSel()}
-                disabled={busy || selected.length === 0}
-                title="Supprimer du serveur (définitif)"
-                className="grid h-7 w-7 place-items-center rounded-app text-fg-muted hover:bg-bg-hover hover:text-danger-fg disabled:opacity-40"
-              >
-                <Trash2 size={13} />
-              </button>
-            </div>
-
-            <div
-              className={`min-h-0 flex-1 overflow-auto ${dropOver ? 'ring-2 ring-inset ring-accent' : ''}`}
-            >
-              {loading ? (
-                <p className="flex items-center justify-center gap-2 py-8 text-[12px] text-fg-muted">
-                  <Loader2 size={14} className="animate-spin" /> Chargement…
-                </p>
-              ) : entries.length === 0 ? (
-                <p className="py-10 text-center text-[13px] text-fg-muted">
-                  Dossier vide — glissez des fichiers ici pour les téléverser.
-                </p>
-              ) : (
-                <table className="w-full text-[12px]">
-                  <tbody>
-                    {entries.map((entry) => {
-                      const isSel = sel.has(entry.path)
-                      const Icon =
-                        entry.kind === 'directory' ? Folder : entry.kind === 'symlink' ? Link2 : File
-                      return (
-                        <tr
-                          key={entry.path}
-                          onClick={(e) => onRowClick(e, entry)}
-                          onDoubleClick={() => onActivate(entry)}
-                          title={
-                            entry.kind === 'file'
-                              ? `${entry.path}\nDouble-clic : ouvrir en édition (ré-téléversé à la sauvegarde)`
-                              : entry.path
-                          }
-                          className={`cursor-default border-b border-border/40 ${
-                            isSel ? 'bg-accent-soft' : 'hover:bg-bg-hover'
-                          }`}
-                        >
-                          <td className="w-7 px-2 py-1.5">
-                            <Icon
-                              size={14}
-                              className={entry.kind === 'directory' ? 'text-accent' : 'text-fg-muted'}
+            ) : entries.length === 0 ? (
+              <p className="px-3 py-10 text-center text-[13px] text-fg-muted">
+                Dossier vide — glissez des fichiers du volet local pour les téléverser.
+              </p>
+            ) : (
+              <table className="w-full text-[12px]">
+                <tbody>
+                  {entries.map((entry) => {
+                    const isSel = sel.has(entry.path)
+                    const Icon =
+                      entry.kind === 'directory' ? Folder : entry.kind === 'symlink' ? Link2 : File
+                    return (
+                      <tr
+                        key={entry.path}
+                        onClick={(e) => onRowClick(e, entry)}
+                        onDoubleClick={() => onActivate(entry)}
+                        title={
+                          entry.kind === 'file'
+                            ? `${entry.path}\nDouble-clic : modifier (ré-téléversé à la sauvegarde)`
+                            : entry.path
+                        }
+                        className={`cursor-default border-b border-border/40 ${
+                          isSel ? 'bg-accent-soft' : 'hover:bg-bg-hover'
+                        }`}
+                      >
+                        <td className="w-6 px-1.5 py-1.5">
+                          <Icon
+                            size={14}
+                            className={entry.kind === 'directory' ? 'text-accent' : 'text-fg-muted'}
+                          />
+                        </td>
+                        <td className="max-w-0 truncate px-0.5 py-1.5">
+                          {renaming?.path === entry.path ? (
+                            <input
+                              autoFocus
+                              defaultValue={entry.name}
+                              onFocus={(e) => e.target.select()}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter')
+                                  void commitRename(entry, (e.target as HTMLInputElement).value)
+                                if (e.key === 'Escape') setRenaming(null)
+                              }}
+                              onBlur={() => setRenaming(null)}
+                              className="w-full rounded border border-accent bg-bg px-1 py-0.5 text-[12px] text-fg outline-none"
                             />
-                          </td>
-                          <td className="max-w-[300px] truncate px-1 py-1.5">
-                            {renaming?.path === entry.path ? (
-                              <input
-                                autoFocus
-                                defaultValue={entry.name}
-                                onFocus={(e) => e.target.select()}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter')
-                                    void commitRename(entry, (e.target as HTMLInputElement).value)
-                                  if (e.key === 'Escape') setRenaming(null)
-                                }}
-                                onBlur={() => setRenaming(null)}
-                                className="w-full rounded border border-accent bg-bg px-1 py-0.5 text-[12px] text-fg outline-none"
-                              />
-                            ) : (
-                              <span className={isSel ? 'text-accent' : 'text-fg'}>{entry.name}</span>
-                            )}
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-1.5 text-right tabular-nums text-fg-secondary">
-                            {entry.kind === 'file' ? formatSize(entry.size, 'file') : '—'}
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-1.5 text-right tabular-nums text-fg-muted">
-                            {entry.modifiedMs ? formatDate(entry.modifiedMs) : ''}
-                          </td>
-                          <td className="w-8 px-2 py-1.5 text-right">
-                            {entry.kind === 'file' && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  void editEntry(entry)
-                                }}
-                                title="Modifier (ré-téléversé à chaque sauvegarde)"
-                                className="grid h-5 w-5 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-accent"
-                              >
-                                <FileEdit size={12} />
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              )}
-            </div>
-
-            {/* Barre de progression des transferts */}
-            {transfer && (
-              <div className="shrink-0 border-t border-border px-3 py-1.5">
-                <div className="mb-1 flex items-center justify-between text-[11px] text-fg-secondary">
-                  <span className="min-w-0 truncate">
-                    {transfer.file}
-                    {transfer.count > 1 && ` (${transfer.index}/${transfer.count})`}
-                  </span>
-                  <span className="shrink-0 pl-2 tabular-nums">
-                    {formatSize(transfer.done, 'file')} / {formatSize(transfer.total, 'file')}
-                  </span>
-                </div>
-                <div className="h-1 overflow-hidden rounded-full bg-bg-tertiary">
-                  <div
-                    className="h-full bg-accent transition-all"
-                    style={{
-                      width: `${transfer.total > 0 ? Math.round((transfer.done / transfer.total) * 100) : 0}%`
-                    }}
-                  />
-                </div>
-              </div>
+                          ) : (
+                            <span className={isSel ? 'text-accent' : 'text-fg'}>{entry.name}</span>
+                          )}
+                        </td>
+                        <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums text-[11px] text-fg-muted">
+                          {entry.kind === 'file' ? formatSize(entry.size, 'file') : ''}
+                        </td>
+                        <td className="w-6 px-1 py-1.5 text-right">
+                          {entry.kind === 'file' && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                void editEntry(entry)
+                              }}
+                              title="Modifier (ré-téléversé à chaque sauvegarde)"
+                              className="grid h-5 w-5 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-accent"
+                            >
+                              <FileEdit size={12} />
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
             )}
+          </div>
 
-            <div className="shrink-0 border-t border-border px-3 py-1.5 text-[11px] text-fg-muted">
-              Double-clic : ouvrir un dossier / modifier un fichier · glisser-déposer depuis le
-              volet local pour téléverser · téléchargements vers le dossier local actif
+          {transfer && (
+            <div className="shrink-0 border-t border-border px-3 py-1.5">
+              <div className="mb-1 flex items-center justify-between text-[11px] text-fg-secondary">
+                <span className="min-w-0 truncate">
+                  {transfer.file}
+                  {transfer.count > 1 && ` (${transfer.index}/${transfer.count})`}
+                </span>
+                <span className="shrink-0 pl-2 tabular-nums">
+                  {formatSize(transfer.done, 'file')} / {formatSize(transfer.total, 'file')}
+                </span>
+              </div>
+              <div className="h-1 overflow-hidden rounded-full bg-bg-tertiary">
+                <div
+                  className="h-full bg-accent transition-all"
+                  style={{
+                    width: `${transfer.total > 0 ? Math.round((transfer.done / transfer.total) * 100) : 0}%`
+                  }}
+                />
+              </div>
             </div>
-          </>
-        )}
-      </div>
-    </div>
+          )}
+
+          <div className="shrink-0 border-t border-border px-3 py-1.5 text-[11px] text-fg-muted">
+            Glissez du volet local vers ici pour téléverser · téléchargements → dossier local actif
+          </div>
+        </>
+      )}
+    </aside>
   )
 }

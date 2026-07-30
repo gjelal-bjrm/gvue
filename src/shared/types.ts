@@ -421,6 +421,10 @@ export interface AppConfig {
   sshHosts: SshHost[]
   /** Empreintes d'hôtes SSH acceptées (TOFU) : « hôte:port » → empreinte SHA256. */
   sshFingerprints: Record<string, string>
+  /** Dernier dossier distant visité par serveur (clé de session). */
+  sftpLastDirs: Record<string, string>
+  /** Dernier envoi par serveur (redéploiement en un clic). */
+  sftpLastDeploy: Record<string, { paths: string[]; remoteDir: string; contents: boolean }>
   /** Programmes mémorisés par extension pour « Ouvrir avec » (ext → exes). */
   openWith: Record<string, string[]>
   /** Espaces de travail nommés. */

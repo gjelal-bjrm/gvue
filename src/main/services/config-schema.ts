@@ -43,6 +43,8 @@ export const DEFAULT_CONFIG: AppConfig = {
   hiddenProjects: [],
   sshHosts: [],
   sshFingerprints: {},
+  sftpLastDirs: {},
+  sftpLastDeploy: {},
   openWith: {},
   workspaces: {},
   runnerTasks: [],

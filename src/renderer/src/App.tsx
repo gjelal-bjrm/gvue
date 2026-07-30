@@ -63,6 +63,7 @@ export default function App(): JSX.Element {
   const terminalMax = useUiStore((s) => s.terminalMax)
   const appearanceOpen = useUiStore((s) => s.appearanceOpen)
   const previewOpen = useUiStore((s) => s.previewOpen)
+  const remoteHost = useUiStore((s) => s.remoteHost)
   const gitViewOpen = useUiStore((s) => s.gitViewOpen)
   const searchActive = useSearchStore((s) => s.active)
   const panes = useNavStore((s) => s.panes)
@@ -469,7 +470,6 @@ export default function App(): JSX.Element {
       <FileFinder />
       <DiskUsage />
       <RecycleBin />
-      <RemoteExplorer />
       <FolderCreator />
       <WhatsNew />
       <Toast />
@@ -536,6 +536,16 @@ export default function App(): JSX.Element {
                   <PanelResizeHandle className="w-px bg-border transition-colors hover:bg-accent" />
                   <Panel defaultSize={26} minSize={18} maxSize={45}>
                     <PreviewPanel />
+                  </Panel>
+                </>
+              )}
+
+              {/* Volet SFTP : les fichiers locaux restent visibles à côté. */}
+              {remoteHost && (
+                <>
+                  <PanelResizeHandle className="w-px bg-border transition-colors hover:bg-accent" />
+                  <Panel defaultSize={30} minSize={20} maxSize={50}>
+                    <RemoteExplorer />
                   </Panel>
                 </>
               )}

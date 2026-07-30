@@ -190,9 +190,10 @@ const api = {
     upload: (
       hostKey: string,
       localPaths: string[],
-      remoteDir: string
+      remoteDir: string,
+      contents?: boolean
     ): Promise<{ ok: number; errors: string[] }> =>
-      ipcRenderer.invoke(IPC.sftpUpload, hostKey, localPaths, remoteDir),
+      ipcRenderer.invoke(IPC.sftpUpload, hostKey, localPaths, remoteDir, contents),
     /** Télécharge, ouvre localement, ré-téléverse à chaque sauvegarde. */
     edit: (hostKey: string, entry: SftpEntry): Promise<{ local?: string; error?: string }> =>
       ipcRenderer.invoke(IPC.sftpEdit, hostKey, entry),

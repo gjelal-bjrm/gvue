@@ -342,12 +342,34 @@ export async function download(
   return res
 }
 
-/** Téléverse des fichiers/dossiers locaux vers un dossier distant. */
+/**
+ * Téléverse des fichiers/dossiers locaux vers un dossier distant.
+ * `contents` : pour chaque DOSSIER local, envoie son CONTENU (pas le dossier
+ * lui-même) — le geste « déployer dist/ vers /var/www » sans dossier imbriqué.
+ */
 export async function upload(
   hostKey: string,
   localPaths: string[],
-  remoteDir: string
+  remoteDir: string,
+  contents = false
 ): Promise<{ ok: number; errors: string[] }> {
+  if (contents) {
+    const expanded: string[] = []
+    for (const p of localPaths) {
+      try {
+        const st = await fsp.stat(p)
+        if (st.isDirectory()) {
+          for (const name of await fsp.readdir(p)) expanded.push(join(p, name))
+        } else {
+          expanded.push(p)
+        }
+      } catch {
+        expanded.push(p) // l'erreur remontera au moment du transfert
+      }
+    }
+    localPaths = expanded
+  }
+
   const res = { ok: 0, errors: [] as string[] }
   const flat: { local: string; remote: string }[] = []
 
