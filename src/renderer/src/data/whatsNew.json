@@ -1,5 +1,12 @@
 [
   {
+    "version": "0.1.24",
+    "notes": [
+      "Étagère — panier de fichiers flottant (option activable)",
+      "Lasso de sélection + « Sélectionner par… » + taille de la sélection"
+    ]
+  },
+  {
     "version": "0.1.23",
     "notes": [
       "Interop presse-papiers Explorateur + aperçu Espace (vidéo/audio/PDF)"
