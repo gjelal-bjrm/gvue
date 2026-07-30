@@ -18,12 +18,13 @@ import {
   KeyRound,
   Rocket,
   FolderInput,
-  TerminalSquare
+  TerminalSquare,
+  History
 } from 'lucide-react'
 import type { SftpEntry, SftpProgress } from '@shared/types'
 import { useUiStore } from '../state/useUiStore'
 import { useNavStore, activePane } from '../state/useNavStore'
-import { formatSize, baseName } from '../lib/format'
+import { formatSize, formatDate, baseName } from '../lib/format'
 import { sshSubtitle, sshCdCommandFor, hostKeyOf } from '../lib/ssh'
 import { useTerminalStore } from '../state/useTerminalStore'
 
@@ -46,6 +47,9 @@ interface Deploy {
   remoteDir: string
   contents: boolean
 }
+
+/** Nombre de dossiers distants gardés dans l'historique, par serveur. */
+const RECENT_MAX = 12
 
 /**
  * Volet SFTP latéral — les fichiers locaux restent visibles À CÔTÉ (façon
@@ -72,6 +76,8 @@ export default function RemoteExplorer(): JSX.Element | null {
   const [transfer, setTransfer] = useState<SftpProgress | null>(null)
   const [dropOver, setDropOver] = useState(false)
   const [lastDeploy, setLastDeploy] = useState<Deploy | null>(null)
+  const [recentDirs, setRecentDirs] = useState<string[]>([])
+  const [recentOpen, setRecentOpen] = useState(false)
   // Retenir le mot de passe (chiffré par l'OS) + présence d'un enregistrement.
   const [remember, setRemember] = useState(true)
   const [savedPwd, setSavedPwd] = useState(false)
@@ -159,15 +165,33 @@ export default function RemoteExplorer(): JSX.Element | null {
     return off
   }, [])
 
+  // Mémoire de session : le dossier courant et l'historique sont persistés à
+  // CHAQUE changement de dossier (et non dans la seule fonction de navigation,
+  // que certains chemins de code contournaient — d'où l'oubli constaté).
+  useEffect(() => {
+    if (!hostKey || !path) return
+    void (async () => {
+      const [dirs, recents] = await Promise.all([
+        window.api.config.get('sftpLastDirs').catch(() => ({}) as Record<string, string>),
+        window.api.config.get('sftpRecentDirs').catch(() => ({}) as Record<string, string[]>)
+      ])
+      void window.api.config.set('sftpLastDirs', { ...dirs, [hostKey]: path })
+      const list = [path, ...(recents[hostKey] ?? []).filter((d) => d !== path)].slice(0, RECENT_MAX)
+      setRecentDirs(list)
+      void window.api.config.set('sftpRecentDirs', { ...recents, [hostKey]: list })
+    })()
+  }, [hostKey, path])
+
+  // Serveur dont le volet est ouvert : rouvert au prochain démarrage.
+  useEffect(() => {
+    if (host) void window.api.config.set('sftpLastHost', host)
+  }, [host])
+
   if (!host) return null
 
   const navigate = (dir: string): void => {
     setPath(dir)
     void refresh(hostKey, dir)
-    // Mémorise par serveur (repris à la prochaine connexion).
-    void window.api.config.get('sftpLastDirs').then((d) =>
-      window.api.config.set('sftpLastDirs', { ...d, [hostKey]: dir })
-    )
   }
 
   const selected = entries.filter((e) => sel.has(e.path))
@@ -497,12 +521,41 @@ export default function RemoteExplorer(): JSX.Element | null {
             <IconBtn onClick={() => void refresh(hostKey, path)} title="Actualiser">
               <RotateCw size={13} />
             </IconBtn>
-            <code
-              title={path}
-              className="min-w-0 flex-1 truncate rounded-app border border-border bg-bg px-2 py-1 font-mono text-[11px] text-fg-secondary"
-            >
-              {path}
-            </code>
+            {/* Chemin + historique des dossiers récents de CE serveur. */}
+            <div className="relative min-w-0 flex-1">
+              <button
+                onClick={() => setRecentOpen((o) => !o)}
+                title={`${path}\nCliquer : dossiers récents sur ce serveur`}
+                className="flex w-full items-center gap-1 rounded-app border border-border bg-bg px-2 py-1 text-left"
+              >
+                <code className="min-w-0 flex-1 truncate font-mono text-[11px] text-fg-secondary">
+                  {path}
+                </code>
+                <History size={11} className="shrink-0 text-fg-muted" />
+              </button>
+              {recentOpen && recentDirs.length > 0 && (
+                <>
+                  <div className="fixed inset-0 z-30" onClick={() => setRecentOpen(false)} />
+                  <div className="absolute left-0 right-0 top-full z-40 mt-1 max-h-60 overflow-auto rounded-app border border-border bg-bg-secondary py-1 shadow-lg">
+                    {recentDirs.map((d) => (
+                      <button
+                        key={d}
+                        onClick={() => {
+                          setRecentOpen(false)
+                          if (d !== path) navigate(d)
+                        }}
+                        title={d}
+                        className={`block w-full truncate px-2 py-1 text-left font-mono text-[11px] hover:bg-bg-hover ${
+                          d === path ? 'text-accent' : 'text-fg-secondary'
+                        }`}
+                      >
+                        {d}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
             <IconBtn onClick={() => void mkdirHere()} title="Nouveau dossier distant" disabled={busy}>
               <FolderPlus size={14} />
             </IconBtn>
@@ -594,7 +647,9 @@ export default function RemoteExplorer(): JSX.Element | null {
                             className={entry.kind === 'directory' ? 'text-accent' : 'text-fg-muted'}
                           />
                         </td>
-                        <td className="max-w-0 truncate px-0.5 py-1.5">
+                        {/* w-full : la colonne prend TOUTE la place restante ;
+                            max-w-0 : le texte s'ellipse au lieu de l'élargir. */}
+                        <td className="w-full max-w-0 truncate px-0.5 py-1.5">
                           {renaming?.path === entry.path ? (
                             <input
                               autoFocus
@@ -612,8 +667,11 @@ export default function RemoteExplorer(): JSX.Element | null {
                             <span className={isSel ? 'text-accent' : 'text-fg'}>{entry.name}</span>
                           )}
                         </td>
-                        <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums text-[11px] text-fg-muted">
+                        <td className="w-px whitespace-nowrap px-2 py-1.5 text-right tabular-nums text-[11px] text-fg-muted">
                           {entry.kind === 'file' ? formatSize(entry.size, 'file') : ''}
+                        </td>
+                        <td className="w-px whitespace-nowrap px-2 py-1.5 text-right tabular-nums text-[11px] text-fg-muted">
+                          {entry.modifiedMs ? formatDate(entry.modifiedMs) : ''}
                         </td>
                         <td className="w-6 px-1 py-1.5 text-right">
                           {entry.kind === 'file' && (

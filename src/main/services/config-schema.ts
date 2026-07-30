@@ -48,6 +48,8 @@ export const DEFAULT_CONFIG: AppConfig = {
   sshFingerprints: {},
   sshPasswords: {},
   sftpLastDirs: {},
+  sftpRecentDirs: {},
+  sftpLastHost: null,
   sftpLastDeploy: {},
   openWith: {},
   workspaces: {},

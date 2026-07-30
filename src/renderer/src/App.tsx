@@ -86,6 +86,17 @@ export default function App(): JSX.Element {
     void initRunner()
     void useCustomCommandsStore.getState().init()
     void useShelfStore.getState().init()
+    // Volet SFTP : rouvre le serveur consulté en quittant (même option que la
+    // restauration des dossiers locaux). La connexion se refait à l'ouverture.
+    void (async () => {
+      try {
+        if (!(await window.api.config.get('restoreSession'))) return
+        const last = await window.api.config.get('sftpLastHost')
+        if (last) useUiStore.getState().setRemoteHost(last)
+      } catch {
+        /* pas de session distante à restaurer */
+      }
+    })()
     // Abonne le store de recherche aux flux IPC (une seule fois).
     return initSearch()
   }, [

@@ -441,6 +441,10 @@ export interface AppConfig {
   sshPasswords: Record<string, string>
   /** Dernier dossier distant visité par serveur (clé de session). */
   sftpLastDirs: Record<string, string>
+  /** Dossiers distants récents par serveur (les plus récents en tête). */
+  sftpRecentDirs: Record<string, string[]>
+  /** Serveur dont le volet SFTP était ouvert en quittant (réouverture). */
+  sftpLastHost: SshHost | null
   /** Dernier envoi par serveur (redéploiement en un clic). */
   sftpLastDeploy: Record<string, { paths: string[]; remoteDir: string; contents: boolean }>
   /** Programmes mémorisés par extension pour « Ouvrir avec » (ext → exes). */
