@@ -47,6 +47,7 @@ export default function Row(props: {
             : 'hover:bg-bg-hover'
       } ${entry.hidden ? 'opacity-55' : ''}`}
       style={{ top: props.top, height: props.height }}
+      data-gvue-item=""
       data-gvue-dir={props.dropDir}
       draggable={!props.renaming}
       onDragStart={props.onDragStart}

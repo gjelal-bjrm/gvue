@@ -37,6 +37,7 @@ export default function GridTile(props: {
 
   return (
     <div
+      data-gvue-item=""
       data-gvue-dir={props.dropDir}
       draggable={!props.renaming}
       onDragStart={props.onDragStart}

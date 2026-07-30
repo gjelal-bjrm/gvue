@@ -26,6 +26,7 @@ import {
   PieChart,
   History,
   Info,
+  ListChecks,
   X
 } from 'lucide-react'
 import type { DirEntry, GitFileChange } from '@shared/types'
@@ -51,6 +52,8 @@ import { ARCHIVE_EXT, extOf, programName, baseSegment } from './helpers'
  */
 export interface MenuCtx {
   path: string
+  /** Éléments actuellement affichés (filtres/masqués appliqués). */
+  visible: DirEntry[]
   selected: string[]
   selectedSet: Set<string>
   clipboard: FileClipboard | null
@@ -118,6 +121,46 @@ export function buildDropMenu(paths: string[], destDir: string): MenuEntry[] {
   return items
 }
 
+/**
+ * Sous-menu « Sélectionner » : sélections intelligentes sur la liste visible —
+ * tout, inversion, par type, par extension de l'élément cliqué, modifiés
+ * aujourd'hui. Complète le lasso et Ctrl/Maj+clic.
+ */
+function buildSelectSubmenu(ctx: MenuCtx, current: DirEntry | null): MenuEntry {
+  const { visible, selectedSet, setSelected } = ctx
+  const pick = (pred: (e: DirEntry) => boolean): void =>
+    setSelected(visible.filter(pred).map((e) => e.path))
+
+  const children: MenuEntry[] = [
+    { label: 'Tout sélectionner', onClick: () => pick(() => true) },
+    {
+      label: 'Inverser la sélection',
+      onClick: () => pick((e) => !selectedSet.has(e.path))
+    },
+    { type: 'sep' },
+    { label: 'Fichiers seulement', onClick: () => pick((e) => e.kind === 'file') },
+    { label: 'Dossiers seulement', onClick: () => pick((e) => e.kind === 'directory') },
+    {
+      label: "Modifiés aujourd'hui",
+      onClick: () => {
+        const midnight = new Date()
+        midnight.setHours(0, 0, 0, 0)
+        pick((e) => e.modifiedMs >= midnight.getTime())
+      }
+    }
+  ]
+
+  const ext = current && current.kind === 'file' ? extOf(current.name) : ''
+  if (ext) {
+    children.splice(2, 0, {
+      label: `Même extension (.${ext})`,
+      onClick: () => pick((e) => e.kind === 'file' && extOf(e.name) === ext)
+    })
+  }
+
+  return { label: 'Sélectionner', icon: <ListChecks size={14} />, children }
+}
+
 /** Menu de la zone vide (clic droit hors d'un élément) : créer / coller / actualiser. */
 export function buildBackgroundMenu(ctx: MenuCtx): MenuEntry[] {
   const { path } = ctx
@@ -155,6 +198,7 @@ export function buildBackgroundMenu(ctx: MenuCtx): MenuEntry[] {
       icon: <ClipboardPaste size={14} />,
       onClick: () => void pasteInto(path)
     },
+    buildSelectSubmenu(ctx, null),
     { type: 'sep' },
     {
       label: useFavoritesStore.getState().has(path) ? 'Retirer des favoris' : 'Ajouter aux favoris',
@@ -359,6 +403,7 @@ export function buildItemMenu(entry: DirEntry, ctx: MenuCtx): MenuEntry[] {
           } as MenuEntry
         ]
       : []),
+    buildSelectSubmenu(ctx, entry),
     {
       label: 'Renommer',
       icon: <Pencil size={14} />,

@@ -49,6 +49,7 @@ const GROUPS: Group[] = [
     title: 'Fichiers',
     rows: [
       { keys: ['Ctrl', 'A'], label: 'Tout sélectionner' },
+      { keys: ['Glisser (zone vide)'], label: 'Sélection au lasso (Ctrl : ajouter)' },
       { keys: ['Ctrl', 'C / X / V'], label: 'Copier / Couper / Coller' },
       { keys: ['F2'], label: 'Renommer (sélection multiple : en masse)' },
       { keys: ['Suppr'], label: 'Supprimer vers la corbeille' },

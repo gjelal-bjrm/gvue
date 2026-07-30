@@ -18,6 +18,7 @@ import StatusBar from './filelist/StatusBar'
 import { useFileListKeyboard } from './filelist/useFileListKeyboard'
 import { buildItemMenu, buildBackgroundMenu, buildDropMenu, type MenuCtx } from './filelist/menus'
 import { baseSegment } from './filelist/helpers'
+import { lassoIndices, normRect, type LassoRect } from './filelist/lasso'
 
 /**
  * Liste de fichiers virtualisée (@tanstack/react-virtual) : seules les lignes
@@ -59,6 +60,16 @@ export default function FileList(props: { paneId: string }): JSX.Element {
   const anchorRef = useRef<number | null>(null)
   const renameTimer = useRef<number | null>(null)
   const typeBuf = useRef({ s: '', t: 0 })
+  const [lasso, setLasso] = useState<LassoRect | null>(null)
+  const lassoRef = useRef<{
+    startX: number
+    startY: number
+    additive: boolean
+    base: string[]
+    active: boolean
+  } | null>(null)
+  // Après un lasso, le clic de relâchement ne doit pas désélectionner.
+  const suppressClickRef = useRef(false)
 
   const isActive = activeId === props.paneId
   const entries = pane?.entries ?? []
@@ -311,6 +322,7 @@ export default function FileList(props: { paneId: string }): JSX.Element {
   // Contexte transmis aux constructeurs de menus (état + actions du volet).
   const menuCtx: MenuCtx = {
     path,
+    visible,
     selected,
     selectedSet,
     clipboard,
@@ -325,6 +337,79 @@ export default function FileList(props: { paneId: string }): JSX.Element {
     setBulkPaths,
     trashPaths
   }
+
+  // Lasso : pression sur le fond (pas sur un élément) puis glisser → rectangle
+  // de sélection. Fonctionne avec la virtualisation (calcul par géométrie).
+  // Ctrl au départ = ajoute à la sélection existante.
+  const onLassoMouseDown = (e: React.MouseEvent): void => {
+    if (e.button !== 0 || !path || renaming) return
+    if ((e.target as HTMLElement).closest('[data-gvue-item]')) return
+    const el = parentRef.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    const additive = e.ctrlKey || e.metaKey
+    lassoRef.current = {
+      startX: e.clientX - r.left + el.scrollLeft,
+      startY: e.clientY - r.top + el.scrollTop,
+      additive,
+      base: additive ? selected : [],
+      active: false
+    }
+
+    const onMove = (ev: MouseEvent): void => {
+      const st = lassoRef.current
+      const box = parentRef.current
+      if (!st || !box) return
+      const rr = box.getBoundingClientRect()
+      // Auto-défilement quand le curseur frôle les bords.
+      if (ev.clientY < rr.top + 24) box.scrollTop -= 16
+      else if (ev.clientY > rr.bottom - 24) box.scrollTop += 16
+      const cx = ev.clientX - rr.left + box.scrollLeft
+      const cy = ev.clientY - rr.top + box.scrollTop
+      if (!st.active && Math.abs(cx - st.startX) + Math.abs(cy - st.startY) < 6) return
+      st.active = true
+      ev.preventDefault()
+      const rect: LassoRect = { x1: st.startX, y1: st.startY, x2: cx, y2: cy }
+      setLasso(rect)
+      const idx = lassoIndices(rect, {
+        mode: viewMode === 'grid' ? 'grid' : 'list',
+        rowHeight: viewMode === 'grid' ? TILE_H : rowHeight,
+        cols,
+        colWidth: cols > 0 ? (gridWidth - 8) / cols : 0,
+        padX: 4,
+        count: visible.length
+      })
+      const picked = idx.map((i) => visible[i].path)
+      setSelected(st.additive ? [...new Set([...st.base, ...picked])] : picked)
+    }
+    const onUp = (): void => {
+      window.removeEventListener('mousemove', onMove, true)
+      window.removeEventListener('mouseup', onUp, true)
+      if (lassoRef.current?.active) suppressClickRef.current = true
+      lassoRef.current = null
+      setLasso(null)
+    }
+    window.addEventListener('mousemove', onMove, true)
+    window.addEventListener('mouseup', onUp, true)
+  }
+
+  // Taille cumulée de la sélection (barre d'état) — Map pour rester O(sélection).
+  const entryByPath = useMemo(() => {
+    const m = new Map<string, DirEntry>()
+    for (const en of entries) m.set(en.path, en)
+    return m
+  }, [entries])
+  const selInfo = useMemo(() => {
+    let bytes = 0
+    let dirs = 0
+    for (const p of selected) {
+      const en = entryByPath.get(p)
+      if (!en) continue
+      if (en.kind === 'directory') dirs++
+      else bytes += en.size
+    }
+    return { bytes, dirs }
+  }, [selected, entryByPath])
 
   // Ctrl+molette en vue grille : agrandit / réduit les tuiles (persisté).
   const onWheel = (e: React.WheelEvent): void => {
@@ -402,7 +487,13 @@ export default function FileList(props: { paneId: string }): JSX.Element {
           if (e.target === e.currentTarget) setDragOver(null)
         }}
         onDrop={(e) => void doDrop(e, path)}
+        onMouseDown={onLassoMouseDown}
         onClick={(e) => {
+          // Un lasso vient de se terminer : son relâchement ne désélectionne pas.
+          if (suppressClickRef.current) {
+            suppressClickRef.current = false
+            return
+          }
           // Clic dans le vide (pas sur une ligne) → désélectionne.
           if (e.target === e.currentTarget) setSelected([])
         }}
@@ -424,6 +515,22 @@ export default function FileList(props: { paneId: string }): JSX.Element {
           <div className="p-8 text-center text-[13px] text-fg-muted">Dossier vide</div>
         )}
         <div style={{ height: rowVirtualizer.getTotalSize(), position: 'relative' }}>
+          {lasso &&
+            (() => {
+              const nr = normRect(lasso)
+              return (
+                <div
+                  className="pointer-events-none absolute z-10 rounded-[2px] border border-accent"
+                  style={{
+                    left: nr.left,
+                    top: nr.top,
+                    width: nr.right - nr.left,
+                    height: nr.bottom - nr.top,
+                    background: 'var(--accent-soft)'
+                  }}
+                />
+              )
+            })()}
           {viewMode === 'grid'
             ? rowVirtualizer.getVirtualItems().map((vi) => {
                 const start = vi.index * cols
@@ -537,6 +644,8 @@ export default function FileList(props: { paneId: string }): JSX.Element {
           count={visible.length}
           total={entries.length}
           selectedCount={selected.length}
+          selectedBytes={selInfo.bytes}
+          selectedDirs={selInfo.dirs}
           showGit={isActive}
         />
       </div>
