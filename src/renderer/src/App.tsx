@@ -16,6 +16,7 @@ import CommandPalette from './components/CommandPalette'
 import FileFinder from './components/FileFinder'
 import DiskUsage from './components/DiskUsage'
 import RecycleBin from './components/RecycleBin'
+import RemoteExplorer from './components/RemoteExplorer'
 import FolderCreator from './components/FolderCreator'
 import WhatsNew from './components/WhatsNew'
 import GitPanel from './components/GitPanel'
@@ -468,6 +469,7 @@ export default function App(): JSX.Element {
       <FileFinder />
       <DiskUsage />
       <RecycleBin />
+      <RemoteExplorer />
       <FolderCreator />
       <WhatsNew />
       <Toast />

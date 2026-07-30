@@ -16,6 +16,8 @@ import { registerMcpHandlers } from './ipc/mcp'
 import { registerClipboardHandlers } from './ipc/clipboard'
 import { registerBinHandlers } from './ipc/bin'
 import { registerSshHandlers } from './ipc/ssh'
+import { registerSftpHandlers } from './ipc/sftp'
+import { disconnectAll } from './services/sftp-manager'
 import { startMcpServer, stopMcpServer } from './services/mcp-server'
 import { getConfig } from './services/config-store'
 import { registerUpdateHandlers, initAutoUpdate } from './services/updater'
@@ -63,6 +65,7 @@ function registerIpc(): void {
   registerClipboardHandlers()
   registerBinHandlers()
   registerSshHandlers()
+  registerSftpHandlers()
 }
 
 // Protocole gvue-file:// — sert les fichiers locaux au renderer (aperçu
@@ -137,6 +140,7 @@ app.on('before-quit', () => {
   killAllSearches()
   closeWatch()
   stopMcpServer() // supprime aussi le fichier d'endpoint (jeton périmé)
+  disconnectAll() // ferme proprement les sessions SFTP
 })
 
 app.on('window-all-closed', () => {

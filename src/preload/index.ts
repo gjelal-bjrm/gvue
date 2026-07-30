@@ -42,7 +42,10 @@ import type {
   SysClipboardFiles,
   JustRecipe,
   RecycleItem,
-  SshHost
+  SshHost,
+  SftpEntry,
+  SftpConnectResult,
+  SftpProgress
 } from '@shared/types'
 
 /**
@@ -163,6 +166,41 @@ const api = {
     configHosts: (): Promise<SshHost[]> => ipcRenderer.invoke(IPC.sshConfigHosts),
     /** OpenSSH (client ssh) est-il disponible sur la machine ? */
     available: (): Promise<boolean> => ipcRenderer.invoke(IPC.sshAvailable)
+  },
+  sftp: {
+    connect: (
+      host: SshHost,
+      opts?: { password?: string; acceptFingerprint?: string }
+    ): Promise<SftpConnectResult> => ipcRenderer.invoke(IPC.sftpConnect, host, opts),
+    disconnect: (hostKey: string): Promise<void> => ipcRenderer.invoke(IPC.sftpDisconnect, hostKey),
+    list: (hostKey: string, dir: string): Promise<{ entries?: SftpEntry[]; error?: string }> =>
+      ipcRenderer.invoke(IPC.sftpList, hostKey, dir),
+    mkdir: (hostKey: string, path: string): Promise<{ error?: string }> =>
+      ipcRenderer.invoke(IPC.sftpMkdir, hostKey, path),
+    rename: (hostKey: string, from: string, to: string): Promise<{ error?: string }> =>
+      ipcRenderer.invoke(IPC.sftpRename, hostKey, from, to),
+    delete: (hostKey: string, entries: SftpEntry[]): Promise<{ ok: number; errors: string[] }> =>
+      ipcRenderer.invoke(IPC.sftpDelete, hostKey, entries),
+    download: (
+      hostKey: string,
+      entries: SftpEntry[],
+      destDir: string
+    ): Promise<{ ok: number; errors: string[] }> =>
+      ipcRenderer.invoke(IPC.sftpDownload, hostKey, entries, destDir),
+    upload: (
+      hostKey: string,
+      localPaths: string[],
+      remoteDir: string
+    ): Promise<{ ok: number; errors: string[] }> =>
+      ipcRenderer.invoke(IPC.sftpUpload, hostKey, localPaths, remoteDir),
+    /** Télécharge, ouvre localement, ré-téléverse à chaque sauvegarde. */
+    edit: (hostKey: string, entry: SftpEntry): Promise<{ local?: string; error?: string }> =>
+      ipcRenderer.invoke(IPC.sftpEdit, hostKey, entry),
+    onProgress: (cb: (p: SftpProgress) => void): (() => void) => {
+      const listener = (_e: unknown, p: SftpProgress): void => cb(p)
+      ipcRenderer.on(IPC.sftpOnProgress, listener)
+      return () => ipcRenderer.removeListener(IPC.sftpOnProgress, listener)
+    }
   },
   bin: {
     /** Contenu de la corbeille Windows (tous lecteurs). */

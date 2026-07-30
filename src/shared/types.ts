@@ -15,6 +15,40 @@ export interface SshHost {
   port?: number
 }
 
+/** Une entrée d'un dossier distant (explorateur SFTP). */
+export interface SftpEntry {
+  name: string
+  /** Chemin distant absolu (séparateur « / »). */
+  path: string
+  kind: 'file' | 'directory' | 'symlink'
+  size: number
+  modifiedMs: number
+}
+
+/**
+ * Résultat d'une tentative de connexion SFTP — machine à états côté renderer :
+ * 'fingerprint' → confirmer l'empreinte ; 'password' → saisir le mot de passe ;
+ * 'ok' → session prête ; 'error' → échec définitif de cette tentative.
+ */
+export type SftpConnectResult =
+  | { status: 'ok'; home: string }
+  | { status: 'fingerprint'; fingerprint: string }
+  | { status: 'password'; message?: string }
+  | { status: 'error'; message: string }
+
+/** Progression d'un transfert SFTP (événement main → renderer). */
+export interface SftpProgress {
+  hostKey: string
+  /** Fichier en cours (nom seul). */
+  file: string
+  /** Octets transférés / total du fichier en cours. */
+  done: number
+  total: number
+  /** Index du fichier courant / nombre de fichiers du lot. */
+  index: number
+  count: number
+}
+
 /** Un élément de la corbeille Windows. */
 export interface RecycleItem {
   /** Identifiant opaque (chemin du fichier de données $R). */
@@ -385,6 +419,8 @@ export interface AppConfig {
   hiddenProjects: string[]
   /** Serveurs SSH ajoutés à la main (ceux du ~/.ssh/config sont lus, jamais copiés). */
   sshHosts: SshHost[]
+  /** Empreintes d'hôtes SSH acceptées (TOFU) : « hôte:port » → empreinte SHA256. */
+  sshFingerprints: Record<string, string>
   /** Programmes mémorisés par extension pour « Ouvrir avec » (ext → exes). */
   openWith: Record<string, string[]>
   /** Espaces de travail nommés. */

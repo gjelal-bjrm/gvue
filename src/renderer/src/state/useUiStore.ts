@@ -30,6 +30,9 @@ interface UiState {
   /** Panneau « Corbeille » (Windows) ouvert ? */
   recycleBinOpen: boolean
   setRecycleBin: (v: boolean) => void
+  /** Serveur dont l'explorateur SFTP est ouvert (null = fermé). */
+  remoteHost: import('@shared/types').SshHost | null
+  setRemoteHost: (h: import('@shared/types').SshHost | null) => void
   /** Fichier dont on affiche l'historique Git (null = fermé). */
   fileHistoryPath: string | null
   setFileHistory: (p: string | null) => void
@@ -105,6 +108,8 @@ export const useUiStore = create<UiState>((set) => ({
   diskUsagePath: null,
   recycleBinOpen: false,
   setRecycleBin: (v) => set({ recycleBinOpen: v }),
+  remoteHost: null,
+  setRemoteHost: (h) => set({ remoteHost: h }),
   fileHistoryPath: null,
   setFileHistory: (p) => set({ fileHistoryPath: p }),
   compareOpen: false,

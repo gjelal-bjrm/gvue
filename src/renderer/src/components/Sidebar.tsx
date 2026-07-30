@@ -317,13 +317,19 @@ export default function Sidebar(): JSX.Element {
             </p>
           )}
           {configHosts.map((h) => (
-            <ServerItem key={`c-${h.name}`} host={h} onConnect={() => connectSsh(h)} />
+            <ServerItem
+              key={`c-${h.name}`}
+              host={h}
+              onConnect={() => connectSsh(h)}
+              onBrowse={() => useUiStore.getState().setRemoteHost(h)}
+            />
           ))}
           {manualHosts.map((h) => (
             <ServerItem
               key={`m-${h.name}`}
               host={h}
               onConnect={() => connectSsh(h)}
+              onBrowse={() => useUiStore.getState().setRemoteHost(h)}
               onRemove={(e) => {
                 e.stopPropagation()
                 removeServer(h.name)

@@ -22,6 +22,18 @@ export const IPC = {
   sshConfigHosts: 'ssh:configHosts',
   sshAvailable: 'ssh:available',
 
+  // SFTP (explorateur distant)
+  sftpConnect: 'sftp:connect',
+  sftpDisconnect: 'sftp:disconnect',
+  sftpList: 'sftp:list',
+  sftpMkdir: 'sftp:mkdir',
+  sftpRename: 'sftp:rename',
+  sftpDelete: 'sftp:delete',
+  sftpDownload: 'sftp:download',
+  sftpUpload: 'sftp:upload',
+  sftpEdit: 'sftp:edit',
+  sftpOnProgress: 'sftp:onProgress',
+
   // Corbeille Windows (lecture, restauration, suppression définitive)
   binList: 'bin:list',
   binRestore: 'bin:restore',
