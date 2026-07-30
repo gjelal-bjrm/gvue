@@ -47,18 +47,29 @@ async function getFileIconUrl(input: string, size = 48): Promise<string> {
   if (cached !== undefined) return cached
 
   let img = null
+  // 1) Fabrique d'images du Shell (IShellItemImageFactory) : rend l'icône À LA
+  //    TAILLE demandée — y compris les icônes 256 px embarquées des exe et les
+  //    icônes de raccourcis — là où app.getFileIcon plafonne à 32 px (flou en
+  //    grille) et échoue sur certains programmes. Tentée pour les vignettes,
+  //    les types à icône propre, et TOUTE demande au-delà de 32 px.
   try {
-    if (isThumb) {
+    if (isThumb || px > 32 || PER_FILE_ICON.has(ext)) {
       img = await nativeImage.createThumbnailFromPath(file, { width: px, height: px })
-    } else if (ext === 'lnk' && process.platform === 'win32') {
-      // Un raccourci affiche l'icône de sa cible : on la résout explicitement.
-      const link = shell.readShortcutLink(file)
-      const src = link.icon && link.icon.trim() ? link.icon : link.target
-      if (src) img = await app.getFileIcon(src, { size: px > 32 ? 'large' : 'normal' })
     }
   } catch {
     img = null
   }
+  // 2) Raccourci : résolution manuelle de la cible si la fabrique a échoué.
+  if ((!img || img.isEmpty()) && ext === 'lnk' && process.platform === 'win32') {
+    try {
+      const link = shell.readShortcutLink(file)
+      const src = link.icon && link.icon.trim() ? link.icon : link.target
+      if (src) img = await app.getFileIcon(src, { size: px > 32 ? 'large' : 'normal' })
+    } catch {
+      img = null
+    }
+  }
+  // 3) Dernier repli : l'icône système classique (32 px maximum).
   if (!img || img.isEmpty()) {
     try {
       img = await app.getFileIcon(file, { size: px > 32 ? 'large' : 'normal' })

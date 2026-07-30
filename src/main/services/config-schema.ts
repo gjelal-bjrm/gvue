@@ -23,6 +23,8 @@ export const DEFAULT_CONFIG: AppConfig = {
     },
     density: 'comfortable',
     corners: 'rounded',
+    radiusPx: 8,
+    borderStyle: 'solid',
     fontFamily: "'Inter', system-ui, sans-serif",
     fontSize: 14,
     windowOpacity: 1,

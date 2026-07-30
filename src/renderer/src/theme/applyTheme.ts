@@ -36,7 +36,14 @@ export function applyAppearance(a: Appearance): void {
   root.style.setProperty('--accent', a.accent)
   // La teinte douce se noie sur fond blanc : un peu plus dense en clair.
   root.style.setProperty('--accent-soft', hexToSoft(a.accent, base === 'light' ? 0.2 : 0.16))
-  root.style.setProperty('--radius', a.corners === 'rounded' ? '8px' : '2px')
+  // Rayon en continu (curseur) ; retombe sur l'ancien binaire si absent.
+  const radius = Number.isFinite(a.radiusPx)
+    ? Math.min(16, Math.max(0, a.radiusPx))
+    : a.corners === 'rounded'
+      ? 8
+      : 2
+  root.style.setProperty('--radius', `${radius}px`)
+  root.style.setProperty('--border-style', a.borderStyle ?? 'solid')
   root.style.setProperty('--row-pad', a.density === 'comfortable' ? '8px' : '4px')
   root.style.setProperty('--font-ui', a.fontFamily)
   root.style.setProperty('--font-size', `${a.fontSize}px`)

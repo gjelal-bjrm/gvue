@@ -5,9 +5,11 @@
 @tailwind utilities;
 
 @layer base {
-  /* Couleur de bordure par défaut accordée au thème. */
+  /* Couleur ET style de bordure par défaut accordés au thème (le style —
+     pleines / tirets / pointillés — est un réglage d'apparence). */
   * {
     border-color: var(--border);
+    border-style: var(--border-style, solid);
   }
 }
 

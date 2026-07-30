@@ -319,6 +319,9 @@ export interface CustomTheme {
   vars: Record<string, string>
 }
 
+/** Style global des bordures de l'interface. */
+export type BorderStyle = 'solid' | 'dashed' | 'dotted'
+
 export interface Appearance {
   accent: string
   theme: ThemeMode
@@ -330,6 +333,10 @@ export interface Appearance {
   themeSchedule: ThemeSchedule
   density: Density
   corners: Corners
+  /** Rayon des coins en px (0–16) — remplace le binaire `corners`, gardé pour compat. */
+  radiusPx: number
+  /** Style des bordures : pleines, tirets, pointillés. */
+  borderStyle: BorderStyle
   fontFamily: string
   fontSize: number
   windowOpacity: number

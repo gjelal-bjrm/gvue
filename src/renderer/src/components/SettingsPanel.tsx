@@ -158,6 +158,10 @@ function AppearanceSection(): JSX.Element {
         patch.themeId = raw.themeId
       if (raw.density === 'comfortable' || raw.density === 'compact') patch.density = raw.density
       if (raw.corners === 'rounded' || raw.corners === 'square') patch.corners = raw.corners
+      if (typeof raw.radiusPx === 'number')
+        patch.radiusPx = Math.min(16, Math.max(0, Math.round(raw.radiusPx)))
+      if (raw.borderStyle === 'solid' || raw.borderStyle === 'dashed' || raw.borderStyle === 'dotted')
+        patch.borderStyle = raw.borderStyle
       if (typeof raw.fontFamily === 'string') patch.fontFamily = raw.fontFamily
       if (typeof raw.fontSize === 'number') patch.fontSize = Math.min(17, Math.max(11, raw.fontSize))
       if (typeof raw.windowOpacity === 'number')
@@ -357,14 +361,31 @@ function AppearanceSection(): JSX.Element {
         />
       </Field>
 
-      <Field label="Coins">
-        <Segmented<Appearance['corners']>
-          value={appearance.corners}
+      <Field label={`Coins arrondis — ${appearance.radiusPx} px`}>
+        <input
+          type="range"
+          min={0}
+          max={16}
+          step={1}
+          value={appearance.radiusPx}
+          onChange={(e) => {
+            const radiusPx = Number(e.target.value)
+            // `corners` est maintenu pour la compat des anciens presets.
+            update({ radiusPx, corners: radiusPx >= 5 ? 'rounded' : 'square' })
+          }}
+          className="w-full accent-[var(--accent)]"
+        />
+      </Field>
+
+      <Field label="Style des bordures">
+        <Segmented<Appearance['borderStyle']>
+          value={appearance.borderStyle}
           options={[
-            { value: 'rounded', label: 'Arrondis' },
-            { value: 'square', label: 'Carrés' }
+            { value: 'solid', label: 'Pleines' },
+            { value: 'dashed', label: 'Tirets' },
+            { value: 'dotted', label: 'Points' }
           ]}
-          onChange={(v) => update({ corners: v })}
+          onChange={(v) => update({ borderStyle: v })}
         />
       </Field>
 
