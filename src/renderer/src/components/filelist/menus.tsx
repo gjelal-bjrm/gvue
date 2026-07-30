@@ -27,6 +27,7 @@ import {
   History,
   Info,
   ListChecks,
+  Layers,
   X
 } from 'lucide-react'
 import type { DirEntry, GitFileChange } from '@shared/types'
@@ -38,6 +39,7 @@ import { useFavoritesStore } from '../../state/useFavoritesStore'
 import { useOpenWithStore } from '../../state/useOpenWithStore'
 import { clipFiles, pasteInto, copyOrMove } from '../../lib/fileActions'
 import { useCustomCommandsStore } from '../../state/useCustomCommandsStore'
+import { useShelfStore } from '../../state/useShelfStore'
 import { useTerminalStore } from '../../state/useTerminalStore'
 import { substituteTokens, cwdFor } from '../../lib/customCommands'
 import { pathKey } from '../../lib/format'
@@ -400,6 +402,15 @@ export function buildItemMenu(entry: DirEntry, ctx: MenuCtx): MenuEntry[] {
             label: 'Coller dans le dossier',
             icon: <ClipboardPaste size={14} />,
             onClick: () => void pasteInto(entry.path)
+          } as MenuEntry
+        ]
+      : []),
+    ...(useShelfStore.getState().enabled
+      ? [
+          {
+            label: n > 1 ? `Mettre sur l'étagère (${n})` : "Mettre sur l'étagère",
+            icon: <Layers size={14} />,
+            onClick: () => useShelfStore.getState().add(targets)
           } as MenuEntry
         ]
       : []),

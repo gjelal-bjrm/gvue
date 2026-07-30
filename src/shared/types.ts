@@ -339,6 +339,10 @@ export interface AppConfig {
   mcpEnabled: boolean
   /** Commandes personnalisées du menu contextuel. */
   customCommands: CustomCommand[]
+  /** Étagère (panier de fichiers flottant) activée ? */
+  shelfEnabled: boolean
+  /** Contenu de l'étagère (chemins), persisté entre les sessions. */
+  shelfItems: string[]
 }
 
 /** Commande personnalisée (menu contextuel), exécutée dans le terminal intégré. */

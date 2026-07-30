@@ -41,6 +41,8 @@ import ArchiveViewer from './components/ArchiveViewer'
 import ShortcutsHelp from './components/ShortcutsHelp'
 import { useCustomCommandsStore } from './state/useCustomCommandsStore'
 import PaneTabs from './components/PaneTabs'
+import Shelf from './components/Shelf'
+import { useShelfStore } from './state/useShelfStore'
 import { pathKey, baseName } from './lib/format'
 import { clipFiles, pasteInto, undoLastOp } from './lib/fileActions'
 
@@ -80,6 +82,7 @@ export default function App(): JSX.Element {
     void initWorkspaces()
     void initRunner()
     void useCustomCommandsStore.getState().init()
+    void useShelfStore.getState().init()
     // Abonne le store de recherche aux flux IPC (une seule fois).
     return initSearch()
   }, [
@@ -424,32 +427,36 @@ export default function App(): JSX.Element {
               <PanelResizeHandle className="w-px bg-border transition-colors hover:bg-accent" />
 
               <Panel minSize={30}>
-                {gitViewOpen ? (
-                  <GitPanel />
-                ) : searchActive ? (
-                  <SearchPanel />
-                ) : (
-                  <PanelGroup key={`panes-${groups.length}`} autoSaveId="gvue:panes" direction="horizontal">
-                    {groups.map(({ g, tabs }, i) => {
-                      const visible = tabs.find((t) => t.id === groupActive[g]) ?? tabs[0]
-                      return (
-                        <Fragment key={g}>
-                          {i > 0 && (
-                            <PanelResizeHandle className="w-px bg-border transition-colors hover:bg-accent" />
-                          )}
-                          <Panel minSize={20}>
-                            <div className="flex h-full flex-col">
-                              <PaneTabs group={g} tabs={tabs} visibleId={visible.id} />
-                              <div className="min-h-0 flex-1">
-                                <Pane paneId={visible.id} />
+                <div className="relative h-full">
+                  {gitViewOpen ? (
+                    <GitPanel />
+                  ) : searchActive ? (
+                    <SearchPanel />
+                  ) : (
+                    <PanelGroup key={`panes-${groups.length}`} autoSaveId="gvue:panes" direction="horizontal">
+                      {groups.map(({ g, tabs }, i) => {
+                        const visible = tabs.find((t) => t.id === groupActive[g]) ?? tabs[0]
+                        return (
+                          <Fragment key={g}>
+                            {i > 0 && (
+                              <PanelResizeHandle className="w-px bg-border transition-colors hover:bg-accent" />
+                            )}
+                            <Panel minSize={20}>
+                              <div className="flex h-full flex-col">
+                                <PaneTabs group={g} tabs={tabs} visibleId={visible.id} />
+                                <div className="min-h-0 flex-1">
+                                  <Pane paneId={visible.id} />
+                                </div>
                               </div>
-                            </div>
-                          </Panel>
-                        </Fragment>
-                      )
-                    })}
-                  </PanelGroup>
-                )}
+                            </Panel>
+                          </Fragment>
+                        )
+                      })}
+                    </PanelGroup>
+                  )}
+                  {/* Étagère flottante (panier de fichiers), masquée en vue Git. */}
+                  {!gitViewOpen && <Shelf />}
+                </div>
               </Panel>
 
               {previewOpen && (

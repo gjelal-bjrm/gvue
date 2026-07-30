@@ -15,6 +15,7 @@ import { useUiStore } from '../state/useUiStore'
 import { useUpdateStore } from '../state/useUpdateStore'
 import { useNavStore } from '../state/useNavStore'
 import { useTerminalStore } from '../state/useTerminalStore'
+import { useShelfStore } from '../state/useShelfStore'
 import { ACCENT_SWATCHES, FONT_CHOICES } from '../theme/presets'
 import type { Appearance, UpdateStatus } from '@shared/types'
 
@@ -296,6 +297,7 @@ function GeneralSection(): JSX.Element {
   const toggleGitIgnored = useNavStore((s) => s.toggleGitIgnored)
   const linked = useTerminalStore((s) => s.linked)
   const toggleLinked = useTerminalStore((s) => s.toggleLinked)
+  const shelfEnabled = useShelfStore((s) => s.enabled)
   const [restore, setRestore] = useState<boolean | null>(null)
   const [mcp, setMcp] = useState<{ enabled: boolean; bridgePath: string } | null>(null)
   const [copiedCmd, setCopiedCmd] = useState(false)
@@ -412,6 +414,21 @@ function GeneralSection(): JSX.Element {
         />
         <p className="mt-1.5 text-[11px] text-fg-muted">
           Le panneau terminal n'affiche que les terminaux de l'onglet de dossier actif.
+        </p>
+      </Field>
+
+      <Field label="Étagère (panier de fichiers)">
+        <Segmented<'on' | 'off'>
+          value={shelfEnabled ? 'on' : 'off'}
+          options={[
+            { value: 'on', label: 'Activée' },
+            { value: 'off', label: 'Désactivée' }
+          ]}
+          onChange={(v) => useShelfStore.getState().setEnabled(v === 'on')}
+        />
+        <p className="mt-1.5 text-[11px] text-fg-muted">
+          Panier flottant : déposez-y des fichiers (glisser ou clic droit) depuis plusieurs
+          dossiers, puis collez tout d'un coup à destination.
         </p>
       </Field>
 

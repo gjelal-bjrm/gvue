@@ -49,7 +49,9 @@ export const DEFAULT_CONFIG: AppConfig = {
   showHidden: false,
   linkTerminals: false,
   mcpEnabled: false,
-  customCommands: []
+  customCommands: [],
+  shelfEnabled: true,
+  shelfItems: []
 }
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {
