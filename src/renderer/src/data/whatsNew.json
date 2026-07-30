@@ -1,5 +1,11 @@
 [
   {
+    "version": "0.1.22",
+    "notes": [
+      "Fix index.lock — statut sans verrou + écritures git sérialisées et réessayées"
+    ]
+  },
+  {
     "version": "0.1.21",
     "notes": [
       "Git — graphe des branches, staging instantané, sélection multiple, accès visible"
