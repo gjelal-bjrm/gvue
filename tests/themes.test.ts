@@ -1,12 +1,23 @@
 import { describe, it, expect } from 'vitest'
-import { THEMES, resolveThemeId, toMinutes, themeById } from '@renderer/theme/themes'
-import type { Appearance } from '@shared/types'
+import {
+  THEMES,
+  resolveThemeId,
+  toMinutes,
+  themeById,
+  withAlpha,
+  baseFromBg,
+  buildCustomVars,
+  findTheme,
+  PALETTE_KEYS
+} from '@renderer/theme/themes'
+import type { Appearance, CustomTheme } from '@shared/types'
 
 function appearance(patch: Partial<Appearance>): Appearance {
   return {
     accent: '#D85A30',
     theme: 'dark',
     themeId: '',
+    customThemes: [],
     themeSchedule: {
       enabled: false,
       dayFrom: '08:00',
@@ -82,6 +93,49 @@ describe('resolveThemeId', () => {
     expect(resolveThemeId(a, at(23))).toBe('crt')
     expect(resolveThemeId(a, at(2))).toBe('crt')
     expect(resolveThemeId(a, at(12))).toBe('nord')
+  })
+})
+
+describe('thèmes personnalisés', () => {
+  const colors = {
+    bg: '#101418',
+    bgSecondary: '#161b21',
+    bgTertiary: '#1d232b',
+    fg: '#dce6f0',
+    fgSecondary: '#a8b4c2',
+    fgMuted: '#6e7a88',
+    success: '#39c47f',
+    danger: '#e05545',
+    warning: '#d9a53a',
+    info: '#4d9fe8'
+  }
+
+  it('withAlpha convertit le #rrggbb et tolère le reste', () => {
+    expect(withAlpha('#336699', 0.5)).toBe('rgba(51, 102, 153, 0.5)')
+    expect(withAlpha('rgb(1,2,3)', 0.5)).toBe('rgb(1,2,3)')
+  })
+
+  it('baseFromBg décide selon la luminance', () => {
+    expect(baseFromBg('#101418')).toBe('dark')
+    expect(baseFromBg('#faf9f4')).toBe('light')
+    expect(baseFromBg('pas-une-couleur')).toBe('dark')
+  })
+
+  it('buildCustomVars couvre toute la palette et dérive les fonds de statut', () => {
+    const vars = buildCustomVars(colors)
+    for (const k of PALETTE_KEYS) expect(vars[k], k).toBeTruthy()
+    expect(vars['success-bg']).toBe(withAlpha(colors.success, 0.14))
+    expect(vars['bg-hover']).toContain('rgba(220, 230, 240') // dérivé du texte
+  })
+
+  it('findTheme cherche dans les statiques puis les personnalisés', () => {
+    const custom: CustomTheme[] = [
+      { id: 'custom-1', label: 'Perso', base: 'dark', vars: buildCustomVars(colors) }
+    ]
+    expect(findTheme('nord', custom)?.base).toBe('dark')
+    expect(findTheme('custom-1', custom)?.vars.bg).toBe('#101418')
+    expect(findTheme('inconnu', custom)).toBeNull()
+    expect(findTheme('custom-1', undefined)).toBeNull()
   })
 })
 

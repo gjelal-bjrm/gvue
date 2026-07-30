@@ -7,6 +7,7 @@ const FALLBACK: Appearance = {
   accent: '#D85A30',
   theme: 'dark',
   themeId: '',
+  customThemes: [],
   themeSchedule: {
     enabled: false,
     dayFrom: '08:00',
@@ -29,6 +30,10 @@ interface AppearanceState {
   init: () => Promise<void>
   /** Met à jour une ou plusieurs clés, applique les variables CSS et persiste. */
   update: (patch: Partial<Appearance>) => void
+  /** Ajoute ou remplace (même id) un thème personnalisé, et l'applique. */
+  saveCustomTheme: (t: import('@shared/types').CustomTheme) => void
+  /** Supprime un thème personnalisé (retombe sur le mode de base si actif). */
+  deleteCustomTheme: (id: string) => void
   /** Enregistre l'apparence courante comme preset nommé. */
   savePreset: (name: string) => void
   /** Applique un preset enregistré. */
@@ -90,6 +95,19 @@ export const useAppearanceStore = create<AppearanceState>((set, get) => ({
     set({ appearance: next })
     // Persistance asynchrone, sans bloquer l'UI.
     void window.api.config.set('appearance', next)
+  },
+
+  saveCustomTheme: (t) => {
+    const list = get().appearance.customThemes.filter((x) => x.id !== t.id)
+    get().update({ customThemes: [...list, t], themeId: t.id })
+  },
+
+  deleteCustomTheme: (id) => {
+    const a = get().appearance
+    get().update({
+      customThemes: a.customThemes.filter((x) => x.id !== id),
+      ...(a.themeId === id ? { themeId: '' } : {})
+    })
   },
 
   savePreset: (name) => {

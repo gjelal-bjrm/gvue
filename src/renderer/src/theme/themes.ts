@@ -1,4 +1,4 @@
-import type { Appearance } from '@shared/types'
+import type { Appearance, CustomTheme } from '@shared/types'
 
 /**
  * Thèmes complets : chaque palette redéfinit l'ensemble des variables CSS
@@ -255,13 +255,102 @@ export const THEMES: ThemeDef[] = [
   }
 ]
 
+/** Clés de palette éditables/posables par un thème (statiques + personnalisés). */
+export const PALETTE_KEYS = [
+  'bg',
+  'bg-secondary',
+  'bg-tertiary',
+  'bg-hover',
+  'border',
+  'border-strong',
+  'fg',
+  'fg-secondary',
+  'fg-muted',
+  'warning-fg',
+  'warning-bg',
+  'info-fg',
+  'info-bg',
+  'success-fg',
+  'success-bg',
+  'danger-fg',
+  'danger-bg'
+] as const
+
 /** Toutes les clés de variables potentiellement posées par un thème (nettoyage). */
 export const THEME_VAR_KEYS: string[] = [
-  ...new Set(THEMES.flatMap((t) => Object.keys(t.vars)))
+  ...new Set([...THEMES.flatMap((t) => Object.keys(t.vars)), ...PALETTE_KEYS])
 ]
 
 export function themeById(id: string): ThemeDef | null {
   return THEMES.find((t) => t.id === id) ?? null
+}
+
+/* --------------------- Thèmes personnalisés (éditeur) --------------------- */
+
+/** Les 10 couleurs éditées par l'utilisateur ; le reste est dérivé. */
+export interface CustomColors {
+  bg: string
+  bgSecondary: string
+  bgTertiary: string
+  fg: string
+  fgSecondary: string
+  fgMuted: string
+  success: string
+  danger: string
+  warning: string
+  info: string
+}
+
+/** « #rrggbb » → rgba(r, g, b, alpha) ; renvoie tel quel si non hexadécimal. */
+export function withAlpha(hex: string, alpha: number): string {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex.trim())
+  if (!m) return hex
+  const [r, g, b] = [m[1], m[2], m[3]].map((h) => parseInt(h, 16))
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
+
+/** Base clair/sombre déduite de la luminance du fond (seuil 0,5). */
+export function baseFromBg(bg: string): 'dark' | 'light' {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(bg.trim())
+  if (!m) return 'dark'
+  const [r, g, b] = [m[1], m[2], m[3]].map((h) => parseInt(h, 16) / 255)
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.5 ? 'light' : 'dark'
+}
+
+/**
+ * Palette complète à partir des 10 couleurs de l'éditeur : survol et bordures
+ * dérivés du texte (teinte cohérente sur les deux bases), fonds de statut
+ * dérivés de leur couleur de texte.
+ */
+export function buildCustomVars(c: CustomColors): Record<string, string> {
+  const light = baseFromBg(c.bg) === 'light'
+  return {
+    bg: c.bg,
+    'bg-secondary': c.bgSecondary,
+    'bg-tertiary': c.bgTertiary,
+    'bg-hover': withAlpha(c.fg, light ? 0.06 : 0.07),
+    border: withAlpha(c.fg, light ? 0.14 : 0.12),
+    'border-strong': withAlpha(c.fg, light ? 0.26 : 0.22),
+    fg: c.fg,
+    'fg-secondary': c.fgSecondary,
+    'fg-muted': c.fgMuted,
+    'warning-fg': c.warning,
+    'warning-bg': withAlpha(c.warning, 0.14),
+    'info-fg': c.info,
+    'info-bg': withAlpha(c.info, 0.14),
+    'success-fg': c.success,
+    'success-bg': withAlpha(c.success, 0.14),
+    'danger-fg': c.danger,
+    'danger-bg': withAlpha(c.danger, 0.14)
+  }
+}
+
+/** Cherche un thème par id parmi les statiques PUIS les personnalisés. */
+export function findTheme(
+  id: string,
+  custom: CustomTheme[] | undefined
+): Pick<ThemeDef, 'base' | 'vars'> | null {
+  return themeById(id) ?? custom?.find((t) => t.id === id) ?? null
 }
 
 /**

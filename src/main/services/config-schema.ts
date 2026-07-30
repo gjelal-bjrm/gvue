@@ -13,6 +13,7 @@ export const DEFAULT_CONFIG: AppConfig = {
     accent: '#D85A30',
     theme: 'auto',
     themeId: '',
+    customThemes: [],
     themeSchedule: {
       enabled: false,
       dayFrom: '08:00',
@@ -75,6 +76,21 @@ function sanitizeAppearance(raw: unknown): AppConfig['appearance'] {
     if (key === 'presets') {
       // Conteneur arbitraire : on garde tel quel s'il s'agit d'un objet.
       out.presets = isPlainObject(raw.presets) ? (raw.presets as typeof d.presets) : {}
+      continue
+    }
+    if (key === 'customThemes') {
+      // Tableau de thèmes utilisateur : on ne garde que les entrées bien formées.
+      const rc = raw.customThemes
+      out.customThemes = Array.isArray(rc)
+        ? rc.filter(
+            (t): t is AppConfig['appearance']['customThemes'][number] =>
+              isPlainObject(t) &&
+              typeof t.id === 'string' &&
+              typeof t.label === 'string' &&
+              (t.base === 'dark' || t.base === 'light') &&
+              isPlainObject(t.vars)
+          )
+        : []
       continue
     }
     if (key === 'themeSchedule') {

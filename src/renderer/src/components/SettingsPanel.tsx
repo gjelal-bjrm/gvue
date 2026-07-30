@@ -10,7 +10,9 @@ import {
   FileText,
   TerminalSquare,
   Download,
-  Upload
+  Upload,
+  Plus,
+  Pencil
 } from 'lucide-react'
 import { useAppearanceStore, visualOnly } from '../state/useAppearanceStore'
 import { useUiStore } from '../state/useUiStore'
@@ -19,8 +21,9 @@ import { useNavStore } from '../state/useNavStore'
 import { useTerminalStore } from '../state/useTerminalStore'
 import { useShelfStore } from '../state/useShelfStore'
 import { ACCENT_SWATCHES, FONT_CHOICES } from '../theme/presets'
-import { THEMES, themeById } from '../theme/themes'
-import type { Appearance, UpdateStatus } from '@shared/types'
+import { THEMES, themeById, THEME_VAR_KEYS } from '../theme/themes'
+import ThemeEditor from './ThemeEditor'
+import type { Appearance, CustomTheme, UpdateStatus } from '@shared/types'
 
 /** Cartes des thèmes de base (le mode historique clair/sombre/auto). */
 const BASE_THEME_CARDS: {
@@ -117,6 +120,8 @@ function AppearanceSection(): JSX.Element {
   const { appearance, update, savePreset, applyPreset, deletePreset } = useAppearanceStore()
   const [presetName, setPresetName] = useState('')
   const importRef = useRef<HTMLInputElement>(null)
+  // Éditeur de thème personnalisé : null = fermé ; editing = thème à modifier.
+  const [editor, setEditor] = useState<{ editing: CustomTheme | null } | null>(null)
   const presetNames = Object.keys(appearance.presets)
 
   const onSavePreset = (): void => {
@@ -127,8 +132,11 @@ function AppearanceSection(): JSX.Element {
   }
 
   // Export : un thème = un petit JSON des réglages visuels, téléchargé.
+  // Si le thème actif est personnalisé, sa palette complète est embarquée.
   const exportTheme = (): void => {
-    const data = { gvueTheme: 1, ...visualOnly(appearance) }
+    const data: Record<string, unknown> = { gvueTheme: 1, ...visualOnly(appearance) }
+    const active = appearance.customThemes.find((t) => t.id === appearance.themeId)
+    if (active) data.customTheme = active
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -154,6 +162,29 @@ function AppearanceSection(): JSX.Element {
       if (typeof raw.fontSize === 'number') patch.fontSize = Math.min(17, Math.max(11, raw.fontSize))
       if (typeof raw.windowOpacity === 'number')
         patch.windowOpacity = Math.min(1, Math.max(0.3, raw.windowOpacity))
+      // Thème personnalisé embarqué : validé clé à clé puis ajouté et activé.
+      const ct = raw.customTheme as Record<string, unknown> | undefined
+      if (
+        ct &&
+        typeof ct.label === 'string' &&
+        (ct.base === 'dark' || ct.base === 'light') &&
+        ct.vars &&
+        typeof ct.vars === 'object'
+      ) {
+        const vars: Record<string, string> = {}
+        for (const [k, v] of Object.entries(ct.vars as Record<string, unknown>)) {
+          if (typeof v === 'string' && THEME_VAR_KEYS.includes(k)) vars[k] = v
+        }
+        const id =
+          typeof ct.id === 'string' && ct.id.startsWith('custom-')
+            ? ct.id
+            : `custom-${Date.now()}`
+        patch.customThemes = [
+          ...appearance.customThemes.filter((x) => x.id !== id),
+          { id, label: ct.label, base: ct.base, vars }
+        ]
+        patch.themeId = id
+      }
       if (Object.keys(patch).length === 0) throw new Error('aucun réglage reconnu')
       update(patch)
       useUiStore.getState().showToast('Thème importé.')
@@ -229,11 +260,54 @@ function AppearanceSection(): JSX.Element {
               onClick={() => update({ themeId: t.id, ...(t.accent ? { accent: t.accent } : {}) })}
             />
           ))}
+          {appearance.customThemes.map((t) => (
+            <div key={t.id} className="group relative">
+              <ThemeCard
+                label={t.label}
+                colors={{
+                  bg: t.vars.bg ?? '#17171c',
+                  panel: t.vars['bg-secondary'] ?? '#1d1d23',
+                  fg: t.vars.fg ?? '#e7e7ef',
+                  accent: appearance.accent
+                }}
+                active={appearance.themeId === t.id}
+                onClick={() => update({ themeId: t.id })}
+              />
+              <div className="absolute right-0.5 top-0.5 flex gap-0.5 opacity-0 group-hover:opacity-100">
+                <button
+                  onClick={() => setEditor({ editing: t })}
+                  title="Modifier ce thème"
+                  className="grid h-[18px] w-5 place-items-center rounded bg-bg/80 text-fg-secondary hover:text-fg"
+                >
+                  <Pencil size={10} />
+                </button>
+                <button
+                  onClick={() => useAppearanceStore.getState().deleteCustomTheme(t.id)}
+                  title="Supprimer ce thème"
+                  className="grid h-[18px] w-5 place-items-center rounded bg-bg/80 text-fg-secondary hover:text-danger-fg"
+                >
+                  <Trash2 size={10} />
+                </button>
+              </div>
+            </div>
+          ))}
+          <button
+            onClick={() => setEditor({ editing: null })}
+            title="Créer un thème personnalisé à partir du thème affiché"
+            className="flex min-h-[70px] flex-col items-center justify-center gap-1 rounded-app border border-dashed border-border text-fg-muted transition-colors hover:border-accent hover:text-accent"
+          >
+            <Plus size={15} />
+            <span className="text-[10px]">Créer</span>
+          </button>
         </div>
-        {appearance.themeId !== '' && (
+        {appearance.themeId !== '' && !editor && (
           <p className="mt-1.5 text-[11px] text-fg-muted">
-            {themeById(appearance.themeId)?.tagline}
+            {themeById(appearance.themeId)?.tagline ??
+              appearance.customThemes.find((t) => t.id === appearance.themeId)?.label}
           </p>
+        )}
+        {editor && (
+          <ThemeEditor key={editor.editing?.id ?? 'new'} editing={editor.editing} onClose={() => setEditor(null)} />
         )}
       </Field>
 
@@ -254,6 +328,7 @@ function AppearanceSection(): JSX.Element {
               label="Jour dès"
               time={appearance.themeSchedule.dayFrom}
               theme={appearance.themeSchedule.day}
+              customs={appearance.customThemes}
               onTime={(v) => update({ themeSchedule: { ...appearance.themeSchedule, dayFrom: v } })}
               onTheme={(v) => update({ themeSchedule: { ...appearance.themeSchedule, day: v } })}
             />
@@ -261,6 +336,7 @@ function AppearanceSection(): JSX.Element {
               label="Nuit dès"
               time={appearance.themeSchedule.nightFrom}
               theme={appearance.themeSchedule.night}
+              customs={appearance.customThemes}
               onTime={(v) =>
                 update({ themeSchedule: { ...appearance.themeSchedule, nightFrom: v } })
               }
@@ -474,6 +550,7 @@ function ScheduleRow(props: {
   label: string
   time: string
   theme: string
+  customs: CustomTheme[]
   onTime: (v: string) => void
   onTheme: (v: string) => void
 }): JSX.Element {
@@ -494,6 +571,11 @@ function ScheduleRow(props: {
         <option value="light">Clair</option>
         <option value="dark">Sombre</option>
         {THEMES.map((t) => (
+          <option key={t.id} value={t.id}>
+            {t.label}
+          </option>
+        ))}
+        {props.customs.map((t) => (
           <option key={t.id} value={t.id}>
             {t.label}
           </option>

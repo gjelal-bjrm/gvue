@@ -1,5 +1,5 @@
 import type { Appearance } from '@shared/types'
-import { THEME_VAR_KEYS, resolveThemeId, themeById } from './themes'
+import { THEME_VAR_KEYS, resolveThemeId, findTheme } from './themes'
 
 /**
  * Applique l'apparence en posant les variables CSS sur :root.
@@ -13,7 +13,7 @@ import { THEME_VAR_KEYS, resolveThemeId, themeById } from './themes'
 export function applyAppearance(a: Appearance): void {
   const root = document.documentElement
   const id = resolveThemeId(a, new Date())
-  const palette = themeById(id)
+  const palette = findTheme(id, a.customThemes)
 
   // Nettoie les surcharges du thème précédent (retour à variables.css).
   for (const key of THEME_VAR_KEYS) root.style.removeProperty(`--${key}`)

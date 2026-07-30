@@ -225,11 +225,24 @@ export interface ThemeSchedule {
   night: string
 }
 
+/** Thème créé par l'utilisateur (éditeur de thème) : palette complète. */
+export interface CustomTheme {
+  /** Identifiant unique (« custom-<horodatage> »). */
+  id: string
+  label: string
+  /** Base de résolution, déduite de la luminance du fond. */
+  base: 'dark' | 'light'
+  /** Variables CSS complètes (clés sans « -- »), dérivées incluses. */
+  vars: Record<string, string>
+}
+
 export interface Appearance {
   accent: string
   theme: ThemeMode
   /** Palette complète ('' = suit `theme` auto/clair/sombre). */
   themeId: string
+  /** Thèmes créés par l'utilisateur (galerie + export/import). */
+  customThemes: CustomTheme[]
   /** Bascule automatique jour/nuit (prioritaire sur themeId/theme). */
   themeSchedule: ThemeSchedule
   density: Density
