@@ -18,7 +18,7 @@ import { useUiStore } from '../state/useUiStore'
 import { useFavoritesStore } from '../state/useFavoritesStore'
 import { useRunnerStore, projKey } from '../state/useRunnerStore'
 import { useSidebarStore } from '../state/useSidebarStore'
-import type { GitProject, RunnerTask } from '@shared/types'
+import type { GitProject, RunnerTask, SshHost } from '@shared/types'
 import { pathKey, baseName } from '../lib/format'
 import FolderTree from './FolderTree'
 import ContextMenu from './ContextMenu'
@@ -29,6 +29,10 @@ import LaunchRow from './sidebar/LaunchRow'
 import FavoriteItem from './sidebar/FavoriteItem'
 import ProjectItem from './sidebar/ProjectItem'
 import LaunchConfigDialog from './sidebar/LaunchConfigDialog'
+import ServerItem from './sidebar/ServerItem'
+import ServerAddForm from './sidebar/ServerAddForm'
+import { useTerminalStore } from '../state/useTerminalStore'
+import { sshCommandFor } from '../lib/ssh'
 
 /**
  * Sidebar : lanceur, accès rapide, lecteurs, favoris et projets — orchestration
@@ -67,6 +71,11 @@ export default function Sidebar(): JSX.Element {
   const [projects, setProjects] = useState<GitProject[]>([])
   // Nombre de projets mis de côté pendant cette session (lien « tout réafficher »).
   const [hiddenCount, setHiddenCount] = useState(0)
+  // Serveurs SSH : ~/.ssh/config (lecture seule) + ajouts manuels (config GVue).
+  const [configHosts, setConfigHosts] = useState<SshHost[]>([])
+  const [manualHosts, setManualHosts] = useState<SshHost[]>([])
+  const [sshOk, setSshOk] = useState(true)
+  const [addServerOpen, setAddServerOpen] = useState(false)
   const [launchOpen, setLaunchOpen] = useState(false)
   const [groupAxis, setGroupAxis] = useState<'project' | 'category'>('project')
   const [config, setConfig] = useState<{ root: string; name: string } | null>(null)
@@ -82,6 +91,35 @@ export default function Sidebar(): JSX.Element {
   useEffect(() => {
     void initSidebar()
   }, [initSidebar])
+
+  // Serveurs SSH : hôtes du ~/.ssh/config + manuels + présence d'OpenSSH.
+  useEffect(() => {
+    void window.api.ssh.configHosts().then(setConfigHosts).catch(() => setConfigHosts([]))
+    void window.api.config.get('sshHosts').then(setManualHosts).catch(() => setManualHosts([]))
+    void window.api.ssh.available().then(setSshOk).catch(() => setSshOk(false))
+  }, [])
+
+  // Clic sur un serveur : terminal intégré + connexion SSH dedans.
+  const connectSsh = (host: SshHost): void => {
+    useUiStore.getState().setTerminalOpen(true)
+    void useTerminalStore.getState().openTaskTab({
+      cwd: home || '.',
+      title: host.name,
+      command: sshCommandFor(host)
+    })
+  }
+
+  const addServer = (host: SshHost): void => {
+    const next = [...manualHosts.filter((h) => h.name !== host.name), host]
+    setManualHosts(next)
+    void window.api.config.set('sshHosts', next)
+  }
+
+  const removeServer = (name: string): void => {
+    const next = manualHosts.filter((h) => h.name !== name)
+    setManualHosts(next)
+    void window.api.config.set('sshHosts', next)
+  }
 
   // Recharge la liste des dépôts à chaque navigation (un dépôt fraîchement
   // visité y apparaît). La mémorisation se fait côté main au git:status.
@@ -258,6 +296,48 @@ export default function Sidebar(): JSX.Element {
             >
               + {hiddenCount} projet{hiddenCount > 1 ? 's' : ''} masqué
               {hiddenCount > 1 ? 's' : ''} — tout réafficher
+            </button>
+          )}
+        </>
+      )
+    },
+    servers: {
+      title: 'Serveurs',
+      body: (
+        <>
+          {!sshOk && (
+            <p className="px-2 text-[12px] text-warning-fg">
+              OpenSSH introuvable — activez « Client OpenSSH » dans les fonctionnalités
+              facultatives de Windows.
+            </p>
+          )}
+          {configHosts.length === 0 && manualHosts.length === 0 && !addServerOpen && (
+            <p className="px-2 text-[12px] text-fg-muted">
+              Les hôtes de ~/.ssh/config apparaissent ici automatiquement.
+            </p>
+          )}
+          {configHosts.map((h) => (
+            <ServerItem key={`c-${h.name}`} host={h} onConnect={() => connectSsh(h)} />
+          ))}
+          {manualHosts.map((h) => (
+            <ServerItem
+              key={`m-${h.name}`}
+              host={h}
+              onConnect={() => connectSsh(h)}
+              onRemove={(e) => {
+                e.stopPropagation()
+                removeServer(h.name)
+              }}
+            />
+          ))}
+          {addServerOpen ? (
+            <ServerAddForm onAdd={addServer} onClose={() => setAddServerOpen(false)} />
+          ) : (
+            <button
+              onClick={() => setAddServerOpen(true)}
+              className="mt-0.5 w-full rounded-app px-2 py-1 text-left text-[11px] text-fg-muted hover:bg-bg-hover hover:text-fg"
+            >
+              + Ajouter un serveur…
             </button>
           )}
         </>

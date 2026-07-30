@@ -41,6 +41,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   folderFreq: {},
   projectRoots: [],
   hiddenProjects: [],
+  sshHosts: [],
   openWith: {},
   workspaces: {},
   runnerTasks: [],

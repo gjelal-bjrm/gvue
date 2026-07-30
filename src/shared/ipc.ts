@@ -18,6 +18,10 @@ export const IPC = {
   fsPreview: 'fs:preview',
   fsJustRecipes: 'fs:justRecipes',
 
+  // SSH (section Serveurs)
+  sshConfigHosts: 'ssh:configHosts',
+  sshAvailable: 'ssh:available',
+
   // Corbeille Windows (lecture, restauration, suppression définitive)
   binList: 'bin:list',
   binRestore: 'bin:restore',

@@ -4,6 +4,17 @@
 export type DirEntryKind = 'file' | 'directory'
 
 /** Instantané du contexte GVue poussé au serveur MCP (renderer → main). */
+/** Un serveur SSH (section « Serveurs » de la sidebar). */
+export interface SshHost {
+  /** Alias (ssh_config) ou libellé (hôte manuel). */
+  name: string
+  /** Provenance : ~/.ssh/config (lecture seule) ou ajout manuel GVue. */
+  source: 'config' | 'manual'
+  hostName?: string
+  user?: string
+  port?: number
+}
+
 /** Un élément de la corbeille Windows. */
 export interface RecycleItem {
   /** Identifiant opaque (chemin du fichier de données $R). */
@@ -372,6 +383,8 @@ export interface AppConfig {
   projectRoots: string[]
   /** Projets mis de côté : masqués de la sidebar jusqu'à leur prochaine visite. */
   hiddenProjects: string[]
+  /** Serveurs SSH ajoutés à la main (ceux du ~/.ssh/config sont lus, jamais copiés). */
+  sshHosts: SshHost[]
   /** Programmes mémorisés par extension pour « Ouvrir avec » (ext → exes). */
   openWith: Record<string, string[]>
   /** Espaces de travail nommés. */

@@ -41,7 +41,8 @@ import type {
   McpContext,
   SysClipboardFiles,
   JustRecipe,
-  RecycleItem
+  RecycleItem,
+  SshHost
 } from '@shared/types'
 
 /**
@@ -156,6 +157,12 @@ const api = {
       ipcRenderer.invoke(IPC.archiveList, path),
     extract: (path: string, destDir?: string): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke(IPC.archiveExtract, path, destDir)
+  },
+  ssh: {
+    /** Hôtes lus dans ~/.ssh/config (lecture seule, jamais modifié par GVue). */
+    configHosts: (): Promise<SshHost[]> => ipcRenderer.invoke(IPC.sshConfigHosts),
+    /** OpenSSH (client ssh) est-il disponible sur la machine ? */
+    available: (): Promise<boolean> => ipcRenderer.invoke(IPC.sshAvailable)
   },
   bin: {
     /** Contenu de la corbeille Windows (tous lecteurs). */
