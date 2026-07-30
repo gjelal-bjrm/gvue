@@ -85,9 +85,12 @@ export function attachSuggest(term: XTerm, opts: SuggestOptions): () => void {
     if (recipesCwd === cwd) return
     recipesCwd = cwd
     const at = cwd
+    // Appel optionnel : en développement le preload ne se recharge pas à chaud,
+    // donc une méthode fraîchement ajoutée peut manquer à l'exécution — la
+    // complétion just se désactive alors au lieu de casser tout le terminal.
     void window.api.fs
-      .justRecipes(cwd)
-      .then((r) => {
+      .justRecipes?.(cwd)
+      ?.then((r) => {
         if (recipesCwd === at) recipes = r
       })
       .catch(() => {

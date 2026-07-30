@@ -1,7 +1,12 @@
 set windows-shell := ["cmd", "/c"]
 
-# Dossier de données de GVue (config, journal) — utile pour doctor/logs/clean-config.
+# Dossier de données de GVue (config, journal).
 appdata := join(env_var('APPDATA'), 'gvue')
+
+# Tout ce qui exigerait des guillemets imbriqués vit dans scripts/dev.cjs :
+# sous Windows, `just` exécute chaque ligne via `cmd /c`, qui mange les
+# guillemets internes (vérifié : `node -e "console.log('x')"` arrive tronqué).
+dev_script := "node scripts/dev.cjs"
 
 # Affiche la liste des commandes
 default:
@@ -80,7 +85,7 @@ notes: _need-node
 bump level="patch": _need-node
   npm version {{level}} --no-git-tag-version
   @just notes
-  @node -p "'Version : ' + require('./package.json').version"
+  @{{dev_script}} version
 
 # =============================================================================
 # Maintenance
@@ -99,7 +104,7 @@ clean-all: clean
 
 # Affiche le journal de l'application (dernières lignes)
 logs lines="40":
-  @powershell -NoProfile -Command "Get-Content -Tail {{lines}} '{{appdata}}\logs\gvue.log'"
+  @{{dev_script}} logs {{lines}}
 
 # Ouvre le dossier de données de GVue (config, journal)
 data-dir:
@@ -107,25 +112,12 @@ data-dir:
 
 # Vérifie l'environnement de développement (Node, dépendances, outils)
 doctor:
-  @echo === Environnement ===
-  @node -v
-  @npm -v
-  @git --version
-  @echo.
-  @echo === Projet ===
-  @node -p "'GVue v' + require('./package.json').version"
-  @node -e "const e=require('fs').existsSync; console.log(e('node_modules') ? 'node_modules : present' : 'node_modules : ABSENT (lance just setup)'); console.log(e('node_modules/node-pty/build') ? 'node-pty : compile (terminal integre OK)' : 'node-pty : non compile (terminal indisponible, lance just rebuild)')"
-  @echo.
-  @echo === Outils optionnels ===
-  @where 7z >nul 2>nul && echo 7-Zip : trouve || echo 7-Zip : absent (archives limitees au zip)
-  @echo ripgrep : fourni par @vscode/ripgrep
+  @{{dev_script}} doctor
 
 # Affiche la commande d'enregistrement du serveur MCP dans Claude Code
 mcp-cmd:
-  @echo Active d'abord le serveur MCP : GVue - Parametres - General - Serveur MCP
-  @echo Puis enregistre-le :
-  @echo   claude mcp add gvue -- node "{{justfile_directory()}}\scripts\gvue-mcp.cjs"
+  @{{dev_script}} mcp-cmd
 
 # Garde-fou : Node 18+ requis (dépendance des recettes qui appellent npm)
 _need-node:
-  @node -e "if (+process.versions.node.split('.')[0] < 18) { console.error('[ERREUR] Node ' + process.versions.node + ' est trop ancien : GVue exige Node 18+ (20 LTS recommande).'); process.exit(1) }"
+  @{{dev_script}} check-node
