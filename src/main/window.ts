@@ -38,7 +38,9 @@ export function createWindow(): BrowserWindow {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true
+      sandbox: true,
+      // Visionneuse PDF intégrée de Chromium (aperçu des .pdf).
+      plugins: true
     }
   })
 

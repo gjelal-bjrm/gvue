@@ -56,6 +56,11 @@ export const IPC = {
   archiveList: 'archive:list',
   archiveExtract: 'archive:extract',
 
+  // Presse-papiers système (interop fichiers avec l'Explorateur Windows)
+  clipReadFiles: 'clip:readFiles',
+  clipWriteFiles: 'clip:writeFiles',
+  clipClear: 'clip:clear',
+
   // Git
   gitStatus: 'git:status',
   gitCommit: 'git:commit',

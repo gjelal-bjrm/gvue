@@ -120,7 +120,7 @@ export function buildDropMenu(paths: string[], destDir: string): MenuEntry[] {
 
 /** Menu de la zone vide (clic droit hors d'un élément) : créer / coller / actualiser. */
 export function buildBackgroundMenu(ctx: MenuCtx): MenuEntry[] {
-  const { path, clipboard } = ctx
+  const { path } = ctx
   return [
     ...(useAppsStore.getState().apps.vscode
       ? [
@@ -149,9 +149,10 @@ export function buildBackgroundMenu(ctx: MenuCtx): MenuEntry[] {
     },
     { type: 'sep' },
     {
+      // Toujours actif : les fichiers peuvent venir du presse-papiers de
+      // l'Explorateur Windows (invisible d'ici sans un aller-retour PowerShell).
       label: 'Coller',
       icon: <ClipboardPaste size={14} />,
-      disabled: !clipboard,
       onClick: () => void pasteInto(path)
     },
     { type: 'sep' },
@@ -181,7 +182,7 @@ export function buildBackgroundMenu(ctx: MenuCtx): MenuEntry[] {
 
 /** Menu contextuel d'un élément (fichier/dossier), sélection multiple incluse. */
 export function buildItemMenu(entry: DirEntry, ctx: MenuCtx): MenuEntry[] {
-  const { path, selected, selectedSet, clipboard, repo, statusByPath } = ctx
+  const { path, selected, selectedSet, repo, statusByPath } = ctx
   const git = statusByPath[pathKey(entry.path)]
   const apps = useAppsStore.getState().apps
   // Cible des opérations groupées : la sélection si l'élément en fait partie.
@@ -354,7 +355,6 @@ export function buildItemMenu(entry: DirEntry, ctx: MenuCtx): MenuEntry[] {
           {
             label: 'Coller dans le dossier',
             icon: <ClipboardPaste size={14} />,
-            disabled: !clipboard,
             onClick: () => void pasteInto(entry.path)
           } as MenuEntry
         ]

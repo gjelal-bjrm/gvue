@@ -1,6 +1,7 @@
 import { useEffect, type Dispatch, type MutableRefObject, type SetStateAction } from 'react'
 import type { DirEntry } from '@shared/types'
 import { useNavStore } from '../../state/useNavStore'
+import { useUiStore } from '../../state/useUiStore'
 
 /**
  * Navigation clavier de la liste (volet actif) : flèches / Home / Fin / PgUp /
@@ -88,6 +89,11 @@ export function useFileListKeyboard(p: {
         case 'Backspace':
           e.preventDefault()
           useNavStore.getState().goParent()
+          break
+        case ' ':
+          // Aperçu rapide façon Quick Look : Espace ouvre/ferme le panneau.
+          e.preventDefault()
+          useUiStore.getState().togglePreview()
           break
         default:
           if (e.key.length === 1 && e.key !== ' ') {

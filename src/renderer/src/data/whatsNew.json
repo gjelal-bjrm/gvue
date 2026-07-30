@@ -2,6 +2,8 @@
   {
     "version": "0.1.22",
     "notes": [
+      "Copier/coller de fichiers avec l'Explorateur Windows (Ctrl+C là-bas → Ctrl+V ici, et inversement)",
+      "Aperçu rapide : Espace ouvre/ferme l'aperçu, lecture vidéo/audio et PDF intégrés",
       "Fix index.lock — statut sans verrou + écritures git sérialisées et réessayées"
     ]
   },

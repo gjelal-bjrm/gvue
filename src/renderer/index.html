@@ -6,7 +6,7 @@
     <!-- CSP stricte : pas de réseau sortant, scripts locaux uniquement. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' ws: wss:"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' ws: wss:; media-src 'self' gvue-file:; frame-src 'self' gvue-file:; object-src 'self' gvue-file:"
     />
     <title>GVue</title>
   </head>

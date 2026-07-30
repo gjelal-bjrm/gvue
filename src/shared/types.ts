@@ -147,7 +147,23 @@ export type ExternalAppId = 'vscode' | 'notepadpp'
 
 // --- Aperçu de fichier (phase 6) ---
 
-export type PreviewKind = 'text' | 'code' | 'markdown' | 'json' | 'image' | 'binary'
+export type PreviewKind =
+  | 'text'
+  | 'code'
+  | 'markdown'
+  | 'json'
+  | 'image'
+  | 'video'
+  | 'audio'
+  | 'pdf'
+  | 'binary'
+
+/** Contenu fichiers du presse-papiers système (interop Explorateur Windows). */
+export interface SysClipboardFiles {
+  files: string[]
+  /** Vrai si la source a fait « Couper » (Preferred DropEffect = MOVE). */
+  move: boolean
+}
 
 export interface PreviewData {
   kind: PreviewKind

@@ -38,7 +38,8 @@ import type {
   ConflictMode,
   ConflictInfo,
   ArchiveEntry,
-  McpContext
+  McpContext,
+  SysClipboardFiles
 } from '@shared/types'
 
 /**
@@ -150,6 +151,15 @@ const api = {
       ipcRenderer.invoke(IPC.archiveList, path),
     extract: (path: string, destDir?: string): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke(IPC.archiveExtract, path, destDir)
+  },
+  clip: {
+    /** Fichiers du presse-papiers système (Explorateur Windows), ou null. */
+    readFiles: (): Promise<SysClipboardFiles | null> => ipcRenderer.invoke(IPC.clipReadFiles),
+    /** Place des fichiers dans le presse-papiers système (copier ou couper). */
+    writeFiles: (files: string[], move: boolean): Promise<boolean> =>
+      ipcRenderer.invoke(IPC.clipWriteFiles, files, move),
+    /** Vide le presse-papiers système (après un couper-coller consommé). */
+    clear: (): Promise<void> => ipcRenderer.invoke(IPC.clipClear)
   },
   git: {
     status: (dir: string): Promise<GitStatus> => ipcRenderer.invoke(IPC.gitStatus, dir),

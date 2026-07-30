@@ -24,6 +24,11 @@ const IMG_MIME: Record<string, string> = {
   svg: 'image/svg+xml'
 }
 
+// Formats médias lisibles par Chromium — servis en streaming via gvue-file://
+// (pas de data URL : les vidéos peuvent peser des Go).
+const VIDEO_EXT = new Set(['mp4', 'm4v', 'webm', 'mov', 'mkv', 'ogv'])
+const AUDIO_EXT = new Set(['mp3', 'wav', 'ogg', 'oga', 'm4a', 'aac', 'flac', 'opus', 'weba'])
+
 const CODE_EXT = new Set([
   'ts', 'tsx', 'js', 'jsx', 'mjs', 'cjs', 'vue', 'svelte', 'py', 'rs', 'go',
   'java', 'kt', 'c', 'h', 'cpp', 'hpp', 'cc', 'cs', 'php', 'rb', 'sh', 'bash',
@@ -86,6 +91,11 @@ export async function readPreview(input: string): Promise<PreviewData> {
   }
 
   const ext = extOf(name)
+
+  // Médias : lus en streaming côté renderer (gvue-file://), pas ici.
+  if (VIDEO_EXT.has(ext)) return { ...base, kind: 'video', lang: ext }
+  if (AUDIO_EXT.has(ext)) return { ...base, kind: 'audio', lang: ext }
+  if (ext === 'pdf') return { ...base, kind: 'pdf', lang: ext }
 
   // Image → data URL (bornée en taille).
   if (IMG_MIME[ext]) {

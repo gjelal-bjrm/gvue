@@ -41,7 +41,8 @@ const GROUPS: Group[] = [
       { keys: ['a…z'], label: 'Aller au premier nom correspondant' },
       { keys: ['Entrée'], label: "Ouvrir l'élément sélectionné" },
       { keys: ['Ctrl', 'F'], label: 'Filtrer le dossier courant' },
-      { keys: ['Ctrl', 'E'], label: 'Aller à un fichier… (recherche floue)' }
+      { keys: ['Ctrl', 'E'], label: 'Aller à un fichier… (recherche floue)' },
+      { keys: ['Espace'], label: 'Aperçu rapide (image, vidéo, audio, PDF, code…)' }
     ]
   },
   {

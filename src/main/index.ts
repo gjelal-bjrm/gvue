@@ -1,4 +1,6 @@
-import { app, BrowserWindow, dialog } from 'electron'
+import { app, BrowserWindow, dialog, protocol, net } from 'electron'
+import { pathToFileURL } from 'node:url'
+import { isAbsolute, normalize } from 'node:path'
 import { createWindow } from './window'
 import { createTray, trayActive } from './tray'
 import { registerFsHandlers } from './ipc/fs'
@@ -11,6 +13,7 @@ import { registerAppsHandlers } from './ipc/apps'
 import { registerLogHandlers } from './ipc/log'
 import { registerMenuHandlers } from './ipc/menu'
 import { registerMcpHandlers } from './ipc/mcp'
+import { registerClipboardHandlers } from './ipc/clipboard'
 import { startMcpServer, stopMcpServer } from './services/mcp-server'
 import { getConfig } from './services/config-store'
 import { registerUpdateHandlers, initAutoUpdate } from './services/updater'
@@ -55,6 +58,31 @@ function registerIpc(): void {
   registerLogHandlers()
   registerMenuHandlers()
   registerMcpHandlers()
+  registerClipboardHandlers()
+}
+
+// Protocole gvue-file:// — sert les fichiers locaux au renderer (aperçu
+// vidéo/audio/PDF) en streaming avec support des requêtes Range (seek).
+// Doit être déclaré AVANT app.whenReady.
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'gvue-file',
+    privileges: { stream: true, supportFetchAPI: true, bypassCSP: true }
+  }
+])
+
+function registerFileProtocol(): void {
+  protocol.handle('gvue-file', (req) => {
+    try {
+      const raw = decodeURIComponent(new URL(req.url).pathname.replace(/^\//, ''))
+      const p = normalize(raw)
+      if (!isAbsolute(p) || p.includes('..')) return new Response(null, { status: 403 })
+      // net.fetch sur file:// gère les en-têtes Range (seek dans les vidéos).
+      return net.fetch(pathToFileURL(p).toString(), { headers: req.headers })
+    } catch {
+      return new Response(null, { status: 400 })
+    }
+  })
 }
 
 // Verrou d'instance unique : un seul *processus* GVue (les fenêtres multiples
@@ -72,6 +100,7 @@ if (!gotLock) {
   app.whenReady().then(() => {
     logInfo('app', `GVue ${app.getVersion()} démarré (packagé: ${app.isPackaged}).`)
     registerIpc()
+    registerFileProtocol()
     createTray()
     createWindow()
     initAutoUpdate()

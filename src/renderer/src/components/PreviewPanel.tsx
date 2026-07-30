@@ -80,7 +80,49 @@ export default function PreviewPanel(): JSX.Element {
   )
 }
 
+/** URL streamée d'un fichier local (protocole gvue-file, supporte le seek). */
+function mediaUrl(path: string): string {
+  return 'gvue-file:///' + encodeURIComponent(path)
+}
+
 function PreviewBody({ data }: { data: PreviewData }): JSX.Element {
+  if (data.kind === 'video') {
+    return (
+      <div className="grid min-h-full place-items-center bg-black/40 p-2">
+        <video
+          key={data.path}
+          controls
+          preload="metadata"
+          src={mediaUrl(data.path)}
+          className="max-h-full max-w-full rounded-app"
+        />
+      </div>
+    )
+  }
+
+  if (data.kind === 'audio') {
+    return (
+      <div className="flex flex-col items-center gap-4 p-6">
+        <div className="max-w-full truncate text-[13px] font-medium text-fg">{data.name}</div>
+        <audio key={data.path} controls preload="metadata" src={mediaUrl(data.path)} className="w-full" />
+        <div className="text-[12px] text-fg-muted">
+          {formatSize(data.size, 'file')} · {formatDate(data.modifiedMs)}
+        </div>
+      </div>
+    )
+  }
+
+  if (data.kind === 'pdf') {
+    return (
+      <iframe
+        key={data.path}
+        src={mediaUrl(data.path)}
+        title={data.name}
+        className="h-full w-full border-0"
+      />
+    )
+  }
+
   if (data.kind === 'image') {
     return (
       <div className="grid min-h-full place-items-center bg-[repeating-conic-gradient(var(--bg-tertiary)_0_25%,transparent_0_50%)] [background-size:18px_18px] p-3">

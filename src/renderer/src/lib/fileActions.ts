@@ -10,7 +10,11 @@ import type { FileOpResult, ConflictMode } from '@shared/types'
  */
 
 export function clipFiles(paths: string[], mode: 'copy' | 'cut'): void {
-  if (paths.length > 0) useUiStore.getState().setClipboard({ paths, mode })
+  if (paths.length === 0) return
+  useUiStore.getState().setClipboard({ paths, mode })
+  // Écrit aussi le presse-papiers *système* : les fichiers copiés dans GVue
+  // se collent dans l'Explorateur Windows (et toute autre application).
+  void window.api.clip.writeFiles(paths, mode === 'cut').catch(() => {})
 }
 
 /** Message court résumant un résultat d'opération ; null si rien à signaler. */
@@ -61,12 +65,42 @@ export async function copyOrMove(
 }
 
 export async function pasteInto(destDir: string): Promise<void> {
-  const clip = useUiStore.getState().clipboard
-  if (!clip || !destDir) return
-  const res = await copyOrMove(clip.mode === 'cut' ? 'move' : 'copy', clip.paths, destDir)
+  if (!destDir) return
+
+  // Source de vérité : le presse-papiers système (l'Explorateur y met ses
+  // fichiers, et GVue y écrit aussi les siens). Repli sur le presse-papiers
+  // interne si l'interop est indisponible (hors Windows, PowerShell absent…).
+  let paths: string[] = []
+  let move = false
+  let fromSystem = false
+  try {
+    const sys = await window.api.clip.readFiles()
+    if (sys && sys.files.length > 0) {
+      paths = sys.files
+      move = sys.move
+      fromSystem = true
+    }
+  } catch {
+    /* interop indisponible */
+  }
+  if (paths.length === 0) {
+    const clip = useUiStore.getState().clipboard
+    if (!clip) {
+      useUiStore.getState().showToast('Rien à coller.')
+      return
+    }
+    paths = clip.paths
+    move = clip.mode === 'cut'
+  }
+
+  const res = await copyOrMove(move ? 'move' : 'copy', paths, destDir)
   // Un couper n'est « consommé » que si au moins un élément a bougé : un échec
   // total (ou une annulation) ne doit pas faire perdre le contenu coupé.
-  if (clip.mode === 'cut' && res && res.ok > 0) useUiStore.getState().setClipboard(null)
+  if (move && res && res.ok > 0) {
+    useUiStore.getState().setClipboard(null)
+    // Convention Windows : le presse-papiers est vidé après un couper-coller.
+    if (fromSystem) void window.api.clip.clear().catch(() => {})
+  }
 }
 
 /**
