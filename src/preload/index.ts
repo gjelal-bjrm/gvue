@@ -40,7 +40,8 @@ import type {
   ArchiveEntry,
   McpContext,
   SysClipboardFiles,
-  JustRecipe
+  JustRecipe,
+  RecycleItem
 } from '@shared/types'
 
 /**
@@ -156,6 +157,18 @@ const api = {
     extract: (path: string, destDir?: string): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke(IPC.archiveExtract, path, destDir)
   },
+  bin: {
+    /** Contenu de la corbeille Windows (tous lecteurs). */
+    list: (): Promise<RecycleItem[]> => ipcRenderer.invoke(IPC.binList),
+    /** Restaure des éléments à leur emplacement d'origine. */
+    restore: (ids: string[]): Promise<{ ok: number; errors: string[] }> =>
+      ipcRenderer.invoke(IPC.binRestore, ids),
+    /** Supprime définitivement des éléments (irréversible). */
+    delete: (ids: string[]): Promise<{ ok: number; errors: string[] }> =>
+      ipcRenderer.invoke(IPC.binDelete, ids),
+    /** Vide entièrement la corbeille. */
+    empty: (): Promise<{ ok: number; errors: string[] }> => ipcRenderer.invoke(IPC.binEmpty)
+  },
   clip: {
     /** Fichiers du presse-papiers système (Explorateur Windows), ou null. */
     readFiles: (): Promise<SysClipboardFiles | null> => ipcRenderer.invoke(IPC.clipReadFiles),
@@ -178,6 +191,11 @@ const api = {
     discard: (dir: string, file: string): Promise<GitActionResult> =>
       ipcRenderer.invoke(IPC.gitDiscard, dir, file),
     projects: (): Promise<GitProject[]> => ipcRenderer.invoke(IPC.gitProjects),
+    /** Met un projet de côté (réapparaît à sa prochaine visite) ; renvoie la liste à jour. */
+    hideProject: (root: string): Promise<GitProject[]> =>
+      ipcRenderer.invoke(IPC.gitHideProject, root),
+    /** Réaffiche tous les projets mis de côté ; renvoie la liste à jour. */
+    unhideProjects: (): Promise<GitProject[]> => ipcRenderer.invoke(IPC.gitUnhideProjects),
     diff: (
       dir: string,
       file: string,

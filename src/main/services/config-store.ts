@@ -69,11 +69,59 @@ export function pushRecentFile(p: string, max = 30): void {
   store.set('recentFiles', files.slice(0, max))
 }
 
-/** Mémorise la racine d'un dépôt visité (en tête, FIFO borné). */
-export function pushProject(root: string, max = 15): void {
+// Dernière racine de dépôt vue : un simple rafraîchissement de statut sur le
+// même dépôt ne compte pas comme une « visite », sinon masquer un projet depuis
+// son propre dossier le ferait réapparaître aussitôt.
+let lastVisitedRoot = ''
+
+/**
+ * Mémorise la racine d'un dépôt visité (en tête, FIFO borné).
+ * Une visite RÉELLE (changement de dépôt) démasque le projet : c'est ainsi
+ * qu'un projet mis de côté réapparaît quand on rouvre son dossier.
+ */
+export function pushProject(root: string, max = 40): void {
   const roots = store.get('projectRoots').filter((r) => r !== root)
   roots.unshift(root)
   store.set('projectRoots', roots.slice(0, max))
+
+  if (root !== lastVisitedRoot) {
+    lastVisitedRoot = root
+    const hidden = store.get('hiddenProjects')
+    if (hidden.includes(root)) {
+      store.set(
+        'hiddenProjects',
+        hidden.filter((r) => r !== root)
+      )
+    }
+  }
+}
+
+/** Retire un projet de la liste (masqué jusqu'à sa prochaine visite). */
+export function hideProject(root: string): void {
+  const hidden = store.get('hiddenProjects')
+  if (!hidden.includes(root)) store.set('hiddenProjects', [...hidden, root])
+  store.set(
+    'projectRoots',
+    store.get('projectRoots').filter((r) => r !== root)
+  )
+  // On masque peut-être le projet depuis SON dossier : on marque la visite en
+  // cours pour que les rafraîchissements de statut suivants ne le redémasquent
+  // pas. Il ne reviendra qu'à une vraie nouvelle visite (aller ailleurs, revenir).
+  lastVisitedRoot = root
+}
+
+/** Réaffiche tous les projets mis de côté. */
+export function unhideAllProjects(): void {
+  const hidden = store.get('hiddenProjects')
+  if (hidden.length === 0) return
+  const roots = store.get('projectRoots')
+  store.set('projectRoots', [...roots, ...hidden.filter((r) => !roots.includes(r))])
+  store.set('hiddenProjects', [])
+}
+
+/** Racines masquées (exclues de la section Projets). */
+export function hiddenProjects(): string[] {
+  return store.get('hiddenProjects')
 }
 
 /** Emplacement par défaut au lancement : le home de l'utilisateur. */

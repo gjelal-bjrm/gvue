@@ -27,6 +27,9 @@ interface UiState {
   fileFinderOpen: boolean
   /** Dossier analysé pour l'espace disque (null = panneau fermé). */
   diskUsagePath: string | null
+  /** Panneau « Corbeille » (Windows) ouvert ? */
+  recycleBinOpen: boolean
+  setRecycleBin: (v: boolean) => void
   /** Fichier dont on affiche l'historique Git (null = fermé). */
   fileHistoryPath: string | null
   setFileHistory: (p: string | null) => void
@@ -100,6 +103,8 @@ export const useUiStore = create<UiState>((set) => ({
   paletteOpen: false,
   fileFinderOpen: false,
   diskUsagePath: null,
+  recycleBinOpen: false,
+  setRecycleBin: (v) => set({ recycleBinOpen: v }),
   fileHistoryPath: null,
   setFileHistory: (p) => set({ fileHistoryPath: p }),
   compareOpen: false,

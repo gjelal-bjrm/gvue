@@ -1,7 +1,13 @@
 import { ipcMain } from 'electron'
 import { IPC } from '@shared/ipc'
 import * as git from '../services/git'
-import { getConfig, pushProject } from '../services/config-store'
+import {
+  getConfig,
+  pushProject,
+  hideProject,
+  unhideAllProjects,
+  hiddenProjects
+} from '../services/config-store'
 
 /** Handler IPC Git : adaptateur fin au-dessus du service `git`. */
 export function registerGitHandlers(): void {
@@ -13,6 +19,19 @@ export function registerGitHandlers(): void {
   })
 
   ipcMain.handle(IPC.gitProjects, async () => {
+    // Les projets mis de côté restent en config mais ne remontent pas à l'UI.
+    const hidden = new Set(hiddenProjects())
+    return git.projects(getConfig('projectRoots').filter((r) => !hidden.has(r)))
+  })
+
+  ipcMain.handle(IPC.gitHideProject, async (_e, root: string) => {
+    hideProject(root)
+    const hidden = new Set(hiddenProjects())
+    return git.projects(getConfig('projectRoots').filter((r) => !hidden.has(r)))
+  })
+
+  ipcMain.handle(IPC.gitUnhideProjects, async () => {
+    unhideAllProjects()
     return git.projects(getConfig('projectRoots'))
   })
 

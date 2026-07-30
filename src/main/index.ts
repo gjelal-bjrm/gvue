@@ -14,6 +14,7 @@ import { registerLogHandlers } from './ipc/log'
 import { registerMenuHandlers } from './ipc/menu'
 import { registerMcpHandlers } from './ipc/mcp'
 import { registerClipboardHandlers } from './ipc/clipboard'
+import { registerBinHandlers } from './ipc/bin'
 import { startMcpServer, stopMcpServer } from './services/mcp-server'
 import { getConfig } from './services/config-store'
 import { registerUpdateHandlers, initAutoUpdate } from './services/updater'
@@ -59,6 +60,7 @@ function registerIpc(): void {
   registerMenuHandlers()
   registerMcpHandlers()
   registerClipboardHandlers()
+  registerBinHandlers()
 }
 
 // Protocole gvue-file:// — sert les fichiers locaux au renderer (aperçu

@@ -17,6 +17,12 @@ export const IPC = {
   fsTrash: 'fs:trash',
   fsPreview: 'fs:preview',
   fsJustRecipes: 'fs:justRecipes',
+
+  // Corbeille Windows (lecture, restauration, suppression définitive)
+  binList: 'bin:list',
+  binRestore: 'bin:restore',
+  binDelete: 'bin:delete',
+  binEmpty: 'bin:empty',
   fsIcon: 'fs:icon',
   fsCopy: 'fs:copy',
   fsMove: 'fs:move',
@@ -71,6 +77,8 @@ export const IPC = {
   gitUnstage: 'git:unstage',
   gitDiscard: 'git:discard',
   gitProjects: 'git:projects',
+  gitHideProject: 'git:hideProject',
+  gitUnhideProjects: 'git:unhideProjects',
   gitDiff: 'git:diff',
   gitBranches: 'git:branches',
   gitCheckout: 'git:checkout',

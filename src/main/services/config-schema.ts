@@ -40,6 +40,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   recentFiles: [],
   folderFreq: {},
   projectRoots: [],
+  hiddenProjects: [],
   openWith: {},
   workspaces: {},
   runnerTasks: [],

@@ -9,10 +9,12 @@ import {
   Rocket,
   ChevronRight,
   ChevronDown,
-  Tag
+  Tag,
+  Trash2
 } from 'lucide-react'
 import { useNavStore, activePane } from '../state/useNavStore'
 import { useSearchStore } from '../state/useSearchStore'
+import { useUiStore } from '../state/useUiStore'
 import { useFavoritesStore } from '../state/useFavoritesStore'
 import { useRunnerStore, projKey } from '../state/useRunnerStore'
 import { useSidebarStore } from '../state/useSidebarStore'
@@ -44,6 +46,7 @@ export default function Sidebar(): JSX.Element {
   const quickAccess = useNavStore((s) => activePane(s).quickAccess)
   const launcher = useNavStore((s) => activePane(s).launcher)
   const closeSearch = useSearchStore((s) => s.close)
+  const recycleBinOpen = useUiStore((s) => s.recycleBinOpen)
   const favorites = useFavoritesStore((s) => s.favorites)
   const removeFavorite = useFavoritesStore((s) => s.remove)
 
@@ -62,6 +65,8 @@ export default function Sidebar(): JSX.Element {
   const stopTask = useRunnerStore((s) => s.stopTask)
 
   const [projects, setProjects] = useState<GitProject[]>([])
+  // Nombre de projets mis de côté pendant cette session (lien « tout réafficher »).
+  const [hiddenCount, setHiddenCount] = useState(0)
   const [launchOpen, setLaunchOpen] = useState(false)
   const [groupAxis, setGroupAxis] = useState<'project' | 'category'>('project')
   const [config, setConfig] = useState<{ root: string; name: string } | null>(null)
@@ -173,6 +178,12 @@ export default function Sidebar(): JSX.Element {
               onContextMenu={(e) => openCtx(e, locations.documents)}
             />
           )}
+          <Item
+            icon={Trash2}
+            label="Corbeille"
+            active={recycleBinOpen}
+            onClick={() => useUiStore.getState().setRecycleBin(true)}
+          />
         </>
       )
     },
@@ -209,27 +220,48 @@ export default function Sidebar(): JSX.Element {
     },
     projects: {
       title: 'Projets',
-      body:
-        projects.length === 0 ? (
-          <p className="px-2 text-[12px] text-fg-muted">Visitez un dépôt Git pour le voir ici.</p>
-        ) : (
-          projects.map((p) => (
-            <ProjectItem
-              key={p.root}
-              project={p}
-              active={!quickAccess && !launcher && pathKey(path) === pathKey(p.root)}
-              running={!!running[projKey(p.root)]}
-              configured={!!projectLaunch[p.root]}
-              onClick={() => navigate(p.root)}
-              onPlay={(e) => onPlay(e, p.root, p.name)}
-              onConfig={(e) => {
-                e.stopPropagation()
-                setConfig({ root: p.root, name: p.name })
+      body: (
+        <>
+          {projects.length === 0 ? (
+            <p className="px-2 text-[12px] text-fg-muted">Visitez un dépôt Git pour le voir ici.</p>
+          ) : (
+            projects.map((p) => (
+              <ProjectItem
+                key={p.root}
+                project={p}
+                active={!quickAccess && !launcher && pathKey(path) === pathKey(p.root)}
+                running={!!running[projKey(p.root)]}
+                configured={!!projectLaunch[p.root]}
+                onClick={() => navigate(p.root)}
+                onPlay={(e) => onPlay(e, p.root, p.name)}
+                onConfig={(e) => {
+                  e.stopPropagation()
+                  setConfig({ root: p.root, name: p.name })
+                }}
+                onHide={(e) => {
+                  e.stopPropagation()
+                  setHiddenCount((n) => n + 1)
+                  void window.api.git.hideProject(p.root).then(setProjects)
+                }}
+                onContextMenu={(e) => openCtx(e, p.root)}
+              />
+            ))
+          )}
+          {hiddenCount > 0 && (
+            <button
+              onClick={() => {
+                setHiddenCount(0)
+                void window.api.git.unhideProjects().then(setProjects)
               }}
-              onContextMenu={(e) => openCtx(e, p.root)}
-            />
-          ))
-        )
+              title="Réafficher les projets retirés de la liste"
+              className="mt-0.5 w-full rounded-app px-2 py-1 text-left text-[11px] text-fg-muted hover:bg-bg-hover hover:text-fg"
+            >
+              + {hiddenCount} projet{hiddenCount > 1 ? 's' : ''} masqué
+              {hiddenCount > 1 ? 's' : ''} — tout réafficher
+            </button>
+          )}
+        </>
+      )
     }
   }
 

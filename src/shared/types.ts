@@ -4,6 +4,19 @@
 export type DirEntryKind = 'file' | 'directory'
 
 /** Instantané du contexte GVue poussé au serveur MCP (renderer → main). */
+/** Un élément de la corbeille Windows. */
+export interface RecycleItem {
+  /** Identifiant opaque (chemin du fichier de données $R). */
+  id: string
+  /** Nom d'origine (basename du chemin supprimé). */
+  name: string
+  /** Chemin complet d'où l'élément a été supprimé. */
+  originalPath: string
+  size: number
+  deletedAtMs: number
+  isDir: boolean
+}
+
 /** Une recette d'un `justfile` (autocomplétion « just … » dans le terminal). */
 export interface JustRecipe {
   name: string
@@ -357,6 +370,8 @@ export interface AppConfig {
   folderFreq: Record<string, number>
   /** Racines des dépôts Git visités (les plus récents en tête). */
   projectRoots: string[]
+  /** Projets mis de côté : masqués de la sidebar jusqu'à leur prochaine visite. */
+  hiddenProjects: string[]
   /** Programmes mémorisés par extension pour « Ouvrir avec » (ext → exes). */
   openWith: Record<string, string[]>
   /** Espaces de travail nommés. */
