@@ -1,23 +1,41 @@
 import type { Appearance } from '@shared/types'
+import { THEME_VAR_KEYS, resolveThemeId, themeById } from './themes'
 
 /**
  * Applique l'apparence en posant les variables CSS sur :root.
  * Aucun composant n'est touché : tout passe par les variables (cf. section 7).
  * Appelé au démarrage avant le premier rendu utile pour éviter le flash.
+ *
+ * Thèmes complets : si un id de palette est résolu (choix direct ou
+ * planification jour/nuit), ses variables sont posées par-dessus la base
+ * clair/sombre ; sinon on retire toute surcharge pour retomber sur la base.
  */
 export function applyAppearance(a: Appearance): void {
   const root = document.documentElement
-  const resolvedTheme =
-    a.theme === 'auto'
+  const id = resolveThemeId(a, new Date())
+  const palette = themeById(id)
+
+  // Nettoie les surcharges du thème précédent (retour à variables.css).
+  for (const key of THEME_VAR_KEYS) root.style.removeProperty(`--${key}`)
+
+  const base = palette
+    ? palette.base
+    : id === 'auto' || (id !== 'light' && id !== 'dark')
       ? window.matchMedia('(prefers-color-scheme: dark)').matches
         ? 'dark'
         : 'light'
-      : a.theme
+      : id
 
-  root.setAttribute('data-theme', resolvedTheme)
+  root.setAttribute('data-theme', base)
+  if (palette) {
+    for (const [key, value] of Object.entries(palette.vars)) {
+      root.style.setProperty(`--${key}`, value)
+    }
+  }
+
   root.style.setProperty('--accent', a.accent)
   // La teinte douce se noie sur fond blanc : un peu plus dense en clair.
-  root.style.setProperty('--accent-soft', hexToSoft(a.accent, resolvedTheme === 'light' ? 0.2 : 0.16))
+  root.style.setProperty('--accent-soft', hexToSoft(a.accent, base === 'light' ? 0.2 : 0.16))
   root.style.setProperty('--radius', a.corners === 'rounded' ? '8px' : '2px')
   root.style.setProperty('--row-pad', a.density === 'comfortable' ? '8px' : '4px')
   root.style.setProperty('--font-ui', a.fontFamily)

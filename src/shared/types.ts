@@ -212,9 +212,26 @@ export type ThemeMode = 'light' | 'dark' | 'auto'
 export type Density = 'comfortable' | 'compact'
 export type Corners = 'rounded' | 'square'
 
+/** Planification jour/nuit du thème (heures locales « HH:MM »). */
+export interface ThemeSchedule {
+  enabled: boolean
+  /** Début de la plage de jour (ex. « 08:00 »). */
+  dayFrom: string
+  /** Début de la plage de nuit (ex. « 20:00 »). */
+  nightFrom: string
+  /** Thème de jour : 'light' | 'dark' | id de palette. */
+  day: string
+  /** Thème de nuit : 'light' | 'dark' | id de palette. */
+  night: string
+}
+
 export interface Appearance {
   accent: string
   theme: ThemeMode
+  /** Palette complète ('' = suit `theme` auto/clair/sombre). */
+  themeId: string
+  /** Bascule automatique jour/nuit (prioritaire sur themeId/theme). */
+  themeSchedule: ThemeSchedule
   density: Density
   corners: Corners
   fontFamily: string

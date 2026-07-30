@@ -6,6 +6,14 @@ import { applyThemeAll } from '../lib/terminalBridge'
 const FALLBACK: Appearance = {
   accent: '#D85A30',
   theme: 'dark',
+  themeId: '',
+  themeSchedule: {
+    enabled: false,
+    dayFrom: '08:00',
+    nightFrom: '20:00',
+    day: 'light',
+    night: 'dark'
+  },
   density: 'comfortable',
   corners: 'rounded',
   fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
@@ -29,17 +37,31 @@ interface AppearanceState {
   deletePreset: (name: string) => void
 }
 
-/** Réglages visuels seuls (sans la table des presets), pour sauver un preset. */
-function visualOnly(a: Appearance): Partial<Appearance> {
+/** Réglages visuels seuls (sans la table des presets), pour preset/export. */
+export function visualOnly(a: Appearance): Partial<Appearance> {
   return {
     accent: a.accent,
     theme: a.theme,
+    themeId: a.themeId,
     density: a.density,
     corners: a.corners,
     fontFamily: a.fontFamily,
     fontSize: a.fontSize,
     windowOpacity: a.windowOpacity
   }
+}
+
+// Planification jour/nuit : réévalue le thème chaque minute (bascule à
+// l'heure configurée sans redémarrer). No-op si la planification est inactive.
+let scheduleTimer: number | null = null
+function armScheduleTimer(): void {
+  if (scheduleTimer !== null) return
+  scheduleTimer = window.setInterval(() => {
+    const { appearance, loaded } = useAppearanceStore.getState()
+    if (!loaded || !appearance.themeSchedule.enabled) return
+    applyAppearance(appearance)
+    applyThemeAll()
+  }, 60_000)
 }
 
 export const useAppearanceStore = create<AppearanceState>((set, get) => ({
@@ -57,6 +79,7 @@ export const useAppearanceStore = create<AppearanceState>((set, get) => ({
       applyAppearance(FALLBACK)
       set({ loaded: true })
     }
+    armScheduleTimer()
   },
 
   update: (patch) => {

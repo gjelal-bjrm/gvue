@@ -12,6 +12,14 @@ export const DEFAULT_CONFIG: AppConfig = {
   appearance: {
     accent: '#D85A30',
     theme: 'auto',
+    themeId: '',
+    themeSchedule: {
+      enabled: false,
+      dayFrom: '08:00',
+      nightFrom: '20:00',
+      day: 'light',
+      night: 'dark'
+    },
     density: 'comfortable',
     corners: 'rounded',
     fontFamily: "'Inter', system-ui, sans-serif",
@@ -67,6 +75,20 @@ function sanitizeAppearance(raw: unknown): AppConfig['appearance'] {
     if (key === 'presets') {
       // Conteneur arbitraire : on garde tel quel s'il s'agit d'un objet.
       out.presets = isPlainObject(raw.presets) ? (raw.presets as typeof d.presets) : {}
+      continue
+    }
+    if (key === 'themeSchedule') {
+      // Objet à champs typés : fusion champ à champ sur les défauts.
+      const rs = raw.themeSchedule
+      if (isPlainObject(rs)) {
+        out.themeSchedule = {
+          enabled: typeof rs.enabled === 'boolean' ? rs.enabled : d.themeSchedule.enabled,
+          dayFrom: typeof rs.dayFrom === 'string' ? rs.dayFrom : d.themeSchedule.dayFrom,
+          nightFrom: typeof rs.nightFrom === 'string' ? rs.nightFrom : d.themeSchedule.nightFrom,
+          day: typeof rs.day === 'string' ? rs.day : d.themeSchedule.day,
+          night: typeof rs.night === 'string' ? rs.night : d.themeSchedule.night
+        }
+      }
       continue
     }
     const rv = raw[key]

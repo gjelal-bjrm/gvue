@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Settings,
   Check,
@@ -8,16 +8,30 @@ import {
   DownloadCloud,
   Sparkles,
   FileText,
-  TerminalSquare
+  TerminalSquare,
+  Download,
+  Upload
 } from 'lucide-react'
-import { useAppearanceStore } from '../state/useAppearanceStore'
+import { useAppearanceStore, visualOnly } from '../state/useAppearanceStore'
 import { useUiStore } from '../state/useUiStore'
 import { useUpdateStore } from '../state/useUpdateStore'
 import { useNavStore } from '../state/useNavStore'
 import { useTerminalStore } from '../state/useTerminalStore'
 import { useShelfStore } from '../state/useShelfStore'
 import { ACCENT_SWATCHES, FONT_CHOICES } from '../theme/presets'
+import { THEMES, themeById } from '../theme/themes'
 import type { Appearance, UpdateStatus } from '@shared/types'
+
+/** Cartes des thèmes de base (le mode historique clair/sombre/auto). */
+const BASE_THEME_CARDS: {
+  mode: Appearance['theme']
+  label: string
+  colors: { bg: string; panel: string; fg: string }
+}[] = [
+  { mode: 'auto', label: 'Auto', colors: { bg: '#17171c', panel: '#ffffff', fg: '#e7e7ef' } },
+  { mode: 'light', label: 'Clair', colors: { bg: '#ffffff', panel: '#f5f5f7', fg: '#1c1c22' } },
+  { mode: 'dark', label: 'Sombre', colors: { bg: '#17171c', panel: '#1d1d23', fg: '#e7e7ef' } }
+]
 
 /** Libellé court de l'état de mise à jour, pour la section « À propos ». */
 function updateLabel(s: UpdateStatus): string {
@@ -102,6 +116,7 @@ export default function SettingsPanel(): JSX.Element {
 function AppearanceSection(): JSX.Element {
   const { appearance, update, savePreset, applyPreset, deletePreset } = useAppearanceStore()
   const [presetName, setPresetName] = useState('')
+  const importRef = useRef<HTMLInputElement>(null)
   const presetNames = Object.keys(appearance.presets)
 
   const onSavePreset = (): void => {
@@ -109,6 +124,44 @@ function AppearanceSection(): JSX.Element {
     if (!name) return
     savePreset(name)
     setPresetName('')
+  }
+
+  // Export : un thème = un petit JSON des réglages visuels, téléchargé.
+  const exportTheme = (): void => {
+    const data = { gvueTheme: 1, ...visualOnly(appearance) }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'gvue-theme.json'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  // Import : n'adopte que les clés visuelles connues, au bon type.
+  const importTheme = async (file: File): Promise<void> => {
+    try {
+      const raw = JSON.parse(await file.text()) as Record<string, unknown>
+      const patch: Partial<Appearance> = {}
+      if (typeof raw.accent === 'string') patch.accent = raw.accent
+      if (raw.theme === 'light' || raw.theme === 'dark' || raw.theme === 'auto')
+        patch.theme = raw.theme
+      if (typeof raw.themeId === 'string' && (raw.themeId === '' || themeById(raw.themeId)))
+        patch.themeId = raw.themeId
+      if (raw.density === 'comfortable' || raw.density === 'compact') patch.density = raw.density
+      if (raw.corners === 'rounded' || raw.corners === 'square') patch.corners = raw.corners
+      if (typeof raw.fontFamily === 'string') patch.fontFamily = raw.fontFamily
+      if (typeof raw.fontSize === 'number') patch.fontSize = Math.min(17, Math.max(11, raw.fontSize))
+      if (typeof raw.windowOpacity === 'number')
+        patch.windowOpacity = Math.min(1, Math.max(0.3, raw.windowOpacity))
+      if (Object.keys(patch).length === 0) throw new Error('aucun réglage reconnu')
+      update(patch)
+      useUiStore.getState().showToast('Thème importé.')
+    } catch (e) {
+      useUiStore
+        .getState()
+        .showToast(`Import impossible : ${e instanceof Error ? e.message : 'fichier invalide'}`)
+    }
   }
 
   return (
@@ -151,15 +204,70 @@ function AppearanceSection(): JSX.Element {
       </Field>
 
       <Field label="Thème">
-        <Segmented<Appearance['theme']>
-          value={appearance.theme}
+        <div className="grid grid-cols-3 gap-1.5">
+          {BASE_THEME_CARDS.map((c) => (
+            <ThemeCard
+              key={c.mode}
+              label={c.label}
+              colors={{ ...c.colors, accent: appearance.accent }}
+              split={c.mode === 'auto'}
+              active={appearance.themeId === '' && appearance.theme === c.mode}
+              onClick={() => update({ themeId: '', theme: c.mode })}
+            />
+          ))}
+          {THEMES.map((t) => (
+            <ThemeCard
+              key={t.id}
+              label={t.label}
+              colors={{
+                bg: t.vars.bg,
+                panel: t.vars['bg-secondary'],
+                fg: t.vars.fg,
+                accent: t.accent ?? appearance.accent
+              }}
+              active={appearance.themeId === t.id}
+              onClick={() => update({ themeId: t.id, ...(t.accent ? { accent: t.accent } : {}) })}
+            />
+          ))}
+        </div>
+        {appearance.themeId !== '' && (
+          <p className="mt-1.5 text-[11px] text-fg-muted">
+            {themeById(appearance.themeId)?.tagline}
+          </p>
+        )}
+      </Field>
+
+      <Field label="Bascule automatique jour/nuit">
+        <Segmented<'on' | 'off'>
+          value={appearance.themeSchedule.enabled ? 'on' : 'off'}
           options={[
-            { value: 'light', label: 'Clair' },
-            { value: 'dark', label: 'Sombre' },
-            { value: 'auto', label: 'Auto' }
+            { value: 'on', label: 'Activée' },
+            { value: 'off', label: 'Désactivée' }
           ]}
-          onChange={(v) => update({ theme: v })}
+          onChange={(v) =>
+            update({ themeSchedule: { ...appearance.themeSchedule, enabled: v === 'on' } })
+          }
         />
+        {appearance.themeSchedule.enabled && (
+          <div className="mt-2 flex flex-col gap-1.5">
+            <ScheduleRow
+              label="Jour dès"
+              time={appearance.themeSchedule.dayFrom}
+              theme={appearance.themeSchedule.day}
+              onTime={(v) => update({ themeSchedule: { ...appearance.themeSchedule, dayFrom: v } })}
+              onTheme={(v) => update({ themeSchedule: { ...appearance.themeSchedule, day: v } })}
+            />
+            <ScheduleRow
+              label="Nuit dès"
+              time={appearance.themeSchedule.nightFrom}
+              theme={appearance.themeSchedule.night}
+              onTime={(v) =>
+                update({ themeSchedule: { ...appearance.themeSchedule, nightFrom: v } })
+              }
+              onTheme={(v) => update({ themeSchedule: { ...appearance.themeSchedule, night: v } })}
+            />
+          </div>
+        )}
       </Field>
 
       <Field label="Densité">
@@ -233,6 +341,36 @@ function AppearanceSection(): JSX.Element {
         />
       </Field>
 
+      <Field label="Partager le thème">
+        <div className="flex gap-1.5">
+          <button
+            onClick={exportTheme}
+            title="Télécharge un fichier gvue-theme.json avec l'apparence courante"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-app border border-border bg-bg px-2 py-1.5 text-[12px] text-fg-secondary hover:bg-bg-hover hover:text-fg"
+          >
+            <Download size={13} /> Exporter
+          </button>
+          <button
+            onClick={() => importRef.current?.click()}
+            title="Applique un thème depuis un fichier gvue-theme.json"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-app border border-border bg-bg px-2 py-1.5 text-[12px] text-fg-secondary hover:bg-bg-hover hover:text-fg"
+          >
+            <Upload size={13} /> Importer
+          </button>
+          <input
+            ref={importRef}
+            type="file"
+            accept=".json,application/json"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0]
+              if (f) void importTheme(f)
+              e.target.value = ''
+            }}
+          />
+        </div>
+      </Field>
+
       <Field label="Presets">
         <div className="flex gap-2">
           <input
@@ -280,6 +418,87 @@ function AppearanceSection(): JSX.Element {
           </div>
         )}
       </Field>
+    </div>
+  )
+}
+
+/**
+ * Carte d'aperçu d'un thème : mini-fenêtre (fond, bandeau latéral, lignes de
+ * texte, barre d'accent) — on voit le thème avant de cliquer.
+ */
+function ThemeCard(props: {
+  label: string
+  colors: { bg: string; panel: string; fg: string; accent: string }
+  active: boolean
+  /** Carte « Auto » : moitié claire / moitié sombre. */
+  split?: boolean
+  onClick: () => void
+}): JSX.Element {
+  const { bg, panel, fg, accent } = props.colors
+  return (
+    <button
+      onClick={props.onClick}
+      aria-pressed={props.active}
+      title={props.label}
+      className={`overflow-hidden rounded-app border text-left transition-transform hover:scale-[1.03] ${
+        props.active ? 'border-accent ring-1 ring-accent' : 'border-border'
+      }`}
+    >
+      <div className="relative h-11 w-full" style={{ background: bg }}>
+        {props.split && (
+          <div className="absolute inset-y-0 right-0 w-1/2" style={{ background: '#ffffff' }} />
+        )}
+        <div
+          className="absolute left-1 top-1 bottom-1 w-[22%] rounded-[3px]"
+          style={{ background: panel }}
+        />
+        <div className="absolute left-[30%] right-2 top-2 flex flex-col gap-[3px]">
+          <div className="h-[5px] w-1/2 rounded-full" style={{ background: accent }} />
+          <div className="h-[4px] w-4/5 rounded-full opacity-80" style={{ background: fg }} />
+          <div className="h-[4px] w-2/3 rounded-full opacity-40" style={{ background: fg }} />
+        </div>
+      </div>
+      <div
+        className={`truncate px-1.5 py-1 text-center text-[10px] leading-tight ${
+          props.active ? 'text-accent' : 'text-fg-secondary'
+        }`}
+      >
+        {props.label}
+      </div>
+    </button>
+  )
+}
+
+/** Ligne de planification : heure de début + thème appliqué. */
+function ScheduleRow(props: {
+  label: string
+  time: string
+  theme: string
+  onTime: (v: string) => void
+  onTheme: (v: string) => void
+}): JSX.Element {
+  return (
+    <div className="flex items-center gap-1.5 text-[12px]">
+      <span className="w-14 shrink-0 text-fg-secondary">{props.label}</span>
+      <input
+        type="time"
+        value={props.time}
+        onChange={(e) => e.target.value && props.onTime(e.target.value)}
+        className="rounded-app border border-border bg-bg px-1.5 py-1 text-[12px] text-fg outline-none focus:border-accent"
+      />
+      <select
+        value={props.theme}
+        onChange={(e) => props.onTheme(e.target.value)}
+        className="min-w-0 flex-1 rounded-app border border-border bg-bg px-1.5 py-1 text-[12px] text-fg outline-none focus:border-accent"
+      >
+        <option value="light">Clair</option>
+        <option value="dark">Sombre</option>
+        {THEMES.map((t) => (
+          <option key={t.id} value={t.id}>
+            {t.label}
+          </option>
+        ))}
+      </select>
     </div>
   )
 }

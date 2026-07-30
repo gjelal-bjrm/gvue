@@ -18,5 +18,9 @@ export const ACCENT_SWATCHES: AccentSwatch[] = [
 export const FONT_CHOICES: { label: string; value: string }[] = [
   { label: 'Inter', value: "'Inter', 'Segoe UI', system-ui, sans-serif" },
   { label: 'Segoe UI', value: "'Segoe UI', system-ui, sans-serif" },
-  { label: 'System', value: 'system-ui, sans-serif' }
+  { label: 'System', value: 'system-ui, sans-serif' },
+  // Look « IDE » assumé — se marie bien avec les thèmes Matrix / Ambre CRT.
+  { label: 'JetBrains Mono', value: "'JetBrains Mono', 'Cascadia Code', Consolas, monospace" },
+  { label: 'Cascadia Code', value: "'Cascadia Code', 'JetBrains Mono', Consolas, monospace" },
+  { label: 'Consolas', value: 'Consolas, ui-monospace, monospace' }
 ]

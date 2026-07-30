@@ -34,14 +34,41 @@ function cssVar(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
 }
 
+// Couleurs ANSI optionnelles posées par les thèmes complets (--term-*) : le
+// terminal adopte la palette du thème (Matrix vert, CRT ambre…). Absentes,
+// xterm garde ses couleurs par défaut.
+const ANSI_VARS: [cssVar: string, xtermKey: string][] = [
+  ['--term-black', 'black'],
+  ['--term-red', 'red'],
+  ['--term-green', 'green'],
+  ['--term-yellow', 'yellow'],
+  ['--term-blue', 'blue'],
+  ['--term-magenta', 'magenta'],
+  ['--term-cyan', 'cyan'],
+  ['--term-white', 'white'],
+  ['--term-bright-black', 'brightBlack'],
+  ['--term-bright-red', 'brightRed'],
+  ['--term-bright-green', 'brightGreen'],
+  ['--term-bright-yellow', 'brightYellow'],
+  ['--term-bright-blue', 'brightBlue'],
+  ['--term-bright-magenta', 'brightMagenta'],
+  ['--term-bright-cyan', 'brightCyan'],
+  ['--term-bright-white', 'brightWhite']
+]
+
 export function buildTheme(): Record<string, string> {
-  return {
+  const theme: Record<string, string> = {
     background: cssVar('--bg-tertiary') || '#25252d',
     foreground: cssVar('--fg') || '#e7e7ef',
     cursor: cssVar('--accent') || '#7f77dd',
     cursorAccent: cssVar('--bg-tertiary') || '#25252d',
     selectionBackground: cssVar('--accent-soft') || 'rgba(127,119,221,.3)'
   }
+  for (const [v, key] of ANSI_VARS) {
+    const c = cssVar(v)
+    if (c) theme[key] = c
+  }
+  return theme
 }
 
 /** Récupère (ou crée) l'instance xterm liée à un ptyId. `meta` sert à la

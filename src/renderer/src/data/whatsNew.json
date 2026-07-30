@@ -2,6 +2,9 @@
   {
     "version": "0.1.24",
     "notes": [
+      "8 thèmes complets (Cyber néon, Matrix, Synthwave, Tokyo night, Nord, OLED, Ambre CRT, Papier) + galerie d'aperçus",
+      "Le terminal adopte la palette du thème (fond, texte, couleurs ANSI)",
+      "Bascule automatique jour/nuit programmable + export/import de thème + polices IDE",
       "Étagère — panier de fichiers flottant (option activable)",
       "Lasso de sélection + « Sélectionner par… » + taille de la sélection"
     ]
