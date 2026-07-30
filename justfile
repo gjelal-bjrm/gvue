@@ -29,9 +29,8 @@ setup: _need-node
   npm install --no-audit --no-fund
   @just rebuild
 
-# Recompile node-pty pour l'ABI d'Electron (terminal intégré)
+# Recompile node-pty pour l'ABI d'Electron (terminal intégré ; échec toléré)
 rebuild:
-  # Échec toléré : sans outils de build C++, seul le terminal est indisponible.
   -npm run rebuild
 
 # =============================================================================
@@ -72,9 +71,8 @@ build: dist
   @dir /b dist\*.exe
   explorer dist
 
-# Publie une mise à jour sur GitHub (assistant interactif : version, notes, upload)
+# Publie une mise à jour sur GitHub (reste en .bat : token + menu interactif)
 publish:
-  # Reste en .bat : saisie du token et menu interactif (juste relayé ici).
   publish.bat
 
 # Régénère les notes « Nouveautés » depuis les messages de commit
