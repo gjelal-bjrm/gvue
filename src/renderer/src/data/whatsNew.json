@@ -1,5 +1,27 @@
 [
   {
+    "version": "0.1.25",
+    "notes": [
+      "Fix justfile — commentaire # dans le corps d'une recette casse cmd",
+      "Import des sessions PuTTY / WinSCP (« Importer depuis… » façon WinSCP, en mieux)",
+      "SSH phase 3 — terminal ouvert dans le dossier distant affiché",
+      "SFTP pratique pour déployer — volet latéral, « Contenu → », Redéployer",
+      "SFTP — l'empreinte acceptée est persistée immédiatement (fix du timeout en cascade)",
+      "SFTP — dédoublonnage des connexions simultanées + trace du handshake en dev",
+      "SFTP — journalise les tentatives et échecs de connexion",
+      "Fix SFTP — « Failed to connect to agent » quand le service ssh-agent est arrêté",
+      "SSH phase 2 — explorateur SFTP (WinSCP remplacé)",
+      "SSH phase 1 — section « Serveurs » + terminal intégré (PuTTY remplacé)",
+      "Corbeille Windows dans « Ce PC » + projets qu'on peut mettre de côté",
+      "Justfile testé en réel — fix du quoting cmd + garde-fou complétion just",
+      "Justfile — tâches de dev découvrables (remplace run/build.bat, garde publish.bat)",
+      "Autocomplétion des recettes justfile dans le terminal",
+      "4 outils MCP — screenshot, open_terminal, reveal, notify + get_ui_state",
+      "Éditeur de thème personnalisé (l'export/import devient un vrai partage)",
+      "8 thèmes complets + galerie, terminal accordé, jour/nuit, export/import"
+    ]
+  },
+  {
     "version": "0.1.24",
     "notes": [
       "8 thèmes complets (Cyber néon, Matrix, Synthwave, Tokyo night, Nord, OLED, Ambre CRT, Papier) + galerie d'aperçus",

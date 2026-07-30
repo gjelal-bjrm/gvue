@@ -3,8 +3,11 @@ import type { SshHost } from '@shared/types'
 import { sshSubtitle } from '../../lib/ssh'
 
 /**
- * Serveur SSH de la sidebar : clic → terminal intégré (phase 1),
- * bouton dossier → explorateur SFTP (phase 2).
+ * Serveur SSH de la sidebar. Clic sur le nom OU sur l'icône terminal →
+ * terminal SSH intégré ; icône dossier → explorateur SFTP. Les deux icônes
+ * sont de vrais boutons (l'icône terminal était décorative auparavant :
+ * cliquer dessus ne faisait rien, ce qui donnait l'impression que seul le
+ * SFTP fonctionnait).
  */
 export default function ServerItem(props: {
   host: SshHost
@@ -20,9 +23,9 @@ export default function ServerItem(props: {
       <button
         onClick={props.onConnect}
         title={
-          host.source === 'config'
-            ? `${host.name} — défini dans ~/.ssh/config\nClic : terminal SSH · dossier : fichiers (SFTP)`
-            : `Clic : terminal SSH vers ${subtitle || host.name} · dossier : fichiers (SFTP)`
+          (host.source === 'config' ? `${host.name} — défini dans ~/.ssh/config\n` : '') +
+          `Clic : terminal SSH${subtitle ? ` vers ${subtitle}` : ''}\n` +
+          `Boutons (au survol) : ▸ terminal · 📂 fichiers (SFTP)`
         }
         className="flex min-w-0 flex-1 items-center gap-2.5 px-2 py-[var(--row-pad)] text-left"
       >
@@ -32,10 +35,16 @@ export default function ServerItem(props: {
           <span className="max-w-[45%] shrink-0 truncate text-[11px] text-fg-muted">{subtitle}</span>
         )}
       </button>
-      <TerminalSquare
-        size={13}
-        className="shrink-0 text-fg-muted opacity-0 group-hover:opacity-100"
-      />
+      <button
+        onClick={(e) => {
+          e.stopPropagation()
+          props.onConnect()
+        }}
+        title="Ouvrir un terminal SSH"
+        className="grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted opacity-0 hover:bg-bg-hover hover:text-accent group-hover:opacity-100"
+      >
+        <TerminalSquare size={13} />
+      </button>
       <button
         onClick={(e) => {
           e.stopPropagation()
