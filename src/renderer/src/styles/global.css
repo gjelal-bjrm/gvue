@@ -37,6 +37,12 @@ body,
   inset: 0;
   z-index: 2147483647;
   pointer-events: none;
+}
+
+/* Anneau plein/dégradé : masque XOR (le fond ne reste visible qu'au pourtour). */
+:root[data-frame='accent'] body::after,
+:root[data-frame='gradient'] body::after,
+:root[data-frame='aurora'] body::after {
   padding: 2px;
   -webkit-mask:
     linear-gradient(#fff 0 0) content-box,
@@ -53,10 +59,17 @@ body,
   background: linear-gradient(135deg, var(--accent-alt2), var(--accent), var(--accent-alt));
 }
 
+/* Néon : PAS de masque ici. Un filter (drop-shadow) est appliqué AVANT le
+   masque par le moteur de rendu : la lueur serait calculée sur le rectangle
+   plein écran et tomberait hors de la fenêtre — invisible. On dessine donc une
+   vraie bordure et on fait rayonner la lueur vers l'INTÉRIEUR (box-shadow
+   inset), seule direction visible dans une fenêtre sans cadre. */
 :root[data-frame='neon'] body::after {
-  background: var(--accent);
-  /* La lueur suit l'anneau (le masque s'applique aussi au drop-shadow). */
-  filter: drop-shadow(0 0 6px var(--accent)) drop-shadow(0 0 14px var(--accent));
+  border: 2px solid var(--accent);
+  box-shadow:
+    inset 0 0 6px var(--accent),
+    inset 0 0 18px var(--accent-soft),
+    inset 0 0 40px var(--accent-soft);
 }
 
 :root[data-frame='aurora'] body::after {

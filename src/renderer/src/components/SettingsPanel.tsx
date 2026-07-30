@@ -632,13 +632,17 @@ function FrameCard(props: {
     >
       <span
         className="grid h-8 w-full place-items-center rounded-[4px]"
-        style={{
-          background: ring[props.style ?? 'none'],
-          padding: 2,
-          filter: props.style === 'neon' ? `drop-shadow(0 0 4px ${accent})` : undefined
-        }}
+        style={{ background: ring[props.style ?? 'none'], padding: 2 }}
       >
-        <span className="h-full w-full rounded-[3px] bg-bg" />
+        {/* Le néon rayonne vers l'intérieur (comme le cadre réel). */}
+        <span
+          className="h-full w-full rounded-[3px] bg-bg"
+          style={
+            props.style === 'neon'
+              ? { boxShadow: `inset 0 0 5px ${accent}, inset 0 0 12px ${accent}` }
+              : undefined
+          }
+        />
       </span>
       <span className={`text-[10px] ${props.active ? 'text-accent' : 'text-fg-secondary'}`}>
         {props.label}
