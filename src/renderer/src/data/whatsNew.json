@@ -1,5 +1,11 @@
 [
   {
+    "version": "0.1.23",
+    "notes": [
+      "Interop presse-papiers Explorateur + aperçu Espace (vidéo/audio/PDF)"
+    ]
+  },
+  {
     "version": "0.1.22",
     "notes": [
       "Copier/coller de fichiers avec l'Explorateur Windows (Ctrl+C là-bas → Ctrl+V ici, et inversement)",
