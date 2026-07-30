@@ -301,6 +301,43 @@ export interface CustomColors {
   info: string
 }
 
+/**
+ * Fait tourner la teinte d'une couleur hex de `deg` degrés (pur, testable) —
+ * sert à dériver la seconde couleur des cadres dégradé/aurora depuis l'accent.
+ */
+export function hueShift(hex: string, deg: number): string {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex.trim())
+  if (!m) return hex
+  const [r, g, b] = [m[1], m[2], m[3]].map((h) => parseInt(h, 16) / 255)
+
+  // RGB → HSL
+  const max = Math.max(r, g, b)
+  const min = Math.min(r, g, b)
+  const l = (max + min) / 2
+  const d = max - min
+  let h = 0
+  const s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1))
+  if (d !== 0) {
+    if (max === r) h = ((g - b) / d) % 6
+    else if (max === g) h = (b - r) / d + 2
+    else h = (r - g) / d + 4
+    h *= 60
+  }
+  h = (((h + deg) % 360) + 360) % 360
+
+  // HSL → RGB
+  const c = (1 - Math.abs(2 * l - 1)) * s
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1))
+  const mm = l - c / 2
+  const [r2, g2, b2] =
+    h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x]
+  const toHex = (v: number): string =>
+    Math.round((v + mm) * 255)
+      .toString(16)
+      .padStart(2, '0')
+  return `#${toHex(r2)}${toHex(g2)}${toHex(b2)}`
+}
+
 /** « #rrggbb » → rgba(r, g, b, alpha) ; renvoie tel quel si non hexadécimal. */
 export function withAlpha(hex: string, alpha: number): string {
   const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex.trim())

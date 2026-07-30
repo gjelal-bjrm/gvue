@@ -21,7 +21,7 @@ import { useNavStore } from '../state/useNavStore'
 import { useTerminalStore } from '../state/useTerminalStore'
 import { useShelfStore } from '../state/useShelfStore'
 import { ACCENT_SWATCHES, FONT_CHOICES } from '../theme/presets'
-import { THEMES, themeById, THEME_VAR_KEYS } from '../theme/themes'
+import { THEMES, themeById, THEME_VAR_KEYS, hueShift } from '../theme/themes'
 import ThemeEditor from './ThemeEditor'
 import type { Appearance, CustomTheme, UpdateStatus } from '@shared/types'
 
@@ -162,6 +162,14 @@ function AppearanceSection(): JSX.Element {
         patch.radiusPx = Math.min(16, Math.max(0, Math.round(raw.radiusPx)))
       if (raw.borderStyle === 'solid' || raw.borderStyle === 'dashed' || raw.borderStyle === 'dotted')
         patch.borderStyle = raw.borderStyle
+      if (
+        raw.frameStyle === 'none' ||
+        raw.frameStyle === 'accent' ||
+        raw.frameStyle === 'gradient' ||
+        raw.frameStyle === 'neon' ||
+        raw.frameStyle === 'aurora'
+      )
+        patch.frameStyle = raw.frameStyle
       if (typeof raw.fontFamily === 'string') patch.fontFamily = raw.fontFamily
       if (typeof raw.fontSize === 'number') patch.fontSize = Math.min(17, Math.max(11, raw.fontSize))
       if (typeof raw.windowOpacity === 'number')
@@ -389,6 +397,33 @@ function AppearanceSection(): JSX.Element {
         />
       </Field>
 
+      <Field label="Cadre de la fenêtre">
+        <div className="grid grid-cols-5 gap-1.5">
+          {(
+            [
+              { value: 'none', label: 'Aucun' },
+              { value: 'accent', label: 'Accent' },
+              { value: 'gradient', label: 'Dégradé' },
+              { value: 'neon', label: 'Néon' },
+              { value: 'aurora', label: 'Aurora' }
+            ] as { value: Appearance['frameStyle']; label: string }[]
+          ).map((o) => (
+            <FrameCard
+              key={o.value}
+              label={o.label}
+              style={o.value}
+              accent={appearance.accent}
+              active={appearance.frameStyle === o.value}
+              onClick={() => update({ frameStyle: o.value })}
+            />
+          ))}
+        </div>
+        <p className="mt-1.5 text-[11px] text-fg-muted">
+          Un liseré décoratif autour de la fenêtre — les couleurs suivent votre accent
+          (Aurora est animé). Inclus dans les presets et l'export de thème.
+        </p>
+      </Field>
+
       <Field label="Police">
         <select
           value={appearance.fontFamily}
@@ -562,6 +597,52 @@ function ThemeCard(props: {
       >
         {props.label}
       </div>
+    </button>
+  )
+}
+
+/**
+ * Vignette de choix du cadre de fenêtre : un mini-rectangle dont le liseré
+ * reproduit le style réel (accent, dégradé, néon, aurora) — on voit avant de
+ * cliquer, comme la galerie de thèmes.
+ */
+function FrameCard(props: {
+  label: string
+  style: Appearance['frameStyle']
+  accent: string
+  active: boolean
+  onClick: () => void
+}): JSX.Element {
+  const { accent } = props
+  const ring: Record<string, string> = {
+    none: 'transparent',
+    accent: accent,
+    gradient: `linear-gradient(135deg, ${hueShift(accent, -60)}, ${accent}, ${hueShift(accent, 60)})`,
+    neon: accent,
+    aurora: `conic-gradient(${accent}, ${hueShift(accent, 60)}, ${hueShift(accent, -60)}, ${accent})`
+  }
+  return (
+    <button
+      onClick={props.onClick}
+      aria-pressed={props.active}
+      title={props.label}
+      className={`flex flex-col items-center gap-1 rounded-app border p-1.5 transition-transform hover:scale-[1.04] ${
+        props.active ? 'border-accent ring-1 ring-accent' : 'border-border'
+      }`}
+    >
+      <span
+        className="grid h-8 w-full place-items-center rounded-[4px]"
+        style={{
+          background: ring[props.style ?? 'none'],
+          padding: 2,
+          filter: props.style === 'neon' ? `drop-shadow(0 0 4px ${accent})` : undefined
+        }}
+      >
+        <span className="h-full w-full rounded-[3px] bg-bg" />
+      </span>
+      <span className={`text-[10px] ${props.active ? 'text-accent' : 'text-fg-secondary'}`}>
+        {props.label}
+      </span>
     </button>
   )
 }

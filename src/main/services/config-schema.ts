@@ -25,6 +25,7 @@ export const DEFAULT_CONFIG: AppConfig = {
     corners: 'rounded',
     radiusPx: 8,
     borderStyle: 'solid',
+    frameStyle: 'none',
     fontFamily: "'Inter', system-ui, sans-serif",
     fontSize: 14,
     windowOpacity: 1,

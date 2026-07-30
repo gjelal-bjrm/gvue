@@ -322,6 +322,9 @@ export interface CustomTheme {
 /** Style global des bordures de l'interface. */
 export type BorderStyle = 'solid' | 'dashed' | 'dotted'
 
+/** Cadre décoratif autour de la fenêtre : couleur, dégradé, lueur, animé. */
+export type FrameStyle = 'none' | 'accent' | 'gradient' | 'neon' | 'aurora'
+
 export interface Appearance {
   accent: string
   theme: ThemeMode
@@ -337,6 +340,8 @@ export interface Appearance {
   radiusPx: number
   /** Style des bordures : pleines, tirets, pointillés. */
   borderStyle: BorderStyle
+  /** Cadre décoratif de la fenêtre (accent, dégradé, néon, aurora animé). */
+  frameStyle: FrameStyle
   fontFamily: string
   fontSize: number
   windowOpacity: number

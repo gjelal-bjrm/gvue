@@ -6,6 +6,7 @@ import {
   themeById,
   withAlpha,
   baseFromBg,
+  hueShift,
   buildCustomVars,
   findTheme,
   PALETTE_KEYS
@@ -136,6 +137,23 @@ describe('thèmes personnalisés', () => {
     expect(findTheme('custom-1', custom)?.vars.bg).toBe('#101418')
     expect(findTheme('inconnu', custom)).toBeNull()
     expect(findTheme('custom-1', undefined)).toBeNull()
+  })
+})
+
+describe('hueShift', () => {
+  it('fait tourner la teinte (rouge → +120° = vert, +240° = bleu)', () => {
+    expect(hueShift('#ff0000', 120)).toBe('#00ff00')
+    expect(hueShift('#ff0000', 240)).toBe('#0000ff')
+    expect(hueShift('#ff0000', -120)).toBe('#0000ff')
+  })
+
+  it('360° revient à la couleur de départ, gris insensible à la teinte', () => {
+    expect(hueShift('#d85a30', 360)).toBe('#d85a30')
+    expect(hueShift('#808080', 90)).toBe('#808080')
+  })
+
+  it("laisse passer ce qui n'est pas un hex", () => {
+    expect(hueShift('var(--accent)', 60)).toBe('var(--accent)')
   })
 })
 

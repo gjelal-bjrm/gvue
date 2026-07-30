@@ -19,6 +19,7 @@ const FALLBACK: Appearance = {
   corners: 'rounded',
   radiusPx: 8,
   borderStyle: 'solid',
+  frameStyle: 'none',
   fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
   fontSize: 13,
   windowOpacity: 1,
@@ -54,6 +55,7 @@ export function visualOnly(a: Appearance): Partial<Appearance> {
     corners: a.corners,
     radiusPx: a.radiusPx,
     borderStyle: a.borderStyle,
+    frameStyle: a.frameStyle,
     fontFamily: a.fontFamily,
     fontSize: a.fontSize,
     windowOpacity: a.windowOpacity

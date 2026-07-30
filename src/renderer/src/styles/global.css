@@ -20,6 +20,62 @@ body,
   margin: 0;
 }
 
+/* --- Cadre décoratif de la fenêtre (Apparence → Cadre) ------------------- */
+/* Un anneau de 2 px dessiné par-dessus tout (pointer-events: none) : le fond
+   couvre l'écran, puis un masque XOR ne laisse visible que le pourtour —
+   la technique classique du « gradient border ». */
+
+@property --gvue-frame-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+:root:not([data-frame='none']) body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  pointer-events: none;
+  padding: 2px;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+:root[data-frame='accent'] body::after {
+  background: var(--accent);
+}
+
+:root[data-frame='gradient'] body::after {
+  background: linear-gradient(135deg, var(--accent-alt2), var(--accent), var(--accent-alt));
+}
+
+:root[data-frame='neon'] body::after {
+  background: var(--accent);
+  /* La lueur suit l'anneau (le masque s'applique aussi au drop-shadow). */
+  filter: drop-shadow(0 0 6px var(--accent)) drop-shadow(0 0 14px var(--accent));
+}
+
+:root[data-frame='aurora'] body::after {
+  background: conic-gradient(
+    from var(--gvue-frame-angle),
+    var(--accent),
+    var(--accent-alt),
+    var(--accent-alt2),
+    var(--accent)
+  );
+  animation: gvue-frame-spin 10s linear infinite;
+}
+
+@keyframes gvue-frame-spin {
+  to {
+    --gvue-frame-angle: 360deg;
+  }
+}
+
 body {
   font-family: var(--font-ui);
   font-size: var(--font-size);

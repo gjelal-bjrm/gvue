@@ -1,5 +1,5 @@
 import type { Appearance } from '@shared/types'
-import { THEME_VAR_KEYS, resolveThemeId, findTheme } from './themes'
+import { THEME_VAR_KEYS, resolveThemeId, findTheme, hueShift } from './themes'
 
 /**
  * Applique l'apparence en posant les variables CSS sur :root.
@@ -44,6 +44,11 @@ export function applyAppearance(a: Appearance): void {
       : 2
   root.style.setProperty('--radius', `${radius}px`)
   root.style.setProperty('--border-style', a.borderStyle ?? 'solid')
+  // Cadre décoratif de la fenêtre : le style est porté par un attribut (CSS
+  // dans global.css), les couleurs dérivées de l'accent par rotation de teinte.
+  root.setAttribute('data-frame', a.frameStyle ?? 'none')
+  root.style.setProperty('--accent-alt', hueShift(a.accent, 60))
+  root.style.setProperty('--accent-alt2', hueShift(a.accent, -60))
   root.style.setProperty('--row-pad', a.density === 'comfortable' ? '8px' : '4px')
   root.style.setProperty('--font-ui', a.fontFamily)
   root.style.setProperty('--font-size', `${a.fontSize}px`)
