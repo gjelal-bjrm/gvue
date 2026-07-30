@@ -17,13 +17,15 @@ import {
   ShieldQuestion,
   KeyRound,
   Rocket,
-  FolderInput
+  FolderInput,
+  TerminalSquare
 } from 'lucide-react'
 import type { SftpEntry, SftpProgress } from '@shared/types'
 import { useUiStore } from '../state/useUiStore'
 import { useNavStore, activePane } from '../state/useNavStore'
 import { formatSize, baseName } from '../lib/format'
-import { sshSubtitle } from '../lib/ssh'
+import { sshSubtitle, sshCdCommandFor } from '../lib/ssh'
+import { useTerminalStore } from '../state/useTerminalStore'
 
 /** Chemin parent d'un chemin distant POSIX (« / » reste « / »). */
 function remoteParent(p: string): string {
@@ -332,10 +334,29 @@ export default function RemoteExplorer(): JSX.Element | null {
         <Server size={15} className="shrink-0 text-accent" />
         <span className="min-w-0 truncate text-[13px] font-medium text-fg">{host.name}</span>
         <span className="min-w-0 truncate text-[11px] text-fg-muted">{sshSubtitle(host)}</span>
+        {phase.step === 'ready' && (
+          <button
+            onClick={() => {
+              // Terminal SSH déjà positionné dans le dossier distant affiché.
+              useUiStore.getState().setTerminalOpen(true)
+              void useTerminalStore.getState().openTaskTab({
+                cwd: localDir || '.',
+                title: `${host.name}:${path}`,
+                command: sshCdCommandFor(host, path)
+              })
+            }}
+            title={`Ouvrir un terminal SSH dans ${path}`}
+            className="ml-auto grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-accent"
+          >
+            <TerminalSquare size={14} />
+          </button>
+        )}
         <button
           onClick={disconnect}
           title="Se déconnecter et fermer"
-          className="ml-auto grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg"
+          className={`grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg ${
+            phase.step === 'ready' ? '' : 'ml-auto'
+          }`}
         >
           <X size={15} />
         </button>

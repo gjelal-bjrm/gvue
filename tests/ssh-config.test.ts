@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { parseSshConfig } from '../src/main/services/ssh-config'
-import { sshCommandFor, sshSubtitle } from '@renderer/lib/ssh'
+import { sshCommandFor, sshSubtitle, sshCdCommandFor } from '@renderer/lib/ssh'
 import type { SshHost } from '@shared/types'
 
 const SAMPLE = `# Serveurs perso
@@ -68,6 +68,24 @@ describe('sshCommandFor / sshSubtitle', () => {
       sshCommandFor({ name: 'NAS', source: 'manual', hostName: '192.168.1.10', user: 'admin', port: 2202 })
     ).toBe('ssh -p 2202 admin@192.168.1.10')
     expect(sshCommandFor({ name: 'srv', source: 'manual', hostName: 'srv.lan' })).toBe('ssh srv.lan')
+  })
+
+  it('sshCdCommandFor ouvre un shell interactif déjà positionné (quoting sans $)', () => {
+    expect(sshCdCommandFor({ name: 'vps', source: 'config' }, '/var/www/mon site')).toBe(
+      `ssh -t vps "cd '/var/www/mon site' && exec bash -l || exec sh -l"`
+    )
+    expect(
+      sshCdCommandFor(
+        { name: 'NAS', source: 'manual', hostName: '10.0.0.5', user: 'admin', port: 2222 },
+        '/srv'
+      )
+    ).toBe(`ssh -t -p 2222 admin@10.0.0.5 "cd '/srv' && exec bash -l || exec sh -l"`)
+    // Apostrophe dans le chemin : échappement POSIX '\''.
+    expect(sshCdCommandFor({ name: 'vps', source: 'config' }, "/home/l'app")).toContain(
+      `cd '/home/l'\\''app'`
+    )
+    // Jamais de $ (PowerShell/Git Bash locaux interpoleraient).
+    expect(sshCdCommandFor({ name: 'vps', source: 'config' }, '/srv')).not.toContain('$')
   })
 
   it('le sous-titre montre la cible réelle, port seulement si non standard', () => {
