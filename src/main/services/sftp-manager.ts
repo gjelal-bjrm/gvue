@@ -3,7 +3,7 @@ import { promises as fsp, existsSync, watchFile, unwatchFile, type Stats } from 
 import { createHash } from 'node:crypto'
 import { join, basename } from 'node:path'
 import { homedir, tmpdir } from 'node:os'
-import { BrowserWindow } from 'electron'
+import { app, BrowserWindow } from 'electron'
 import { IPC } from '@shared/ipc'
 import type { SshHost, SftpEntry, SftpConnectResult, SftpProgress } from '@shared/types'
 import { getConfig, setConfig } from './config-store'
@@ -29,6 +29,11 @@ interface Session {
 }
 
 const sessions = new Map<string, Session>()
+
+// Connexions en cours : une tentative identique (même hôte + mêmes options)
+// réutilise la promesse au lieu d'ouvrir un 2e socket — indispensable en dev,
+// où React StrictMode double les effets et déclencherait 2 connexions.
+const pending = new Map<string, Promise<SftpConnectResult>>()
 
 /** Clé de session d'un hôte. */
 export function hostKeyOf(host: SshHost): string {
@@ -84,6 +89,19 @@ export async function connect(
   if (sessions.has(key)) {
     return { status: 'ok', home: sessions.get(key)!.home }
   }
+  const pendingKey = `${key}|${opts.acceptFingerprint ?? ''}|${opts.password ? 'pwd' : ''}`
+  const inFlight = pending.get(pendingKey)
+  if (inFlight) return inFlight
+  const promise = connectOnce(host, key, opts).finally(() => pending.delete(pendingKey))
+  pending.set(pendingKey, promise)
+  return promise
+}
+
+async function connectOnce(
+  host: SshHost,
+  key: string,
+  opts: { password?: string; acceptFingerprint?: string }
+): Promise<SftpConnectResult> {
 
   const target = host.hostName ?? host.name
   const user = host.user ?? process.env.USERNAME ?? 'root'
@@ -142,7 +160,8 @@ export async function connect(
       const keys = await defaultKeys()
       logInfo(
         'sftp',
-        `Connexion à ${key} (agent: ${agentPath() ? 'oui' : 'non'}, clés: ${keys.length}, mdp: ${opts.password ? 'oui' : 'non'})…`
+        `Connexion à ${key} (agent: ${agentPath() ? 'oui' : 'non'}, clés: ${keys.length}, ` +
+          `mdp: ${opts.password ? 'oui' : 'non'}, empreinte acceptée: ${opts.acceptFingerprint ? 'oui' : 'non'})…`
       )
       try {
         client.connect({
@@ -155,6 +174,8 @@ export async function connect(
           privateKey: keys[0],
           tryKeyboard: false,
           readyTimeout: 15_000,
+          // Trace du handshake dans le journal en dev (diagnostic des timeouts).
+          debug: app.isPackaged ? undefined : (m: string) => logInfo('ssh2', m),
           hostVerifier: (keyBuf: Buffer): boolean => {
             const fp = fingerprintOf(keyBuf)
             if (known[fpKey] === fp) return true
