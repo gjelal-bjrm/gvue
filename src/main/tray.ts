@@ -131,7 +131,13 @@ function buildMenu(): Menu {
       { label: 'Fichiers (SFTP)', click: () => sendToWindow(IPC.trayBrowseSsh, h) }
     ]
   })
-  const servers = [...sshConfigHosts, ...getConfig('sshHosts')]
+  // Respecte le réglage « import à la demande » et évite les doublons.
+  const manual = getConfig('sshHosts')
+  const autoList = getConfig('sshConfigAutoList') !== false
+  const servers = [
+    ...(autoList ? sshConfigHosts.filter((h) => !manual.some((m) => m.name === h.name)) : []),
+    ...manual
+  ]
 
   return Menu.buildFromTemplate([
     { label: 'Ouvrir GVue', click: () => showWindow() },

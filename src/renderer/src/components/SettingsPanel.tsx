@@ -709,6 +709,7 @@ function GeneralSection(): JSX.Element {
   const [integration, setIntegration] = useState<{ supported: boolean; enabled: boolean } | null>(
     null
   )
+  const [sshAutoList, setSshAutoList] = useState(true)
   const [mcp, setMcp] = useState<{ enabled: boolean; bridgePath: string } | null>(null)
   const [copiedCmd, setCopiedCmd] = useState(false)
 
@@ -722,6 +723,10 @@ function GeneralSection(): JSX.Element {
       .catch(() => undefined)
     void window.api.mcp.status().then(setMcp)
     void window.api.integration?.get().then(setIntegration).catch(() => setIntegration(null))
+    void window.api.config
+      .get('sshConfigAutoList')
+      .then((v) => setSshAutoList(v !== false))
+      .catch(() => setSshAutoList(true))
   }, [])
 
   const toggleIntegration = (enabled: boolean): void => {
@@ -832,6 +837,25 @@ function GeneralSection(): JSX.Element {
         />
         <p className="mt-1.5 text-[11px] text-fg-muted">
           Le panneau terminal n'affiche que les terminaux de l'onglet de dossier actif.
+        </p>
+      </Field>
+
+      <Field label="Hôtes du fichier ~/.ssh/config">
+        <Segmented<'auto' | 'demand'>
+          value={sshAutoList ? 'auto' : 'demand'}
+          options={[
+            { value: 'auto', label: 'Listés automatiquement' },
+            { value: 'demand', label: 'Import à la demande' }
+          ]}
+          onChange={(v) => {
+            setSshAutoList(v === 'auto')
+            void window.api.config.set('sshConfigAutoList', v === 'auto')
+          }}
+        />
+        <p className="mt-1.5 text-[11px] text-fg-muted">
+          « À la demande » : la section SSH / SFTP ne montre que vos serveurs importés ou
+          ajoutés — utile quand le ssh_config contient des dizaines d'entrées. Le fichier
+          reste proposé comme source dans « ⇪ Importer ».
         </p>
       </Field>
 

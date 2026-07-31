@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseSshConfig } from '../src/main/services/ssh-config'
+import { parseSshConfig, splitSshTokens } from '../src/main/services/ssh-config'
 import { sshCommandFor, sshSubtitle, sshCdCommandFor } from '@renderer/lib/ssh'
 import type { SshHost } from '@shared/types'
 
@@ -54,6 +54,30 @@ describe('parseSshConfig', () => {
   it('tolère un fichier vide ou sans hôte', () => {
     expect(parseSshConfig('')).toEqual([])
     expect(parseSshConfig('# rien\nServerAliveInterval 60\n')).toEqual([])
+  })
+
+  it('respecte les guillemets : alias multi-mots et valeurs quotées (cas réel ami)', () => {
+    // Le bug constaté : « Host "CQFD tools" » éclatait en « "CQFD » + « tools" ».
+    const hosts = parseSshConfig(`
+Host "CQFD tools" wallix
+  HostName cqfd.dev
+  User user
+  Port 2245
+
+Host demo
+  HostName "serveur avec espace.local"
+`)
+    expect(hosts.map((h) => h.name)).toEqual(['CQFD tools', 'wallix', 'demo'])
+    expect(hosts[0]).toMatchObject({ hostName: 'cqfd.dev', user: 'user', port: 2245 })
+    expect(hosts[2].hostName).toBe('serveur avec espace.local')
+  })
+})
+
+describe('splitSshTokens', () => {
+  it('découpe en respectant les guillemets', () => {
+    expect(splitSshTokens('"CQFD tools" simple "a b c"')).toEqual(['CQFD tools', 'simple', 'a b c'])
+    expect(splitSshTokens('sans guillemets')).toEqual(['sans', 'guillemets'])
+    expect(splitSshTokens('')).toEqual([])
   })
 })
 

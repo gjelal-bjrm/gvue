@@ -14,19 +14,27 @@ export default function ServerImportDialog(props: {
   onImport: (hosts: SshHost[]) => void
   onClose: () => void
 }): JSX.Element {
-  const [sources, setSources] = useState<{ putty: SshHost[]; winscp: SshHost[] } | null>(null)
+  const [sources, setSources] = useState<{
+    putty: SshHost[]
+    winscp: SshHost[]
+    sshConfig: SshHost[]
+  } | null>(null)
   const [checked, setChecked] = useState<Set<string>>(new Set())
 
   const keyOf = (source: string, h: SshHost): string => `${source}:${h.name}`
   const existingNames = useMemo(() => new Set(props.existing.map((h) => h.name)), [props.existing])
 
   useEffect(() => {
-    void window.api.ssh.importSources().then((s) => {
-      setSources(s)
+    void Promise.all([
+      window.api.ssh.importSources(),
+      window.api.ssh.configHosts().catch(() => [] as SshHost[])
+    ]).then(([s, sshConfig]) => {
+      setSources({ ...s, sshConfig })
       // Tout pré-cocher, sauf ce qui existe déjà sous le même nom.
       const all = new Set<string>()
       for (const h of s.putty) if (!existingNames.has(h.name)) all.add(keyOf('putty', h))
       for (const h of s.winscp) if (!existingNames.has(h.name)) all.add(keyOf('winscp', h))
+      for (const h of sshConfig) if (!existingNames.has(h.name)) all.add(keyOf('sshConfig', h))
       setChecked(all)
     })
   }, [existingNames])
@@ -46,13 +54,16 @@ export default function ServerImportDialog(props: {
       return n
     })
 
-  const total = (sources?.putty.length ?? 0) + (sources?.winscp.length ?? 0)
+  const total =
+    (sources?.putty.length ?? 0) + (sources?.winscp.length ?? 0) + (sources?.sshConfig.length ?? 0)
 
   const doImport = (): void => {
     if (!sources) return
     const picked: SshHost[] = [
       ...sources.putty.filter((h) => checked.has(keyOf('putty', h))),
-      ...sources.winscp.filter((h) => checked.has(keyOf('winscp', h)))
+      ...sources.winscp.filter((h) => checked.has(keyOf('winscp', h))),
+      // Les hôtes du ssh_config gardent source:'config' → connexion par alias.
+      ...sources.sshConfig.filter((h) => checked.has(keyOf('sshConfig', h)))
     ]
     props.onImport(picked)
     props.onClose()
@@ -127,6 +138,7 @@ export default function ServerImportDialog(props: {
             <>
               <Group title="PuTTY" source="putty" hosts={sources.putty} />
               <Group title="WinSCP" source="winscp" hosts={sources.winscp} />
+              <Group title="Fichier ~/.ssh/config" source="sshConfig" hosts={sources.sshConfig} />
             </>
           )}
         </div>

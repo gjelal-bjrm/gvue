@@ -45,6 +45,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   projectRoots: [],
   hiddenProjects: [],
   sshHosts: [],
+  sshConfigAutoList: true,
   sshFingerprints: {},
   sshPasswords: {},
   sftpLastDirs: {},

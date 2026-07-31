@@ -22,6 +22,28 @@ const exec = promisify(execFile)
  * - `HostName`, `User`, `Port` du bloc renseignent l'affichage (mots-clés
  *   insensibles à la casse, séparateur espace ou `=`).
  */
+/**
+ * Découpe une valeur ssh_config en jetons, en respectant les guillemets :
+ * « "CQFD tools" simple » → [« CQFD tools », « simple »]. Sans cela, les alias
+ * multi-mots éclatent en fragments invalides (« "CQFD », « tools" »…).
+ */
+export function splitSshTokens(value: string): string[] {
+  const out: string[] = []
+  const re = /"([^"]*)"|(\S+)/g
+  let m: RegExpExecArray | null
+  while ((m = re.exec(value)) !== null) {
+    const token = (m[1] ?? m[2]).trim()
+    if (token) out.push(token)
+  }
+  return out
+}
+
+/** Retire les guillemets englobants d'une valeur (« "mon hôte" » → « mon hôte »). */
+function unquote(v: string): string {
+  const m = /^"(.*)"$/.exec(v.trim())
+  return m ? m[1] : v.trim()
+}
+
 export function parseSshConfig(text: string): SshHost[] {
   const out: SshHost[] = []
   let current: SshHost[] = []
@@ -34,11 +56,11 @@ export function parseSshConfig(text: string): SshHost[] {
     const m = /^(\w+)\s*(?:=|\s)\s*(.+)$/.exec(line)
     if (!m) continue
     const key = m[1].toLowerCase()
-    const value = m[2].trim()
+    const value = unquote(m[2])
 
     if (key === 'host') {
       current = []
-      for (const alias of value.split(/\s+/)) {
+      for (const alias of splitSshTokens(m[2])) {
         if (!alias || /[*?]/.test(alias) || alias.startsWith('!')) continue
         const host: SshHost = { name: alias, source: 'config' }
         current.push(host)

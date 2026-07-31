@@ -452,6 +452,12 @@ export interface AppConfig {
   hiddenProjects: string[]
   /** Serveurs SSH ajoutés à la main (ceux du ~/.ssh/config sont lus, jamais copiés). */
   sshHosts: SshHost[]
+  /**
+   * Les hôtes du ~/.ssh/config sont-ils listés automatiquement dans la sidebar ?
+   * Faux = modèle WinSCP : ils ne s'affichent que s'ils sont importés à la
+   * demande (utile quand le fichier contient des dizaines d'entrées).
+   */
+  sshConfigAutoList: boolean
   /** Empreintes d'hôtes SSH acceptées (TOFU) : « hôte:port » → empreinte SHA256. */
   sshFingerprints: Record<string, string>
   /**

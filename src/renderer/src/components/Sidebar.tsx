@@ -76,6 +76,7 @@ export default function Sidebar(): JSX.Element {
   const [configHosts, setConfigHosts] = useState<SshHost[]>([])
   const [manualHosts, setManualHosts] = useState<SshHost[]>([])
   const [sshOk, setSshOk] = useState(true)
+  const [sshAutoList, setSshAutoList] = useState(true)
   const [addServerOpen, setAddServerOpen] = useState(false)
   const [editServer, setEditServer] = useState<SshHost | null>(null)
   const [importOpen, setImportOpen] = useState(false)
@@ -100,7 +101,17 @@ export default function Sidebar(): JSX.Element {
     void window.api.ssh.configHosts().then(setConfigHosts).catch(() => setConfigHosts([]))
     void window.api.config.get('sshHosts').then(setManualHosts).catch(() => setManualHosts([]))
     void window.api.ssh.available().then(setSshOk).catch(() => setSshOk(false))
+    void window.api.config
+      .get('sshConfigAutoList')
+      .then((v) => setSshAutoList(v !== false))
+      .catch(() => setSshAutoList(true))
   }, [])
+
+  // Hôtes du ssh_config affichés : selon le réglage (liste automatique ou
+  // import à la demande), et jamais en double d'un hôte déjà importé/stocké.
+  const shownConfigHosts = sshAutoList
+    ? configHosts.filter((h) => !manualHosts.some((m) => m.name === h.name))
+    : []
 
   // Clic sur un serveur : terminal intégré + connexion SSH dedans.
   const connectSsh = (host: SshHost): void => {
@@ -322,12 +333,14 @@ export default function Sidebar(): JSX.Element {
               facultatives de Windows.
             </p>
           )}
-          {configHosts.length === 0 && manualHosts.length === 0 && !addServerOpen && (
+          {shownConfigHosts.length === 0 && manualHosts.length === 0 && !addServerOpen && (
             <p className="px-2 text-[12px] text-fg-muted">
-              Les hôtes de ~/.ssh/config apparaissent ici automatiquement.
+              {sshAutoList
+                ? 'Les hôtes de ~/.ssh/config apparaissent ici automatiquement.'
+                : 'Import à la demande : « ⇪ Importer » liste aussi votre ~/.ssh/config.'}
             </p>
           )}
-          {configHosts.map((h) => (
+          {shownConfigHosts.map((h) => (
             <ServerItem
               key={`c-${h.name}`}
               host={h}
@@ -341,10 +354,16 @@ export default function Sidebar(): JSX.Element {
               host={h}
               onConnect={() => connectSsh(h)}
               onBrowse={() => useUiStore.getState().setRemoteHost(h)}
-              onEdit={(e) => {
-                e.stopPropagation()
-                setEditServer(h)
-              }}
+              // Un hôte importé du ssh_config n'est pas éditable dans GVue
+              // (sa vérité vit dans le fichier) — mais il reste retirable.
+              onEdit={
+                h.source === 'manual'
+                  ? (e) => {
+                      e.stopPropagation()
+                      setEditServer(h)
+                    }
+                  : undefined
+              }
               onRemove={(e) => {
                 e.stopPropagation()
                 removeServer(h.name)
