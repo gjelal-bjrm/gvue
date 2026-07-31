@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { GitCommit } from 'lucide-react'
+import { t } from '../../i18n'
 
 /**
  * Zone de commit (message + bouton + erreur git). Le champ se vide quand
@@ -27,7 +28,7 @@ export default function CommitBox(props: {
       <textarea
         value={message}
         onChange={(e) => setMessage(e.target.value)}
-        placeholder="Message de commit…"
+        placeholder={t('Message de commit…')}
         spellCheck={false}
         rows={2}
         className="mb-1.5 w-full resize-none rounded-app border border-border bg-bg px-2 py-1.5 text-[12px] text-fg outline-none placeholder:text-fg-muted focus:border-accent"
@@ -38,7 +39,10 @@ export default function CommitBox(props: {
         className="flex w-full items-center justify-center gap-1.5 rounded-app bg-accent px-2 py-1.5 text-[12px] font-medium text-white hover:opacity-90 disabled:opacity-40"
       >
         <GitCommit size={14} />
-        Commit{props.stagedCount > 0 ? ` (${props.stagedCount})` : ''} sur {props.branch}
+        {t('Commit{suffix} sur {branch}', {
+          suffix: props.stagedCount > 0 ? ` (${props.stagedCount})` : '',
+          branch: props.branch
+        })}
       </button>
       {props.error && (
         <pre className="mt-1.5 max-h-24 overflow-auto whitespace-pre-wrap break-words rounded-app border border-danger-fg bg-danger-bg px-2 py-1 text-[11px] text-danger-fg">

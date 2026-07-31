@@ -32,6 +32,7 @@ import { useUiStore } from '../state/useUiStore'
 import { useSearchStore } from '../state/useSearchStore'
 import { useGitStore } from '../state/useGitStore'
 import { breadcrumbSegments } from '../lib/format'
+import { t, tn } from '../i18n'
 import WorkspaceMenu from './WorkspaceMenu'
 
 /** Compare deux chemins en ignorant la casse et le séparateur final (Windows). */
@@ -122,7 +123,7 @@ export default function Toolbar(): JSX.Element {
       setPathError(null)
       void window.api.fs.open(target)
     } else {
-      setPathError(`Ce chemin n'existe pas : ${target}`)
+      setPathError(t("Ce chemin n'existe pas : {target}", { target }))
       inputRef.current?.focus()
     }
   }
@@ -140,25 +141,25 @@ export default function Toolbar(): JSX.Element {
   return (
     <div className="flex h-12 shrink-0 items-center gap-2 border-b border-border bg-bg px-3">
       <div className="flex items-center gap-0.5">
-        <NavBtn onClick={goBack} disabled={back.length === 0} title="Précédent">
+        <NavBtn onClick={goBack} disabled={back.length === 0} title={t('Précédent')}>
           <ArrowLeft size={17} />
         </NavBtn>
-        <NavBtn onClick={goForward} disabled={forward.length === 0} title="Suivant">
+        <NavBtn onClick={goForward} disabled={forward.length === 0} title={t('Suivant')}>
           <ArrowRight size={17} />
         </NavBtn>
-        <NavBtn onClick={goParent} disabled={!parent} title="Dossier parent">
+        <NavBtn onClick={goParent} disabled={!parent} title={t('Dossier parent')}>
           <ArrowUp size={17} />
         </NavBtn>
-        <NavBtn onClick={goHome} title="Accueil" accent>
+        <NavBtn onClick={goHome} title={t('Accueil')} accent>
           <Home size={17} />
         </NavBtn>
-        <NavBtn onClick={refresh} title="Rafraîchir">
+        <NavBtn onClick={refresh} title={t('Rafraîchir')}>
           <RotateCw size={15} />
         </NavBtn>
         <Sep />
         <NavBtn
           onClick={toggleHidden}
-          title={showHidden ? 'Masquer les éléments cachés' : 'Afficher les éléments cachés'}
+          title={showHidden ? t('Masquer les éléments cachés') : t('Afficher les éléments cachés')}
           active={showHidden}
         >
           {showHidden ? <Eye size={16} /> : <EyeOff size={16} />}
@@ -167,8 +168,8 @@ export default function Toolbar(): JSX.Element {
           onClick={toggleGitIgnored}
           title={
             hideGitIgnored
-              ? 'Afficher les fichiers ignorés par .gitignore'
-              : 'Masquer les fichiers ignorés par .gitignore'
+              ? t('Afficher les fichiers ignorés par .gitignore')
+              : t('Masquer les fichiers ignorés par .gitignore')
           }
           active={!hideGitIgnored}
         >
@@ -176,7 +177,7 @@ export default function Toolbar(): JSX.Element {
         </NavBtn>
         <NavBtn
           onClick={toggleViewMode}
-          title={viewMode === 'grid' ? 'Vue liste' : 'Vue grille (vignettes)'}
+          title={viewMode === 'grid' ? t('Vue liste') : t('Vue grille (vignettes)')}
           active={viewMode === 'grid'}
         >
           {viewMode === 'grid' ? <List size={16} /> : <LayoutGrid size={16} />}
@@ -193,7 +194,7 @@ export default function Toolbar(): JSX.Element {
           onClick={() => {
             if (!editing) startEdit()
           }}
-          title={editing ? undefined : 'Cliquez pour éditer le chemin'}
+          title={editing ? undefined : t('Cliquez pour éditer le chemin')}
         >
           {editing ? (
             <>
@@ -239,7 +240,7 @@ export default function Toolbar(): JSX.Element {
                   e.stopPropagation()
                   void copyPath()
                 }}
-                title="Copier le chemin"
+                title={t('Copier le chemin')}
                 className="ml-1 grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg"
               >
                 {copied ? <Check size={14} className="text-accent" /> : <Copy size={14} />}
@@ -259,26 +260,26 @@ export default function Toolbar(): JSX.Element {
 
       <WorkspaceMenu />
       <Sep />
-      <NavBtn onClick={() => void window.api.window.new()} title="Nouvelle fenêtre (Ctrl+Maj+N)">
+      <NavBtn onClick={() => void window.api.window.new()} title={t('Nouvelle fenêtre (Ctrl+Maj+N)')}>
         <AppWindow size={17} />
       </NavBtn>
       <NavBtn
         onClick={() => void addPane()}
         disabled={groupCount >= 3}
-        title="Diviser — nouvelle colonne"
+        title={t('Diviser — nouvelle colonne')}
       >
         <Columns2 size={17} />
       </NavBtn>
-      <NavBtn onClick={togglePreview} title="Panneau d'aperçu" active={previewOpen}>
+      <NavBtn onClick={togglePreview} title={t("Panneau d'aperçu")} active={previewOpen}>
         <PanelRight size={17} />
       </NavBtn>
       <Sep />
-      <NavBtn onClick={() => useUiStore.getState().setShortcuts(true)} title="Raccourcis clavier (F1)">
+      <NavBtn onClick={() => useUiStore.getState().setShortcuts(true)} title={t('Raccourcis clavier (F1)')}>
         <HelpCircle size={16} />
       </NavBtn>
       <NavBtn
         onClick={toggleAppearance}
-        title="Paramètres"
+        title={t('Paramètres')}
         active={appearanceOpen}
       >
         <Settings size={17} />
@@ -309,7 +310,16 @@ function GitButton(): JSX.Element | null {
           if (!gitViewOpen) useSearchStore.getState().close()
           useUiStore.getState().toggleGitView()
         }}
-        title={`Panneau Git — ${repo.branch}${changes ? ` · ${changes} modification${changes > 1 ? 's' : ''}` : ''} (Ctrl+G)`}
+        title={
+          changes > 0
+            ? tn(
+                changes,
+                'Panneau Git — {branch} · {changes} modification (Ctrl+G)',
+                'Panneau Git — {branch} · {changes} modifications (Ctrl+G)',
+                { branch: repo.branch, changes }
+              )
+            : t('Panneau Git — {branch} (Ctrl+G)', { branch: repo.branch })
+        }
         className={`relative grid h-8 w-8 shrink-0 place-items-center rounded-app transition-colors hover:bg-bg-hover ${
           gitViewOpen ? 'bg-accent-soft text-accent' : 'text-fg-secondary hover:text-fg'
         }`}
@@ -348,27 +358,27 @@ function SearchBox(): JSX.Element {
           if (e.key === 'Enter') void run(dir)
           if (e.key === 'Escape') close()
         }}
-        placeholder="Rechercher (rg)…"
+        placeholder={t('Rechercher (rg)…')}
         spellCheck={false}
         className="min-w-0 flex-1 bg-transparent text-[12px] text-fg outline-none placeholder:text-fg-muted"
       />
       {active && (
         <button
           onClick={close}
-          title="Fermer la recherche"
+          title={t('Fermer la recherche')}
           className="grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg"
         >
           <X size={14} />
         </button>
       )}
       <div className="flex shrink-0 items-center">
-        <SearchToggle on={caseSensitive} onClick={toggleCase} title="Respecter la casse">
+        <SearchToggle on={caseSensitive} onClick={toggleCase} title={t('Respecter la casse')}>
           <CaseSensitive size={14} />
         </SearchToggle>
-        <SearchToggle on={wholeWord} onClick={toggleWord} title="Mot entier">
+        <SearchToggle on={wholeWord} onClick={toggleWord} title={t('Mot entier')}>
           <WholeWord size={14} />
         </SearchToggle>
-        <SearchToggle on={regex} onClick={toggleRegex} title="Expression régulière">
+        <SearchToggle on={regex} onClick={toggleRegex} title={t('Expression régulière')}>
           <Regex size={14} />
         </SearchToggle>
       </div>

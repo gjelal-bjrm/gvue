@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Pencil, X, ArrowRight, AlertTriangle } from 'lucide-react'
 import { baseName } from '../lib/format'
 import { analyzeBulkRename, type BulkRenameRules as Rules } from '../lib/bulkRename'
+import { t } from '../i18n'
 
 /**
  * Renommage en masse : applique des règles (rechercher/remplacer + regex,
@@ -79,7 +80,9 @@ export default function BulkRenameDialog(props: {
       >
         <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-3">
           <Pencil size={15} className="text-accent" />
-          <span className="text-[13px] font-medium text-fg">Renommer en masse — {names.length} éléments</span>
+          <span className="text-[13px] font-medium text-fg">
+            {t('Renommer en masse — {count} éléments', { count: names.length })}
+          </span>
           <button
             onClick={props.onClose}
             className="ml-auto grid h-6 w-6 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg"
@@ -90,37 +93,41 @@ export default function BulkRenameDialog(props: {
 
         {/* Règles */}
         <div className="grid shrink-0 grid-cols-2 gap-x-4 gap-y-2 px-4 py-3 text-[12px]">
-          <Field label="Rechercher">
-            <Input value={r.find} onChange={(v) => set({ find: v })} placeholder="texte ou regex" />
+          <Field label={t('Rechercher')}>
+            <Input value={r.find} onChange={(v) => set({ find: v })} placeholder={t('texte ou regex')} />
           </Field>
-          <Field label="Remplacer par">
-            <Input value={r.replace} onChange={(v) => set({ replace: v })} placeholder="(vide = supprimer)" />
+          <Field label={t('Remplacer par')}>
+            <Input
+              value={r.replace}
+              onChange={(v) => set({ replace: v })}
+              placeholder={t('(vide = supprimer)')}
+            />
           </Field>
           <div className="col-span-2 flex items-center gap-4">
-            <Check label="Expression régulière" checked={r.regex} onChange={(v) => set({ regex: v })} />
-            <Check label="Ignorer la casse" checked={r.ci} onChange={(v) => set({ ci: v })} />
-            {regexError && <span className="text-[11px] text-danger-fg">Regex invalide</span>}
+            <Check label={t('Expression régulière')} checked={r.regex} onChange={(v) => set({ regex: v })} />
+            <Check label={t('Ignorer la casse')} checked={r.ci} onChange={(v) => set({ ci: v })} />
+            {regexError && <span className="text-[11px] text-danger-fg">{t('Regex invalide')}</span>}
           </div>
-          <Field label="Préfixe">
+          <Field label={t('Préfixe')}>
             <Input value={r.prefix} onChange={(v) => set({ prefix: v })} placeholder="" />
           </Field>
-          <Field label="Suffixe (avant l'extension)">
+          <Field label={t("Suffixe (avant l'extension)")}>
             <Input value={r.suffix} onChange={(v) => set({ suffix: v })} placeholder="" />
           </Field>
           <div className="col-span-2 flex flex-wrap items-center gap-3">
-            <Check label="Numéroter" checked={r.numbering} onChange={(v) => set({ numbering: v })} />
+            <Check label={t('Numéroter')} checked={r.numbering} onChange={(v) => set({ numbering: v })} />
             {r.numbering && (
               <>
                 <label className="flex items-center gap-1 text-fg-muted">
-                  début
+                  {t('début')}
                   <NumInput value={r.start} onChange={(v) => set({ start: v })} />
                 </label>
                 <label className="flex items-center gap-1 text-fg-muted">
-                  chiffres
+                  {t('chiffres')}
                   <NumInput value={r.pad} onChange={(v) => set({ pad: v })} />
                 </label>
                 <label className="flex items-center gap-1 text-fg-muted">
-                  séparateur
+                  {t('séparateur')}
                   <input
                     value={r.numSep}
                     onChange={(e) => set({ numSep: e.target.value })}
@@ -132,8 +139,8 @@ export default function BulkRenameDialog(props: {
                   onChange={(e) => set({ numPos: e.target.value as 'prefix' | 'suffix' })}
                   className="rounded-app border border-border bg-bg px-2 py-1 text-fg outline-none focus:border-accent"
                 >
-                  <option value="suffix">à la fin</option>
-                  <option value="prefix">au début</option>
+                  <option value="suffix">{t('à la fin')}</option>
+                  <option value="prefix">{t('au début')}</option>
                 </select>
               </>
             )}
@@ -156,8 +163,8 @@ export default function BulkRenameDialog(props: {
                     empty || dup ? 'text-danger-fg' : changed ? 'text-accent' : 'text-fg-secondary'
                   }`}
                 >
-                  {nn || '(vide)'}
-                  {dup && <span className="ml-1 text-[10px]">⚠ doublon</span>}
+                  {nn || t('(vide)')}
+                  {dup && <span className="ml-1 text-[10px]">{t('⚠ doublon')}</span>}
                 </span>
               </div>
             )
@@ -168,23 +175,27 @@ export default function BulkRenameDialog(props: {
         <div className="flex shrink-0 items-center gap-3 border-t border-border px-4 py-3">
           {(hasDup || hasEmpty) && (
             <span className="flex items-center gap-1.5 text-[12px] text-danger-fg">
-              <AlertTriangle size={14} /> {hasEmpty ? 'Des noms sont vides.' : 'Des noms sont en doublon.'}
+              <AlertTriangle size={14} />{' '}
+              {hasEmpty ? t('Des noms sont vides.') : t('Des noms sont en doublon.')}
             </span>
           )}
           {error && <span className="truncate text-[12px] text-danger-fg">{error}</span>}
-          <span className="ml-auto text-[12px] text-fg-muted">{changedCount} à renommer</span>
+          <span className="ml-auto text-[12px] text-fg-muted">
+            {t('{count} à renommer', { count: changedCount })}
+          </span>
           <button
             onClick={props.onClose}
             className="rounded-app px-3 py-1.5 text-[12px] text-fg-secondary hover:bg-bg-hover"
           >
-            Annuler
+            {t('Annuler')}
           </button>
           <button
             onClick={() => void apply()}
             disabled={blocked || busy}
             className="rounded-app bg-accent px-3 py-1.5 text-[12px] font-medium text-white hover:opacity-90 disabled:opacity-40"
           >
-            Renommer{changedCount > 0 ? ` (${changedCount})` : ''}
+            {t('Renommer')}
+            {changedCount > 0 ? ` (${changedCount})` : ''}
           </button>
         </div>
       </div>

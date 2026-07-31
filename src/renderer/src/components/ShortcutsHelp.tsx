@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { Keyboard, X } from 'lucide-react'
+import { t } from '../i18n'
 import { useUiStore } from '../state/useUiStore'
 
 interface Row {
@@ -106,8 +107,8 @@ export default function ShortcutsHelp(): JSX.Element | null {
       >
         <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-3">
           <Keyboard size={15} className="text-accent" />
-          <span className="text-[13px] font-medium text-fg">Raccourcis clavier</span>
-          <span className="text-[11px] text-fg-muted">F1 pour rouvrir cette aide</span>
+          <span className="text-[13px] font-medium text-fg">{t('Raccourcis clavier')}</span>
+          <span className="text-[11px] text-fg-muted">{t('F1 pour rouvrir cette aide')}</span>
           <button
             onClick={close}
             className="ml-auto grid h-6 w-6 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg"
@@ -120,7 +121,7 @@ export default function ShortcutsHelp(): JSX.Element | null {
           {GROUPS.map((g) => (
             <section key={g.title}>
               <h3 className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-fg-muted">
-                {g.title}
+                {t(g.title)}
               </h3>
               <div className="flex flex-col">
                 {g.rows.map((r) => (
@@ -135,8 +136,8 @@ export default function ShortcutsHelp(): JSX.Element | null {
                         </kbd>
                       ))}
                     </span>
-                    <span className="min-w-0 flex-1 truncate text-[12px] text-fg-secondary" title={r.label}>
-                      {r.label}
+                    <span className="min-w-0 flex-1 truncate text-[12px] text-fg-secondary" title={t(r.label)}>
+                      {t(r.label)}
                     </span>
                   </div>
                 ))}

@@ -1,6 +1,7 @@
 import { Server, TerminalSquare, FolderOpen, Network, Pencil, X } from 'lucide-react'
 import type { SshHost } from '@shared/types'
 import { sshSubtitle, describeForward } from '../../lib/ssh'
+import { t } from '../../i18n'
 
 /**
  * Serveur SSH de la sidebar. Clic sur le nom OU sur l'icône terminal →
@@ -19,14 +20,15 @@ export default function ServerItem(props: {
 }): JSX.Element {
   const { host } = props
   const subtitle = sshSubtitle(host)
+  const configLine = t('{name} — défini dans ~/.ssh/config', { name: host.name })
   return (
     <div className="group flex items-center gap-1 rounded-app pr-1 text-fg-secondary hover:bg-bg-hover hover:text-fg">
       <button
         onClick={props.onConnect}
         title={
-          (host.source === 'config' ? `${host.name} — défini dans ~/.ssh/config\n` : '') +
-          `Clic : terminal SSH${subtitle ? ` vers ${subtitle}` : ''}\n` +
-          `Boutons (au survol) : ▸ terminal · 📂 fichiers (SFTP)`
+          (host.source === 'config' ? `${configLine}\n` : '') +
+          `${subtitle ? t('Clic : terminal SSH vers {target}', { target: subtitle }) : t('Clic : terminal SSH')}\n` +
+          t('Boutons (au survol) : ▸ terminal · 📂 fichiers (SFTP)')
         }
         className="flex min-w-0 flex-1 items-center gap-2.5 px-2 py-[var(--row-pad)] text-left"
       >
@@ -34,7 +36,9 @@ export default function ServerItem(props: {
         <span className="min-w-0 flex-1 truncate">{host.name}</span>
         {host.forwards && host.forwards.length > 0 && (
           <span
-            title={`Tunnels : ${host.forwards.map(describeForward).join(' · ')}`}
+            title={t('Tunnels : {list}', {
+              list: host.forwards.map(describeForward).join(' · ')
+            })}
             className="shrink-0 text-fg-muted"
           >
             <Network size={12} />
@@ -49,7 +53,7 @@ export default function ServerItem(props: {
           e.stopPropagation()
           props.onConnect()
         }}
-        title="Ouvrir un terminal SSH"
+        title={t('Ouvrir un terminal SSH')}
         className="grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted opacity-0 hover:bg-bg-hover hover:text-accent group-hover:opacity-100"
       >
         <TerminalSquare size={13} />
@@ -59,7 +63,7 @@ export default function ServerItem(props: {
           e.stopPropagation()
           props.onBrowse()
         }}
-        title="Parcourir les fichiers (SFTP)"
+        title={t('Parcourir les fichiers (SFTP)')}
         className="grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted opacity-0 hover:bg-bg-hover hover:text-accent group-hover:opacity-100"
       >
         <FolderOpen size={13} />
@@ -67,7 +71,7 @@ export default function ServerItem(props: {
       {props.onEdit && (
         <button
           onClick={props.onEdit}
-          title="Modifier (hôte, tunnels, mot de passe…)"
+          title={t('Modifier (hôte, tunnels, mot de passe…)')}
           className="grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted opacity-0 hover:bg-bg-hover hover:text-fg group-hover:opacity-100"
         >
           <Pencil size={12} />
@@ -76,7 +80,7 @@ export default function ServerItem(props: {
       {props.onRemove && (
         <button
           onClick={props.onRemove}
-          title="Retirer ce serveur"
+          title={t('Retirer ce serveur')}
           className="grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted opacity-0 hover:bg-bg-hover hover:text-danger-fg group-hover:opacity-100"
         >
           <X size={13} />

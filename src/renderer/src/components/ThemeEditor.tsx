@@ -9,8 +9,12 @@ import {
 import { useAppearanceStore } from '../state/useAppearanceStore'
 import { applyThemeAll } from '../lib/terminalBridge'
 import { applyAppearance } from '../theme/applyTheme'
+import { t } from '../i18n'
 
-/** Ordre et libellés des 10 couleurs éditables. */
+/**
+ * Ordre et libellés des 10 couleurs éditables. Français brut : ce tableau est
+ * évalué à l'import, AVANT initLang() — la traduction se fait au rendu.
+ */
 const FIELDS: { key: keyof CustomColors; label: string }[] = [
   { key: 'bg', label: 'Fond' },
   { key: 'bgSecondary', label: 'Panneaux' },
@@ -74,7 +78,7 @@ export default function ThemeEditor(props: {
   editing: CustomTheme | null
   onClose: () => void
 }): JSX.Element {
-  const [name, setName] = useState(props.editing?.label ?? 'Mon thème')
+  const [name, setName] = useState(props.editing?.label ?? t('Mon thème'))
   const [colors, setColors] = useState<CustomColors>(() =>
     props.editing ? fromTheme(props.editing) : fromCurrentTheme()
   )
@@ -97,14 +101,14 @@ export default function ThemeEditor(props: {
   }
 
   const save = (): void => {
-    const label = name.trim() || 'Mon thème'
-    const t: CustomTheme = {
+    const label = name.trim() || t('Mon thème')
+    const theme: CustomTheme = {
       id: props.editing?.id ?? `custom-${Date.now()}`,
       label,
       base: baseFromBg(colors.bg),
       vars
     }
-    useAppearanceStore.getState().saveCustomTheme(t)
+    useAppearanceStore.getState().saveCustomTheme(theme)
     applyThemeAll()
     props.onClose()
   }
@@ -117,7 +121,7 @@ export default function ThemeEditor(props: {
       <input
         value={name}
         onChange={(e) => setName(e.target.value)}
-        placeholder="Nom du thème…"
+        placeholder={t('Nom du thème…')}
         spellCheck={false}
         className="w-full rounded-app border border-border bg-bg-tertiary px-2 py-1.5 text-[12px] text-fg outline-none placeholder:text-fg-muted focus:border-accent"
       />
@@ -131,15 +135,14 @@ export default function ThemeEditor(props: {
               onChange={(e) => set(f.key, e.target.value)}
               className="h-6 w-8 shrink-0 cursor-pointer rounded border border-border bg-transparent p-0"
             />
-            <span className="min-w-0 flex-1 truncate">{f.label}</span>
+            <span className="min-w-0 flex-1 truncate">{t(f.label)}</span>
             <span className="shrink-0 font-mono text-[11px] text-fg-muted">{colors[f.key]}</span>
           </label>
         ))}
       </div>
 
       <p className="text-[11px] text-fg-muted">
-        Bordures, survols et fonds de statut sont dérivés automatiquement. L'aperçu est appliqué
-        en direct — « Annuler » restaure le thème précédent.
+        {t("Bordures, survols et fonds de statut sont dérivés automatiquement. L'aperçu est appliqué en direct — « Annuler » restaure le thème précédent.")}
       </p>
 
       <div className="flex gap-1.5">
@@ -147,13 +150,13 @@ export default function ThemeEditor(props: {
           onClick={save}
           className="flex flex-1 items-center justify-center gap-1.5 rounded-app bg-accent px-2 py-1.5 text-[12px] font-medium text-white hover:opacity-90"
         >
-          <Check size={13} /> Enregistrer
+          <Check size={13} /> {t('Enregistrer')}
         </button>
         <button
           onClick={cancel}
           className="flex flex-1 items-center justify-center gap-1.5 rounded-app border border-border px-2 py-1.5 text-[12px] text-fg-secondary hover:bg-bg-hover"
         >
-          <X size={13} /> Annuler
+          <X size={13} /> {t('Annuler')}
         </button>
       </div>
     </div>

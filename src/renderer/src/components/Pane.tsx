@@ -1,6 +1,7 @@
 import { X, Star, Rocket } from 'lucide-react'
 import { useNavStore } from '../state/useNavStore'
 import { baseName } from '../lib/format'
+import { t } from '../i18n'
 import FileList from './FileList'
 import QuickAccessPanel from './QuickAccessPanel'
 import LauncherPanel from './LauncherPanel'
@@ -38,9 +39,9 @@ export default function Pane({ paneId }: { paneId: string }): JSX.Element | null
           {pane.launcher && <Rocket size={11} className="shrink-0 text-accent" />}
           <span className="min-w-0 flex-1 truncate" title={pane.path}>
             {pane.launcher
-              ? 'Lanceur'
+              ? t('Lanceur')
               : pane.quickAccess
-                ? 'Accès rapide'
+                ? t('Accès rapide')
                 : baseName(pane.path) || pane.path}
           </span>
           <button
@@ -48,7 +49,7 @@ export default function Pane({ paneId }: { paneId: string }): JSX.Element | null
               e.stopPropagation()
               closePane(paneId)
             }}
-            title="Fermer le volet"
+            title={t('Fermer le volet')}
             className="grid h-5 w-5 shrink-0 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg"
           >
             <X size={12} />

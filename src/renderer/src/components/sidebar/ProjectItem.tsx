@@ -1,5 +1,6 @@
 import { FolderGit2, Play, Square, Settings2, X } from 'lucide-react'
 import type { GitProject } from '@shared/types'
+import { t } from '../../i18n'
 
 /** Dépôt de la section Projets : nom + branche + ▶ configurable (⚙) + retrait. */
 export default function ProjectItem(props: {
@@ -35,7 +36,7 @@ export default function ProjectItem(props: {
       </button>
       <button
         onClick={props.onConfig}
-        title="Définir la commande du ▶"
+        title={t('Définir la commande du ▶')}
         className="grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted opacity-0 hover:bg-bg-hover hover:text-fg group-hover:opacity-100"
       >
         <Settings2 size={13} />
@@ -43,7 +44,7 @@ export default function ProjectItem(props: {
       <button
         onClick={props.onPlay}
         title={
-          props.running ? 'Arrêter' : props.configured ? 'Lancer le projet' : 'Définir puis lancer'
+          props.running ? t('Arrêter') : props.configured ? t('Lancer le projet') : t('Définir puis lancer')
         }
         className={`grid h-6 w-6 shrink-0 place-items-center rounded hover:bg-bg-hover ${
           props.running
@@ -55,7 +56,7 @@ export default function ProjectItem(props: {
       </button>
       <button
         onClick={props.onHide}
-        title="Retirer de la liste (revient en rouvrant le dossier)"
+        title={t('Retirer de la liste (revient en rouvrant le dossier)')}
         className="grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted opacity-0 hover:bg-bg-hover hover:text-danger-fg group-hover:opacity-100"
       >
         <X size={13} />

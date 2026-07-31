@@ -3,6 +3,7 @@ import { Play, FileCode, FolderOpen } from 'lucide-react'
 import { useRunnerStore } from '../../state/useRunnerStore'
 import { commandForFile, joinWin } from '../../lib/runfile'
 import FilePickerDialog from '../FilePickerDialog'
+import { t } from '../../i18n'
 
 /**
  * Petite boîte de dialogue pour définir la commande exécutée par le ▶ d'un
@@ -52,10 +53,10 @@ export default function LaunchConfigDialog(props: {
       >
         <div className="mb-1 flex items-center gap-2 text-[13px] font-medium text-fg">
           <Play size={14} className="text-accent" />
-          Lancement de {props.name}
+          {t('Lancement de {name}', { name: props.name })}
         </div>
         <p className="mb-3 text-[12px] text-fg-muted">
-          Commande exécutée d'un clic sur ▶, dans le dossier du projet.
+          {t("Commande exécutée d'un clic sur ▶, dans le dossier du projet.")}
         </p>
 
         <div className="flex gap-1.5">
@@ -68,15 +69,15 @@ export default function LaunchConfigDialog(props: {
             }}
             autoFocus
             spellCheck={false}
-            placeholder="ex. npm run dev"
+            placeholder={t('ex. npm run dev')}
             className="min-w-0 flex-1 rounded-app border border-border bg-bg px-2 py-1.5 font-mono text-[12px] text-fg outline-none placeholder:text-fg-muted focus:border-accent"
           />
           <button
             onClick={() => setPicking(true)}
-            title="Choisir un fichier à lancer (.bat, .ps1, .exe…)"
+            title={t('Choisir un fichier à lancer (.bat, .ps1, .exe…)')}
             className="flex shrink-0 items-center gap-1 rounded-app border border-border px-2 text-[12px] text-fg-secondary hover:bg-bg-hover"
           >
-            <FolderOpen size={13} /> Fichier…
+            <FolderOpen size={13} /> {t('Fichier…')}
           </button>
         </div>
 
@@ -93,7 +94,7 @@ export default function LaunchConfigDialog(props: {
 
         {files.length > 0 && (
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] text-fg-muted">Fichiers :</span>
+            <span className="text-[11px] text-fg-muted">{t('Fichiers :')}</span>
             {files.map((f) => (
               <button
                 key={f}
@@ -108,7 +109,7 @@ export default function LaunchConfigDialog(props: {
 
         {scripts.length > 0 && (
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] text-fg-muted">Scripts :</span>
+            <span className="text-[11px] text-fg-muted">{t('Scripts :')}</span>
             {scripts.map((s) => (
               <button
                 key={s}
@@ -130,28 +131,28 @@ export default function LaunchConfigDialog(props: {
               }}
               className="mr-auto rounded-app px-2 py-1.5 text-[12px] text-danger-fg hover:bg-bg-hover"
             >
-              Effacer
+              {t('Effacer')}
             </button>
           )}
           <button
             onClick={props.onClose}
             className="rounded-app px-2.5 py-1.5 text-[12px] text-fg-secondary hover:bg-bg-hover"
           >
-            Annuler
+            {t('Annuler')}
           </button>
           <button
             onClick={() => save(false)}
             disabled={!command.trim()}
             className="rounded-app border border-border px-2.5 py-1.5 text-[12px] text-fg hover:bg-bg-hover disabled:opacity-40"
           >
-            Enregistrer
+            {t('Enregistrer')}
           </button>
           <button
             onClick={() => save(true)}
             disabled={!command.trim()}
             className="flex items-center gap-1.5 rounded-app bg-accent px-2.5 py-1.5 text-[12px] font-medium text-white hover:opacity-90 disabled:opacity-40"
           >
-            <Play size={13} /> Lancer
+            <Play size={13} /> {t('Lancer')}
           </button>
         </div>
       </div>

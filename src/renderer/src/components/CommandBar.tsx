@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ChevronDown, TerminalSquare, Check } from 'lucide-react'
+import { t } from '../i18n'
 import { useUiStore } from '../state/useUiStore'
 import { useTerminalStore } from '../state/useTerminalStore'
 
@@ -22,7 +23,7 @@ export default function CommandBar(): JSX.Element {
   // Le shell « sélectionné » EST le shell par défaut (mémorisé). À défaut, le
   // premier détecté (cmd, cf. ordre de détection).
   const shellId = defaultShellId || shells[0]?.id || ''
-  const currentLabel = shells.find((s) => s.id === shellId)?.label ?? 'Shell'
+  const currentLabel = shells.find((s) => s.id === shellId)?.label ?? t('Shell')
 
   // Sélectionner un shell le mémorise comme défaut (persisté).
   const selectShell = (id: string): void => {
@@ -59,7 +60,7 @@ export default function CommandBar(): JSX.Element {
         {menuOpen && shells.length > 0 && (
           <div className="absolute left-0 top-full z-20 mt-1 w-56 overflow-hidden rounded-app border border-border bg-bg-secondary py-1 shadow-lg">
             <div className="px-3 py-1 text-[10px] uppercase tracking-wider text-fg-muted">
-              Shell par défaut (mémorisé)
+              {t('Shell par défaut (mémorisé)')}
             </div>
             {shells.map((s) => (
               <button
@@ -86,7 +87,7 @@ export default function CommandBar(): JSX.Element {
           onKeyDown={(e) => {
             if (e.key === 'Enter') void runCommand()
           }}
-          placeholder="Tapez une commande puis Entrée…"
+          placeholder={t('Tapez une commande puis Entrée…')}
           spellCheck={false}
           className="w-full bg-transparent font-mono text-[12px] text-fg outline-none placeholder:text-fg-muted"
         />
@@ -95,7 +96,7 @@ export default function CommandBar(): JSX.Element {
       {/* Bascule terminal */}
       <button
         onClick={toggleTerminal}
-        title="Basculer le terminal"
+        title={t('Basculer le terminal')}
         className={`grid h-8 w-8 place-items-center rounded-app transition-colors hover:bg-bg-hover ${
           terminalOpen ? 'text-accent' : 'text-fg-secondary hover:text-fg'
         }`}

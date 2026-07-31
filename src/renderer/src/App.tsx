@@ -48,6 +48,7 @@ import { useShelfStore } from './state/useShelfStore'
 import { sshCommandFor, hostKeyOf } from './lib/ssh'
 import { pathKey, baseName } from './lib/format'
 import { clipFiles, pasteInto, undoLastOp } from './lib/fileActions'
+import { t } from './i18n'
 
 export default function App(): JSX.Element {
   const initNav = useNavStore((s) => s.init)
@@ -387,7 +388,7 @@ export default function App(): JSX.Element {
     const offTerm = window.api.mcp.onOpenTerminal(({ cwd, command, title }) => {
       useUiStore.getState().setTerminalOpen(true)
       if (command) {
-        void useTerminalStore.getState().openTaskTab({ cwd, title: title || 'Agent', command })
+        void useTerminalStore.getState().openTaskTab({ cwd, title: title || t('Agent'), command })
       } else {
         void useTerminalStore.getState().openTab(undefined, cwd)
       }
@@ -402,7 +403,7 @@ export default function App(): JSX.Element {
           return
         }
         if (kind === 'missing') {
-          useUiStore.getState().showToast(`Agent : chemin introuvable — ${p}`)
+          useUiStore.getState().showToast(t('Agent : chemin introuvable — {path}', { path: p }))
           return
         }
         const cut = norm.lastIndexOf('\\')
@@ -424,7 +425,7 @@ export default function App(): JSX.Element {
       })()
     })
     const offNotify = window.api.mcp.onNotify((m) =>
-      useUiStore.getState().showToast(`Agent : ${m}`)
+      useUiStore.getState().showToast(t('Agent : {message}', { message: m }))
     )
     return () => {
       offTerm()

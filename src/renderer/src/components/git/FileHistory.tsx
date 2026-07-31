@@ -4,6 +4,7 @@ import { History, X, Copy, Loader2 } from 'lucide-react'
 import type { GitCommit } from '@shared/types'
 import { useUiStore } from '../../state/useUiStore'
 import { baseName } from '../../lib/format'
+import { t, tn } from '../../i18n'
 import DiffView from './DiffView'
 
 /** Dossier parent d'un chemin (séparateurs Windows ou POSIX). */
@@ -73,11 +74,11 @@ export default function FileHistory(): JSX.Element | null {
         <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-3">
           <History size={15} className="text-accent" />
           <span className="min-w-0 truncate text-[13px] font-medium text-fg" title={file}>
-            Historique Git — {baseName(file)}
+            {t('Historique Git — {name}', { name: baseName(file) })}
           </span>
           {commits && (
             <span className="shrink-0 text-[11px] text-fg-muted">
-              {commits.length} commit{commits.length > 1 ? 's' : ''}
+              {tn(commits.length, '{n} commit', '{n} commits')}
             </span>
           )}
           <button
@@ -90,11 +91,11 @@ export default function FileHistory(): JSX.Element | null {
 
         {commits === null ? (
           <div className="flex flex-1 items-center justify-center gap-2 text-[12px] text-fg-muted">
-            <Loader2 size={14} className="animate-spin" /> Chargement de l'historique…
+            <Loader2 size={14} className="animate-spin" /> {t("Chargement de l'historique…")}
           </div>
         ) : commits.length === 0 ? (
           <div className="flex flex-1 items-center justify-center px-6 text-center text-[12px] text-fg-muted">
-            Aucun commit ne touche ce fichier (non suivi, ou hors dépôt Git).
+            {t('Aucun commit ne touche ce fichier (non suivi, ou hors dépôt Git).')}
           </div>
         ) : (
           <PanelGroup autoSaveId="gvue:file-history" direction="horizontal" className="min-h-0 flex-1">
@@ -121,7 +122,7 @@ export default function FileHistory(): JSX.Element | null {
                             e.stopPropagation()
                             void navigator.clipboard?.writeText(c.hash)
                           }}
-                          title="Copier le hash complet"
+                          title={t('Copier le hash complet')}
                           className="flex shrink-0 items-center gap-0.5 rounded px-0.5 font-mono hover:bg-bg-hover hover:text-fg"
                         >
                           {c.shortHash} <Copy size={10} />
@@ -141,7 +142,7 @@ export default function FileHistory(): JSX.Element | null {
                   <DiffView diff={diff} />
                 ) : selHash ? (
                   <p className="px-1 text-[12px] text-fg-muted">
-                    Pas de diff textuel pour ce commit (binaire, ou renommage sans modification).
+                    {t('Pas de diff textuel pour ce commit (binaire, ou renommage sans modification).')}
                   </p>
                 ) : null}
               </div>

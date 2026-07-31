@@ -3,6 +3,7 @@ import { promisify } from 'node:util'
 import { basename, join } from 'node:path'
 import { promises as fsp } from 'node:fs'
 import { assertAbsolute } from './filesystem'
+import { t } from '../i18n'
 import type {
   GitStatus,
   GitFileChange,
@@ -58,7 +59,7 @@ export function parseBranch(info: string): { branch: string; ahead: number; behi
   if (info.startsWith('No commits yet on ')) {
     branch = info.slice('No commits yet on '.length).split('...')[0].trim()
   } else if (info.startsWith('HEAD ')) {
-    branch = 'HEAD (détaché)'
+    branch = t('HEAD (détaché)')
   } else {
     branch = info.split('...')[0].trim()
   }
@@ -164,7 +165,7 @@ async function runOnce(args: string[], cwd: string): Promise<GitActionResult> {
     return { ok: true, output: `${stdout}${stderr}`.trim() || 'OK' }
   } catch (e) {
     const err = e as { stdout?: string; stderr?: string; message?: string }
-    return { ok: false, output: (err.stderr || err.stdout || err.message || 'Échec').trim() }
+    return { ok: false, output: (err.stderr || err.stdout || err.message || t('Échec')).trim() }
   }
 }
 
@@ -192,7 +193,7 @@ export async function commitAll(dir: string, message: string): Promise<GitAction
   } catch (e) {
     return { ok: false, output: e instanceof Error ? e.message : String(e) }
   }
-  if (!message.trim()) return { ok: false, output: 'Message de commit vide.' }
+  if (!message.trim()) return { ok: false, output: t('Message de commit vide.') }
 
   const staged = await run(['add', '-A'], cwd)
   if (!staged.ok) return staged
@@ -329,7 +330,7 @@ export async function checkout(dir: string, branch: string): Promise<GitActionRe
 
 /** Crée une branche et bascule dessus. */
 export async function createBranch(dir: string, name: string): Promise<GitActionResult> {
-  if (!name.trim()) return { ok: false, output: 'Nom de branche vide.' }
+  if (!name.trim()) return { ok: false, output: t('Nom de branche vide.') }
   try {
     return run(['checkout', '-b', name.trim()], assertAbsolute(dir))
   } catch (e) {
@@ -379,10 +380,10 @@ export async function ignore(dir: string, patterns: string[]): Promise<GitAction
       existing.split(/\r?\n/).map((s) => s.trim()).filter(Boolean)
     )
     const toAdd = patterns.map((p) => p.trim()).filter((p) => p && !present.has(p))
-    if (toAdd.length === 0) return { ok: true, output: 'Déjà dans .gitignore.' }
+    if (toAdd.length === 0) return { ok: true, output: t('Déjà dans .gitignore.') }
     const lead = existing && !existing.endsWith('\n') ? '\n' : ''
     await fsp.appendFile(file, lead + toAdd.join('\n') + '\n', 'utf8')
-    return { ok: true, output: `Ajouté à .gitignore : ${toAdd.join(', ')}` }
+    return { ok: true, output: t('Ajouté à .gitignore : {list}', { list: toAdd.join(', ') }) }
   } catch (e) {
     return { ok: false, output: e instanceof Error ? e.message : String(e) }
   }
@@ -575,7 +576,7 @@ export async function commitDiff(dir: string, hash: string, file: string): Promi
 
 /** Commite uniquement les fichiers déjà indexés. */
 export async function commitStaged(dir: string, message: string): Promise<GitActionResult> {
-  if (!message.trim()) return { ok: false, output: 'Message de commit vide.' }
+  if (!message.trim()) return { ok: false, output: t('Message de commit vide.') }
   try {
     return run(['commit', '-m', message], assertAbsolute(dir))
   } catch (e) {

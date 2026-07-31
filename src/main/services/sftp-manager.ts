@@ -9,6 +9,7 @@ import type { SshHost, SftpEntry, SftpConnectResult, SftpProgress } from '@share
 import { getConfig, setConfig } from './config-store'
 import { savePassword, loadPassword, forgetPassword, secretsAvailable } from './secrets'
 import { logInfo, logError } from './logger'
+import { t } from '../i18n'
 
 /**
  * Sessions SFTP (phase 2 de l'accès distant — le « WinSCP sans ses défauts »).
@@ -117,7 +118,7 @@ export async function connect(
         logInfo('sftp', `Mot de passe enregistré refusé pour ${key} : oublié.`)
         return {
           ...r,
-          message: 'Le mot de passe enregistré a été refusé (il a été oublié).'
+          message: t('Le mot de passe enregistré a été refusé (il a été oublié).')
         } satisfies SftpConnectResult
       }
       return r
@@ -177,7 +178,7 @@ async function connectOnce(
       } else if (/authentication/i.test(msg)) {
         done({
           status: 'password',
-          message: 'Mot de passe refusé, réessayez.',
+          message: t('Mot de passe refusé, réessayez.'),
           canSave: secretsAvailable()
         })
       } else {
@@ -192,9 +193,7 @@ async function connectOnce(
         if (/\.ppk$/i.test(host.keyFile)) {
           return done({
             status: 'error',
-            message:
-              `« ${host.keyFile} » est une clé au format PuTTY (.ppk), illisible par OpenSSH/GVue. ` +
-              `Convertissez-la : PuTTYgen → Conversions → Export OpenSSH key.`
+            message: t('« {file} » est une clé au format PuTTY (.ppk), illisible par OpenSSH/GVue. Convertissez-la : PuTTYgen → Conversions → Export OpenSSH key.', { file: host.keyFile })
           })
         }
         try {
@@ -202,7 +201,7 @@ async function connectOnce(
         } catch {
           return done({
             status: 'error',
-            message: `Clé privée introuvable : ${host.keyFile}`
+            message: t('Clé privée introuvable : {file}', { file: host.keyFile })
           })
         }
       } else {
@@ -242,9 +241,7 @@ async function connectOnce(
               // Clé d'hôte CHANGÉE : refus dur (attaque possible), comme OpenSSH.
               done({
                 status: 'error',
-                message:
-                  `L'EMPREINTE DE ${target} A CHANGÉ (${fp}). Connexion refusée. ` +
-                  `Si le serveur a vraiment été réinstallé, retirez l'ancienne empreinte des paramètres GVue.`
+                message: t("L'EMPREINTE DE {target} A CHANGÉ ({fp}). Connexion refusée. Si le serveur a vraiment été réinstallé, retirez l'ancienne empreinte des paramètres GVue.", { target, fp })
               })
               return false
             }
@@ -283,7 +280,7 @@ export function disconnectAll(): void {
 
 function sessionOf(hostKey: string): Session {
   const s = sessions.get(hostKey)
-  if (!s) throw new Error('Session SFTP fermée — reconnectez-vous.')
+  if (!s) throw new Error(t('Session SFTP fermée — reconnectez-vous.'))
   return s
 }
 
@@ -511,7 +508,7 @@ export async function editRemote(hostKey: string, entry: SftpEntry): Promise<str
         logInfo('sftp', `${entry.name} ré-téléversé après modification locale.`)
         sendToRenderer(IPC.sftpOnProgress, {
           hostKey: edit.hostKey,
-          file: `${entry.name} — ré-téléversé ✓`,
+          file: t('{name} — ré-téléversé ✓', { name: entry.name }),
           done: 1,
           total: 1,
           index: 1,

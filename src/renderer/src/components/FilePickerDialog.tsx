@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Folder, File, ArrowUp, CornerDownLeft } from 'lucide-react'
 import type { ListResult } from '@shared/types'
+import { t } from '../i18n'
 
 /**
  * Sélecteur de fichier intégré à GVue (n'utilise pas la boîte native).
@@ -49,7 +50,7 @@ export default function FilePickerDialog(props: {
           <button
             onClick={() => result?.parent && setDir(result.parent)}
             disabled={!result?.parent}
-            title="Dossier parent"
+            title={t('Dossier parent')}
             className="grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg disabled:opacity-30"
           >
             <ArrowUp size={15} />
@@ -63,7 +64,7 @@ export default function FilePickerDialog(props: {
           {error ? (
             <div className="px-3 py-6 text-center text-[13px] text-danger-fg">{error}</div>
           ) : entries.length === 0 ? (
-            <div className="px-3 py-6 text-center text-[13px] text-fg-muted">Dossier vide</div>
+            <div className="px-3 py-6 text-center text-[13px] text-fg-muted">{t('Dossier vide')}</div>
           ) : (
             entries.map((e) =>
               e.kind === 'directory' ? (
@@ -80,7 +81,7 @@ export default function FilePickerDialog(props: {
                   key={e.path}
                   onClick={() => props.onPick(e.path)}
                   className="group flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-[13px] text-fg-secondary hover:bg-accent-soft hover:text-accent"
-                  title={`Choisir ${e.name}`}
+                  title={t('Choisir {name}', { name: e.name })}
                 >
                   <File size={15} className="shrink-0 text-fg-muted group-hover:text-accent" />
                   <span className="min-w-0 flex-1 truncate">{e.name}</span>
@@ -95,12 +96,12 @@ export default function FilePickerDialog(props: {
         </div>
 
         <div className="flex shrink-0 items-center justify-between border-t border-border px-3 py-2">
-          <span className="text-[11px] text-fg-muted">Cliquez un fichier pour le choisir.</span>
+          <span className="text-[11px] text-fg-muted">{t('Cliquez un fichier pour le choisir.')}</span>
           <button
             onClick={props.onClose}
             className="rounded-app px-2.5 py-1 text-[12px] text-fg-secondary hover:bg-bg-hover"
           >
-            Annuler
+            {t('Annuler')}
           </button>
         </div>
       </div>

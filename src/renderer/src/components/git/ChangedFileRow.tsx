@@ -1,6 +1,7 @@
 import { Undo2 } from 'lucide-react'
 import type { GitFileChange } from '@shared/types'
 import { badge } from './badge'
+import { t } from '../../i18n'
 
 /**
  * Ligne d'un fichier modifié (vue Modifications) : case indexer/désindexer,
@@ -32,7 +33,7 @@ export default function ChangedFileRow(props: {
         checked={file.staged}
         onClick={(e) => e.stopPropagation()}
         onChange={props.onToggleStaged}
-        title={file.staged ? 'Sera commité (cliquer pour désindexer)' : 'Cocher pour indexer'}
+        title={file.staged ? t('Sera commité (cliquer pour désindexer)') : t('Cocher pour indexer')}
         className="shrink-0 accent-[var(--accent)]"
       />
       <span className={`w-3 shrink-0 text-center font-mono text-[11px] font-bold ${b.cls}`}>
@@ -49,7 +50,7 @@ export default function ChangedFileRow(props: {
           e.stopPropagation()
           props.onDiscard()
         }}
-        title="Annuler les modifications (destructif)"
+        title={t('Annuler les modifications (destructif)')}
         className="grid h-5 w-5 shrink-0 place-items-center rounded text-fg-muted opacity-0 hover:bg-bg-hover hover:text-danger-fg group-hover:opacity-100"
       >
         <Undo2 size={12} />

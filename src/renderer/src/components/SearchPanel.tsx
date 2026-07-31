@@ -5,6 +5,7 @@ import { useSearchStore } from '../state/useSearchStore'
 import { useNavStore } from '../state/useNavStore'
 import type { SearchMatch } from '@shared/types'
 import { baseName, parentPath, relativeTo } from '../lib/format'
+import { t, tn } from '../i18n'
 
 /**
  * Panneau de résultats de recherche. Remplace la liste de fichiers quand une
@@ -67,16 +68,16 @@ export default function SearchPanel(): JSX.Element {
             <Loader2 size={14} className="shrink-0 animate-spin text-accent" />
           ) : null}
           <span className="shrink-0 font-medium text-fg">
-            {matches.length} résultat{matches.length > 1 ? 's' : ''}
+            {tn(matches.length, '{n} résultat', '{n} résultats')}
           </span>
           {fileCount > 0 && (
             <span className="shrink-0 text-fg-muted">
-              · {fileCount} fichier{fileCount > 1 ? 's' : ''}
+              · {tn(fileCount, '{n} fichier', '{n} fichiers')}
             </span>
           )}
           {query && (
             <span className="truncate text-fg-muted">
-              · « {query} » dans {baseName(dir)}
+              · {t('« {query} » dans {dir}', { query, dir: baseName(dir) })}
             </span>
           )}
         </div>
@@ -85,12 +86,12 @@ export default function SearchPanel(): JSX.Element {
             onClick={cancel}
             className="shrink-0 rounded-app border border-border px-2 py-0.5 text-[11px] text-fg-secondary hover:bg-bg-hover"
           >
-            Annuler
+            {t('Annuler')}
           </button>
         )}
         <button
           onClick={close}
-          title="Fermer la recherche"
+          title={t('Fermer la recherche')}
           className="grid h-7 w-7 shrink-0 place-items-center rounded-app text-fg-muted hover:bg-bg-hover hover:text-fg"
         >
           <X size={16} />
@@ -106,7 +107,7 @@ export default function SearchPanel(): JSX.Element {
       )}
       {done?.hitLimit && (
         <div className="mx-3 mt-2 rounded-app border border-warning-fg bg-warning-bg px-3 py-1.5 text-[12px] text-warning-fg">
-          Recherche tronquée au plafond de résultats — affinez la requête.
+          {t('Recherche tronquée au plafond de résultats — affinez la requête.')}
         </div>
       )}
 
@@ -114,7 +115,7 @@ export default function SearchPanel(): JSX.Element {
       <div ref={parentRef} className="relative flex-1 overflow-auto">
         {!searching && rows.length === 0 && !done?.error && (
           <div className="p-8 text-center text-[13px] text-fg-muted">
-            {done ? 'Aucun résultat.' : 'Lancez une recherche depuis la barre d’outils.'}
+            {done ? t('Aucun résultat.') : t('Lancez une recherche depuis la barre d’outils.')}
           </div>
         )}
         <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
@@ -158,7 +159,7 @@ function FileHeader(props: {
       className="absolute left-0 flex w-full items-center gap-2 border-b border-border bg-bg-secondary px-3 text-left hover:bg-bg-hover"
       style={{ top: props.top, height: props.height }}
       onClick={props.onOpenDir}
-      title={`Ouvrir le dossier : ${parentPath(props.file)}`}
+      title={t('Ouvrir le dossier : {dir}', { dir: parentPath(props.file) })}
     >
       <FolderOpen size={14} className="shrink-0 text-accent" />
       <span className="shrink-0 text-[12px] font-medium text-fg">{baseName(props.file)}</span>
@@ -185,7 +186,7 @@ function MatchRow(props: {
       style={{ top: props.top, height: props.height }}
       onDoubleClick={props.onOpen}
       onClick={props.onOpen}
-      title="Ouvrir le fichier"
+      title={t('Ouvrir le fichier')}
     >
       <span className="w-12 shrink-0 text-right text-[11px] text-fg-muted tabular-nums">
         {match.line}

@@ -1,6 +1,7 @@
 import { useUiStore } from '../state/useUiStore'
 import { useNavStore, activePane } from '../state/useNavStore'
 import { useGitStore } from '../state/useGitStore'
+import { t } from '../i18n'
 import type { FileOpResult, ConflictMode } from '@shared/types'
 
 /**
@@ -19,11 +20,17 @@ export function clipFiles(paths: string[], mode: 'copy' | 'cut'): void {
 
 /** Message court résumant un résultat d'opération ; null si rien à signaler. */
 export function opFeedback(res: FileOpResult, verb: string): string | null {
-  if (res.cancelled) return `${verb} annulé(e).`
+  if (res.cancelled) return t('{verb} annulé(e).', { verb })
   if (res.errors.length === 0) return null
   const first = res.errors[0].length > 120 ? res.errors[0].slice(0, 120) + '…' : res.errors[0]
-  if (res.ok > 0) return `${verb} : ${res.ok} réussi(s), ${res.errors.length} échec(s) — ${first}`
-  return `Échec ${verb.toLowerCase()} : ${first}`
+  if (res.ok > 0)
+    return t('{verb} : {ok} réussi(s), {errCount} échec(s) — {first}', {
+      verb,
+      ok: res.ok,
+      errCount: res.errors.length,
+      first
+    })
+  return t('Échec {verb} : {first}', { verb: verb.toLowerCase(), first })
 }
 
 /**
@@ -58,7 +65,7 @@ export async function copyOrMove(
   const mode = await resolveConflictMode(paths, destDir)
   if (!mode) return null
   const res = await (op === 'move' ? window.api.fs.move : window.api.fs.copy)(paths, destDir, mode)
-  const msg = opFeedback(res, op === 'move' ? 'Déplacement' : 'Copie')
+  const msg = opFeedback(res, op === 'move' ? t('Déplacement') : t('Copie'))
   if (msg) useUiStore.getState().showToast(msg)
   useNavStore.getState().refreshAll()
   return res
@@ -86,7 +93,7 @@ export async function pasteInto(destDir: string): Promise<void> {
   if (paths.length === 0) {
     const clip = useUiStore.getState().clipboard
     if (!clip) {
-      useUiStore.getState().showToast('Rien à coller.')
+      useUiStore.getState().showToast(t('Rien à coller.'))
       return
     }
     paths = clip.paths
@@ -112,11 +119,11 @@ export async function undoLastOp(): Promise<void> {
   const res = await window.api.fs.undo()
   const ui = useUiStore.getState()
   if (res.ok) {
-    ui.showToast(`Annulé : ${res.label ?? 'dernière opération'}`)
+    ui.showToast(t('Annulé : {label}', { label: res.label ?? t('dernière opération') }))
     useNavStore.getState().refreshAll()
     const git = useGitStore.getState()
     if (git.repo) void git.refresh(activePane(useNavStore.getState()).path)
   } else {
-    ui.showToast(res.error ?? 'Rien à annuler.')
+    ui.showToast(res.error ?? t('Rien à annuler.'))
   }
 }

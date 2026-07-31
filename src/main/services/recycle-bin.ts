@@ -2,6 +2,7 @@ import { promises as fsp } from 'node:fs'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { join, basename, dirname } from 'node:path'
+import { t } from '../i18n'
 import type { RecycleItem } from '@shared/types'
 
 /**
@@ -167,13 +168,13 @@ export async function restoreItems(ids: string[]): Promise<RecycleActionResult> 
   const res: RecycleActionResult = { ok: 0, errors: [] }
   for (const id of ids) {
     if (!isBinEntry(id)) {
-      res.errors.push(`Entrée invalide : ${id}`)
+      res.errors.push(t('Entrée invalide : {id}', { id }))
       continue
     }
     const infoPath = infoPathOf(id)
     try {
       const meta = parseInfoFile(await fsp.readFile(infoPath))
-      if (!meta) throw new Error('métadonnées illisibles')
+      if (!meta) throw new Error(t('métadonnées illisibles'))
       await fsp.mkdir(dirname(meta.originalPath), { recursive: true })
       const target = await freePath(meta.originalPath)
       await fsp.rename(id, target)
@@ -191,7 +192,7 @@ export async function deleteItems(ids: string[]): Promise<RecycleActionResult> {
   const res: RecycleActionResult = { ok: 0, errors: [] }
   for (const id of ids) {
     if (!isBinEntry(id)) {
-      res.errors.push(`Entrée invalide : ${id}`)
+      res.errors.push(t('Entrée invalide : {id}', { id }))
       continue
     }
     try {
@@ -207,7 +208,7 @@ export async function deleteItems(ids: string[]): Promise<RecycleActionResult> {
 
 /** Vide entièrement la corbeille (Clear-RecycleBin : API canonique, non localisée). */
 export async function emptyRecycleBin(): Promise<RecycleActionResult> {
-  if (process.platform !== 'win32') return { ok: 0, errors: ['Windows uniquement.'] }
+  if (process.platform !== 'win32') return { ok: 0, errors: [t('Windows uniquement.')] }
   try {
     await exec(
       'powershell.exe',
@@ -220,6 +221,6 @@ export async function emptyRecycleBin(): Promise<RecycleActionResult> {
     // Corbeille déjà vide : Clear-RecycleBin sort en erreur, ce n'est pas un échec.
     const text = (err.stderr || err.message || '').toLowerCase()
     if (text.includes('empty') || text.includes('vide')) return { ok: 1, errors: [] }
-    return { ok: 0, errors: [err.stderr || err.message || 'Échec'] }
+    return { ok: 0, errors: [err.stderr || err.message || t('Échec')] }
   }
 }

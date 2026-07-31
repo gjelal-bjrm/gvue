@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { Download, RefreshCw, CheckCircle2, AlertTriangle, X } from 'lucide-react'
+import { t } from '../i18n'
 import { useUpdateStore } from '../state/useUpdateStore'
 
 /**
@@ -40,43 +41,43 @@ export default function UpdateBanner(): JSX.Element | null {
   switch (status.state) {
     case 'checking':
       icon = <RefreshCw size={14} className="animate-spin" />
-      text = 'Recherche de mises à jour…'
+      text = t('Recherche de mises à jour…')
       break
     case 'available':
       icon = <Download size={14} />
-      text = `Mise à jour v${status.version} disponible — téléchargement…`
+      text = t('Mise à jour v{version} disponible — téléchargement…', { version: status.version })
       tone = 'text-accent'
       break
     case 'downloading':
       icon = <Download size={14} />
-      text = `Téléchargement de la mise à jour… ${status.percent}%`
+      text = t('Téléchargement de la mise à jour… {percent}%', { percent: status.percent })
       tone = 'text-accent'
       break
     case 'ready':
       icon = <CheckCircle2 size={14} />
-      text = `Mise à jour v${status.version} prête.`
+      text = t('Mise à jour v{version} prête.', { version: status.version })
       tone = 'text-accent'
       action = (
         <button
           onClick={install}
           className="rounded-app bg-accent px-2.5 py-1 text-[12px] font-medium text-white hover:opacity-90"
         >
-          Redémarrer et installer
+          {t('Redémarrer et installer')}
         </button>
       )
       break
     case 'none':
       icon = <CheckCircle2 size={14} />
-      text = `GVue est à jour (v${status.version}).`
+      text = t('GVue est à jour (v{version}).', { version: status.version })
       break
     case 'unsupported':
       icon = <AlertTriangle size={14} />
-      text = 'Mises à jour indisponibles ici (mode dev ou module non installé).'
+      text = t('Mises à jour indisponibles ici (mode dev ou module non installé).')
       tone = 'text-fg-muted'
       break
     case 'error':
       icon = <AlertTriangle size={14} />
-      text = `Échec de la mise à jour : ${status.message}`
+      text = t('Échec de la mise à jour : {message}', { message: status.message })
       tone = 'text-danger-fg'
       break
     default:
@@ -90,7 +91,7 @@ export default function UpdateBanner(): JSX.Element | null {
       {action}
       <button
         onClick={dismiss}
-        title="Masquer"
+        title={t('Masquer')}
         className="grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg"
       >
         <X size={13} />

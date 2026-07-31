@@ -12,6 +12,7 @@ import { useUiStore } from '../state/useUiStore'
 import { useSearchStore } from '../state/useSearchStore'
 import { useNavStore, activePane } from '../state/useNavStore'
 import { badge } from './git/badge'
+import { t, tn } from '../i18n'
 import type { GitActionResult } from '@shared/types'
 
 // Nombre de fichiers montrés dans l'aperçu de la vue simple.
@@ -73,7 +74,7 @@ export default function GitWidget(): JSX.Element | null {
     <span className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
-        title="Git — vue simple (clic) · panneau complet : Ctrl+G"
+        title={t('Git — vue simple (clic) · panneau complet : Ctrl+G')}
         className={`flex shrink-0 items-center gap-1 rounded px-1 hover:bg-bg-hover ${
           open ? 'text-fg' : 'text-fg-secondary'
         }`}
@@ -100,7 +101,7 @@ export default function GitWidget(): JSX.Element | null {
               <span className="ml-auto flex shrink-0 items-center gap-1">
                 {repo.ahead > 0 && (
                   <span
-                    title={`${repo.ahead} commit${repo.ahead > 1 ? 's' : ''} à pousser`}
+                    title={tn(repo.ahead, '{n} commit à pousser', '{n} commits à pousser')}
                     className="flex items-center gap-0.5 rounded-full border border-border px-1.5 text-[11px] text-fg-secondary"
                   >
                     <ArrowUp size={10} /> {repo.ahead}
@@ -108,14 +109,14 @@ export default function GitWidget(): JSX.Element | null {
                 )}
                 {repo.behind > 0 && (
                   <span
-                    title={`${repo.behind} commit${repo.behind > 1 ? 's' : ''} à récupérer`}
+                    title={tn(repo.behind, '{n} commit à récupérer', '{n} commits à récupérer')}
                     className="flex items-center gap-0.5 rounded-full border border-border px-1.5 text-[11px] text-fg-secondary"
                   >
                     <ArrowDown size={10} /> {repo.behind}
                   </span>
                 )}
                 {repo.ahead === 0 && repo.behind === 0 && (
-                  <span className="text-[11px] text-fg-muted">à jour</span>
+                  <span className="text-[11px] text-fg-muted">{t('à jour')}</span>
                 )}
               </span>
             </div>
@@ -133,7 +134,7 @@ export default function GitWidget(): JSX.Element | null {
                       <span className="min-w-0 flex-1 truncate text-[11px] text-fg-secondary" title={relOf(f.path)}>
                         {relOf(f.path)}
                       </span>
-                      {f.staged && <span className="shrink-0 text-[10px] text-accent">indexé</span>}
+                      {f.staged && <span className="shrink-0 text-[10px] text-accent">{t('indexé')}</span>}
                     </div>
                   )
                 })}
@@ -142,13 +143,17 @@ export default function GitWidget(): JSX.Element | null {
                     onClick={openDetailed}
                     className="w-full px-1 py-0.5 text-left text-[11px] text-fg-muted hover:text-accent"
                   >
-                    … et {changes - PREVIEW_MAX} autre{changes - PREVIEW_MAX > 1 ? 's' : ''} — tout voir
+                    {tn(
+                      changes - PREVIEW_MAX,
+                      '… et {n} autre — tout voir',
+                      '… et {n} autres — tout voir'
+                    )}
                   </button>
                 )}
               </div>
             ) : (
               <p className="mb-2 rounded-app border border-border bg-bg px-2 py-1.5 text-[11px] text-fg-muted">
-                Aucune modification en attente.
+                {t('Aucune modification en attente.')}
               </p>
             )}
 
@@ -158,14 +163,14 @@ export default function GitWidget(): JSX.Element | null {
               className="mb-2 flex w-full items-center justify-center gap-1.5 rounded-app bg-accent px-2 py-1.5 text-[12px] font-medium text-white hover:opacity-90"
             >
               <PanelsTopLeft size={14} />
-              Ouvrir le panneau Git
+              {t('Ouvrir le panneau Git')}
               <kbd className="rounded bg-white/20 px-1 text-[10px] font-normal">Ctrl+G</kbd>
             </button>
 
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Message de commit…"
+              placeholder={t('Message de commit…')}
               spellCheck={false}
               rows={2}
               className="mb-1.5 w-full resize-none rounded-app border border-border bg-bg px-2 py-1.5 text-[12px] text-fg outline-none placeholder:text-fg-muted focus:border-accent"
@@ -175,25 +180,25 @@ export default function GitWidget(): JSX.Element | null {
               <ActionBtn
                 onClick={() => void doCommit()}
                 disabled={busy || !message.trim() || changes === 0}
-                label="Commiter toutes les modifications"
+                label={t('Commiter toutes les modifications')}
               >
                 <GitCommit size={13} />
-                Commit tout{changes > 0 ? ` (${changes})` : ''}
+                {t('Commit tout{suffix}', { suffix: changes > 0 ? ` (${changes})` : '' })}
               </ActionBtn>
-              <ActionBtn onClick={() => void doPull()} disabled={busy} label="Pull">
+              <ActionBtn onClick={() => void doPull()} disabled={busy} label={t('Pull')}>
                 <ArrowDown size={13} />
-                Pull{repo.behind > 0 ? ` ${repo.behind}` : ''}
+                {t('Pull{suffix}', { suffix: repo.behind > 0 ? ` ${repo.behind}` : '' })}
               </ActionBtn>
-              <ActionBtn onClick={() => void doPush()} disabled={busy} label="Push">
+              <ActionBtn onClick={() => void doPush()} disabled={busy} label={t('Push')}>
                 <ArrowUp size={13} />
-                Push{repo.ahead > 0 ? ` ${repo.ahead}` : ''}
+                {t('Push{suffix}', { suffix: repo.ahead > 0 ? ` ${repo.ahead}` : '' })}
               </ActionBtn>
             </div>
 
             {busy && (
               <div className="mt-2 flex items-center gap-1.5 text-fg-muted">
                 <Loader2 size={13} className="animate-spin" />
-                En cours…
+                {t('En cours…')}
               </div>
             )}
             {!busy && result && (

@@ -1,11 +1,12 @@
 import { Plus, X, Star, Rocket, Folder } from 'lucide-react'
 import { useNavStore, type Pane } from '../state/useNavStore'
 import { baseName } from '../lib/format'
+import { t } from '../i18n'
 
 /** Libellé d'un onglet : nom du dossier, ou la page spéciale affichée. */
 function tabLabel(p: Pane): string {
-  if (p.quickAccess) return 'Accès rapide'
-  if (p.launcher) return 'Lanceur'
+  if (p.quickAccess) return t('Accès rapide')
+  if (p.launcher) return t('Lanceur')
   return baseName(p.path) || p.path || '…'
 }
 
@@ -36,18 +37,18 @@ export default function PaneTabs(props: {
   return (
     <div className="flex h-8 shrink-0 items-center gap-0.5 border-b border-border bg-bg-secondary px-1">
       <div className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto">
-        {props.tabs.map((t) => {
-          const visible = t.id === props.visibleId
-          const isActive = t.id === activeId
+        {props.tabs.map((p) => {
+          const visible = p.id === props.visibleId
+          const isActive = p.id === activeId
           return (
             <button
-              key={t.id}
-              onClick={() => setActive(t.id)}
+              key={p.id}
+              onClick={() => setActive(p.id)}
               onAuxClick={(e) => {
                 // Clic milieu : ferme l'onglet (comme un navigateur).
-                if (e.button === 1 && canClose) closePane(t.id)
+                if (e.button === 1 && canClose) closePane(p.id)
               }}
-              title={t.quickAccess ? 'Accès rapide' : t.launcher ? 'Lanceur' : t.path}
+              title={p.quickAccess ? t('Accès rapide') : p.launcher ? t('Lanceur') : p.path}
               className={`group flex max-w-[180px] shrink-0 items-center gap-1.5 rounded-app px-2 py-1 text-[12px] ${
                 visible
                   ? isActive
@@ -56,15 +57,15 @@ export default function PaneTabs(props: {
                   : 'text-fg-muted hover:bg-bg-hover hover:text-fg-secondary'
               }`}
             >
-              {tabIcon(t)}
-              <span className="min-w-0 truncate">{tabLabel(t)}</span>
+              {tabIcon(p)}
+              <span className="min-w-0 truncate">{tabLabel(p)}</span>
               {canClose && (
                 <span
                   onClick={(e) => {
                     e.stopPropagation()
-                    closePane(t.id)
+                    closePane(p.id)
                   }}
-                  title="Fermer l'onglet (Ctrl+W)"
+                  title={t("Fermer l'onglet (Ctrl+W)")}
                   className="grid h-4 w-4 shrink-0 place-items-center rounded opacity-0 hover:bg-bg-hover group-hover:opacity-100"
                 >
                   <X size={11} />
@@ -76,7 +77,7 @@ export default function PaneTabs(props: {
         {/* « + » collé au dernier onglet, façon Chrome. */}
         <button
           onClick={() => void addTab(props.group)}
-          title="Nouvel onglet (Ctrl+T)"
+          title={t('Nouvel onglet (Ctrl+T)')}
           className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-fg-muted hover:bg-bg-hover hover:text-fg"
         >
           <Plus size={14} />

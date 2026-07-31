@@ -4,6 +4,7 @@ import { useNavStore, activePane } from '../state/useNavStore'
 import { useUiStore } from '../state/useUiStore'
 import type { PreviewData } from '@shared/types'
 import { formatSize, formatDate } from '../lib/format'
+import { t } from '../i18n'
 
 /**
  * Panneau d'aperçu (façon Quick Look) : affiche le contenu du fichier
@@ -51,11 +52,11 @@ export default function PreviewPanel(): JSX.Element {
       <div className="flex shrink-0 items-center justify-between border-b border-border px-3 py-2.5">
         <div className="flex min-w-0 items-center gap-2">
           <Eye size={15} className="shrink-0 text-accent" />
-          <span className="truncate text-[13px] font-medium text-fg">{data?.name ?? 'Aperçu'}</span>
+          <span className="truncate text-[13px] font-medium text-fg">{data?.name ?? t('Aperçu')}</span>
         </div>
         <button
           onClick={closePanel}
-          title="Fermer l'aperçu"
+          title={t("Fermer l'aperçu")}
           className="grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg"
         >
           <X size={15} />
@@ -65,12 +66,12 @@ export default function PreviewPanel(): JSX.Element {
       <div className="min-h-0 flex-1 overflow-auto">
         {!selectedPath && (
           <div className="grid h-full place-items-center p-6 text-center text-[13px] text-fg-muted">
-            Sélectionnez un fichier pour l’aperçu.
+            {t('Sélectionnez un fichier pour l’aperçu.')}
           </div>
         )}
         {loading && (
           <div className="flex items-center gap-2 p-4 text-[13px] text-fg-muted">
-            <Loader2 size={14} className="animate-spin" /> Chargement…
+            <Loader2 size={14} className="animate-spin" /> {t('Chargement…')}
           </div>
         )}
         {error && <div className="m-3 rounded-app border border-danger-fg bg-danger-bg p-3 text-[12px] text-danger-fg">{error}</div>}
@@ -140,7 +141,7 @@ function PreviewBody({ data }: { data: PreviewData }): JSX.Element {
     <div className="p-3">
       {data.truncated && (
         <div className="mb-2 rounded-app border border-warning-fg bg-warning-bg px-2.5 py-1 text-[11px] text-warning-fg">
-          Aperçu partiel (fichier volumineux).
+          {t('Aperçu partiel (fichier volumineux).')}
         </div>
       )}
       {data.kind === 'markdown' ? (
@@ -168,13 +169,13 @@ function InfoCard({ data }: { data: PreviewData }): JSX.Element {
           onClick={() => void window.api.fs.open(data.path)}
           className="flex items-center gap-1.5 rounded-app border border-border px-2.5 py-1.5 text-[12px] text-fg-secondary hover:bg-bg-hover"
         >
-          <ExternalLink size={13} /> Ouvrir
+          <ExternalLink size={13} /> {t('Ouvrir')}
         </button>
         <button
           onClick={() => void window.api.fs.reveal(data.path)}
           className="flex items-center gap-1.5 rounded-app border border-border px-2.5 py-1.5 text-[12px] text-fg-secondary hover:bg-bg-hover"
         >
-          <FolderOpen size={13} /> Révéler
+          <FolderOpen size={13} /> {t('Révéler')}
         </button>
       </div>
     </div>

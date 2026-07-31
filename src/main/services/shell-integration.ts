@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { promises as fsp } from 'node:fs'
+import { t } from '../i18n'
 
 /**
  * Intégration à l'Explorateur Windows : entrée « Ouvrir dans GVue » au clic
@@ -20,8 +21,6 @@ const KEYS = [
   'HKCU\\Software\\Classes\\Drive\\shell\\GVue'
 ] as const
 
-const LABEL = 'Ouvrir dans GVue'
-
 /**
  * Commande de lancement à enregistrer (pure, testable).
  * - Packagé : "GVue.exe" "%V"
@@ -39,9 +38,10 @@ export function launchCommand(exePath: string, appPath?: string): string {
  */
 export function registryAdds(exePath: string, appPath?: string): string[][] {
   const command = launchCommand(exePath, appPath)
+  const label = t('Ouvrir dans GVue')
   const out: string[][] = []
   for (const key of KEYS) {
-    out.push(['add', key, '/ve', '/d', LABEL, '/f'])
+    out.push(['add', key, '/ve', '/d', label, '/f'])
     out.push(['add', key, '/v', 'Icon', '/d', exePath, '/f'])
     out.push(['add', `${key}\\command`, '/ve', '/d', command, '/f'])
   }

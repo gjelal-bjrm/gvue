@@ -5,6 +5,7 @@ import { useNavStore, activePane } from '../state/useNavStore'
 import { useUiStore } from '../state/useUiStore'
 import { copyOrMove } from '../lib/fileActions'
 import { baseName } from '../lib/format'
+import { t, tn } from '../i18n'
 
 /**
  * Étagère flottante (coin bas-droit de la zone de fichiers) : panier où l'on
@@ -48,7 +49,11 @@ export default function Shelf(): JSX.Element | null {
       if (move) useShelfStore.getState().clear()
       useUiStore
         .getState()
-        .showToast(`Étagère : ${res.ok} élément${res.ok > 1 ? 's' : ''} ${move ? 'déplacé' : 'collé'}${res.ok > 1 ? 's' : ''}.`)
+        .showToast(
+          move
+            ? tn(res.ok, 'Étagère : {n} élément déplacé.', 'Étagère : {n} éléments déplacés.')
+            : tn(res.ok, 'Étagère : {n} élément collé.', 'Étagère : {n} éléments collés.')
+        )
     }
   }
 
@@ -80,7 +85,7 @@ export default function Shelf(): JSX.Element | null {
     >
       <div className="flex items-center gap-1.5 border-b border-border px-2.5 py-1.5">
         <Layers size={14} className="shrink-0 text-accent" />
-        <span className="text-[12px] font-medium text-fg">Étagère</span>
+        <span className="text-[12px] font-medium text-fg">{t('Étagère')}</span>
         {items.length > 0 && (
           <span className="rounded-full bg-accent-soft px-1.5 text-[10px] font-medium leading-[16px] text-accent">
             {items.length}
@@ -88,14 +93,14 @@ export default function Shelf(): JSX.Element | null {
         )}
         <button
           onClick={() => setCollapsed((c) => !c)}
-          title={collapsed ? 'Déplier' : 'Replier'}
+          title={collapsed ? t('Déplier') : t('Replier')}
           className="ml-auto grid h-5 w-5 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg"
         >
           {collapsed ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
         </button>
         <button
           onClick={() => useShelfStore.getState().clear()}
-          title="Vider l'étagère"
+          title={t("Vider l'étagère")}
           className="grid h-5 w-5 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-danger-fg"
         >
           <Trash2 size={13} />
@@ -106,7 +111,7 @@ export default function Shelf(): JSX.Element | null {
         <>
           {items.length === 0 ? (
             <p className="px-2.5 py-3 text-center text-[11px] text-fg-muted">
-              Déposez des fichiers ici pour les rassembler.
+              {t('Déposez des fichiers ici pour les rassembler.')}
             </p>
           ) : (
             <div className="max-h-48 overflow-auto p-1">
@@ -126,7 +131,7 @@ export default function Shelf(): JSX.Element | null {
                   </span>
                   <button
                     onClick={() => useShelfStore.getState().remove(p)}
-                    title="Retirer de l'étagère"
+                    title={t("Retirer de l'étagère")}
                     className="grid h-4 w-4 shrink-0 place-items-center rounded text-fg-muted opacity-0 hover:bg-bg-hover hover:text-fg group-hover:opacity-100"
                   >
                     <X size={11} />
@@ -140,17 +145,17 @@ export default function Shelf(): JSX.Element | null {
             <div className="flex gap-1 border-t border-border p-1.5">
               <button
                 onClick={() => void pasteAll(false)}
-                title="Copier tout le contenu de l'étagère dans le dossier affiché"
+                title={t("Copier tout le contenu de l'étagère dans le dossier affiché")}
                 className="flex flex-1 items-center justify-center gap-1 rounded-app bg-accent px-1.5 py-1 text-[11px] font-medium text-white hover:opacity-90"
               >
-                <ClipboardPaste size={12} /> Tout coller ici
+                <ClipboardPaste size={12} /> {t('Tout coller ici')}
               </button>
               <button
                 onClick={() => void pasteAll(true)}
-                title="Déplacer tout le contenu de l'étagère dans le dossier affiché (vide l'étagère)"
+                title={t("Déplacer tout le contenu de l'étagère dans le dossier affiché (vide l'étagère)")}
                 className="flex flex-1 items-center justify-center gap-1 rounded-app border border-border px-1.5 py-1 text-[11px] text-fg-secondary hover:bg-bg-hover"
               >
-                <FolderInput size={12} /> Déplacer
+                <FolderInput size={12} /> {t('Déplacer')}
               </button>
             </div>
           )}

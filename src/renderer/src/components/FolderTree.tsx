@@ -6,6 +6,7 @@ import { pathKey } from '../lib/format'
 import { buildFolderMenu } from '../lib/folderMenu'
 import ContextMenu from './ContextMenu'
 import type { DirEntry, DriveInfo } from '@shared/types'
+import { t } from '../i18n'
 
 // Référence stable : évite qu'un sélecteur zustand renvoie un nouveau tableau à
 // chaque appel (sinon useSyncExternalStore boucle → écran noir).
@@ -150,14 +151,14 @@ export default function FolderTree(): JSX.Element {
     <div className="flex flex-col">
       <button
         onClick={toggleTreeExpand}
-        title="Développer l'arbre jusqu'au dossier ouvert"
+        title={t("Développer l'arbre jusqu'au dossier ouvert")}
         className={`mb-1 flex items-center gap-1.5 rounded-app px-2 py-1 text-left text-[11px] ${
           treeExpand ? 'text-accent' : 'text-fg-muted hover:text-fg-secondary'
         }`}
       >
         <Crosshair size={12} className="shrink-0" />
-        <span className="truncate">Suivre le dossier ouvert</span>
-        <span className="ml-auto text-[10px]">{treeExpand ? 'activé' : 'désactivé'}</span>
+        <span className="truncate">{t('Suivre le dossier ouvert')}</span>
+        <span className="ml-auto text-[10px]">{treeExpand ? t('activé') : t('désactivé')}</span>
       </button>
       {drives.map((d) => renderNode(d.path, d.label, 0))}
       {menu && (

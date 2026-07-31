@@ -43,6 +43,7 @@ import { useShelfStore } from '../../state/useShelfStore'
 import { useTerminalStore } from '../../state/useTerminalStore'
 import { substituteTokens, cwdFor } from '../../lib/customCommands'
 import { pathKey } from '../../lib/format'
+import { t, tn } from '../../i18n'
 import type { MenuEntry } from '../ContextMenu'
 import { ARCHIVE_EXT, extOf, programName, baseSegment } from './helpers'
 
@@ -87,17 +88,17 @@ export function buildDropMenu(paths: string[], destDir: string): MenuEntry[] {
 
   const items: MenuEntry[] = [
     {
-      label: n > 1 ? `Copier ici (${n})` : 'Copier ici',
+      label: tn(n, 'Copier ici', 'Copier ici ({n})'),
       icon: <ClipboardCopy size={14} />,
       onClick: () => run('copy')
     },
     {
-      label: n > 1 ? `Déplacer ici (${n})` : 'Déplacer ici',
+      label: tn(n, 'Déplacer ici', 'Déplacer ici ({n})'),
       icon: <FolderInput size={14} />,
       onClick: () => run('move')
     },
     {
-      label: n > 1 ? `Créer ${n} raccourcis ici` : 'Créer un raccourci ici',
+      label: tn(n, 'Créer un raccourci ici', 'Créer {n} raccourcis ici'),
       icon: <Link2 size={14} />,
       onClick: () =>
         void Promise.all(paths.map((p) => window.api.fs.createShortcut(p, destDir))).then(refreshAll)
@@ -106,20 +107,20 @@ export function buildDropMenu(paths: string[], destDir: string): MenuEntry[] {
 
   if (apps.sevenzip) {
     items.push({
-      label: 'Compresser ici (.zip)',
+      label: t('Compresser ici (.zip)'),
       icon: <FileArchive size={14} />,
       onClick: () => void window.api.apps.archive(paths, destDir)
     })
     if (archives.length > 0) {
       items.push({
-        label: archives.length > 1 ? `Extraire ici (${archives.length})` : 'Extraire ici',
+        label: tn(archives.length, 'Extraire ici', 'Extraire ici ({n})'),
         icon: <FileDown size={14} />,
         onClick: () => archives.forEach((a) => void window.api.apps.extract(a, destDir))
       })
     }
   }
 
-  items.push({ type: 'sep' }, { label: 'Annuler', icon: <X size={14} />, onClick: () => {} })
+  items.push({ type: 'sep' }, { label: t('Annuler'), icon: <X size={14} />, onClick: () => {} })
   return items
 }
 
@@ -134,16 +135,16 @@ function buildSelectSubmenu(ctx: MenuCtx, current: DirEntry | null): MenuEntry {
     setSelected(visible.filter(pred).map((e) => e.path))
 
   const children: MenuEntry[] = [
-    { label: 'Tout sélectionner', onClick: () => pick(() => true) },
+    { label: t('Tout sélectionner'), onClick: () => pick(() => true) },
     {
-      label: 'Inverser la sélection',
+      label: t('Inverser la sélection'),
       onClick: () => pick((e) => !selectedSet.has(e.path))
     },
     { type: 'sep' },
-    { label: 'Fichiers seulement', onClick: () => pick((e) => e.kind === 'file') },
-    { label: 'Dossiers seulement', onClick: () => pick((e) => e.kind === 'directory') },
+    { label: t('Fichiers seulement'), onClick: () => pick((e) => e.kind === 'file') },
+    { label: t('Dossiers seulement'), onClick: () => pick((e) => e.kind === 'directory') },
     {
-      label: "Modifiés aujourd'hui",
+      label: t("Modifiés aujourd'hui"),
       onClick: () => {
         const midnight = new Date()
         midnight.setHours(0, 0, 0, 0)
@@ -155,12 +156,12 @@ function buildSelectSubmenu(ctx: MenuCtx, current: DirEntry | null): MenuEntry {
   const ext = current && current.kind === 'file' ? extOf(current.name) : ''
   if (ext) {
     children.splice(2, 0, {
-      label: `Même extension (.${ext})`,
+      label: t('Même extension (.{ext})', { ext }),
       onClick: () => pick((e) => e.kind === 'file' && extOf(e.name) === ext)
     })
   }
 
-  return { label: 'Sélectionner', icon: <ListChecks size={14} />, children }
+  return { label: t('Sélectionner'), icon: <ListChecks size={14} />, children }
 }
 
 /** Menu de la zone vide (clic droit hors d'un élément) : créer / coller / actualiser. */
@@ -170,7 +171,7 @@ export function buildBackgroundMenu(ctx: MenuCtx): MenuEntry[] {
     ...(useAppsStore.getState().apps.vscode
       ? [
           {
-            label: 'Ouvrir avec VS Code',
+            label: t('Ouvrir avec VS Code'),
             icon: <Code2 size={14} />,
             onClick: () => window.api.apps.openWith('vscode', [path])
           } as MenuEntry,
@@ -178,17 +179,17 @@ export function buildBackgroundMenu(ctx: MenuCtx): MenuEntry[] {
         ]
       : []),
     {
-      label: 'Nouveau dossier',
+      label: t('Nouveau dossier'),
       icon: <FolderPlus size={14} />,
       onClick: () => void ctx.createThen(window.api.fs.createDir, 'Nouveau dossier')
     },
     {
-      label: 'Nouveau fichier',
+      label: t('Nouveau fichier'),
       icon: <FilePlus size={14} />,
       onClick: () => void ctx.createThen(window.api.fs.createFile, 'Nouveau fichier.txt')
     },
     {
-      label: 'Créer des dossiers… (en lot)',
+      label: t('Créer des dossiers… (en lot)'),
       icon: <FolderPlus size={14} />,
       onClick: () => useUiStore.getState().setFolderCreator(true)
     },
@@ -196,30 +197,30 @@ export function buildBackgroundMenu(ctx: MenuCtx): MenuEntry[] {
     {
       // Toujours actif : les fichiers peuvent venir du presse-papiers de
       // l'Explorateur Windows (invisible d'ici sans un aller-retour PowerShell).
-      label: 'Coller',
+      label: t('Coller'),
       icon: <ClipboardPaste size={14} />,
       onClick: () => void pasteInto(path)
     },
     buildSelectSubmenu(ctx, null),
     { type: 'sep' },
     {
-      label: useFavoritesStore.getState().has(path) ? 'Retirer des favoris' : 'Ajouter aux favoris',
+      label: useFavoritesStore.getState().has(path) ? t('Retirer des favoris') : t('Ajouter aux favoris'),
       icon: useFavoritesStore.getState().has(path) ? <StarOff size={14} /> : <Star size={14} />,
       onClick: () => useFavoritesStore.getState().toggle(path)
     },
-    { label: 'Actualiser', icon: <RefreshCw size={14} />, onClick: () => useNavStore.getState().refresh() },
+    { label: t('Actualiser'), icon: <RefreshCw size={14} />, onClick: () => useNavStore.getState().refresh() },
     {
-      label: 'Ouvrir un terminal ici',
+      label: t('Ouvrir un terminal ici'),
       icon: <TerminalSquare size={14} />,
       onClick: () => ctx.openTerminalHere(path)
     },
     {
-      label: "Ouvrir dans l'explorateur",
+      label: t("Ouvrir dans l'explorateur"),
       icon: <ExternalLink size={14} />,
       onClick: () => void window.api.fs.reveal(path)
     },
     {
-      label: 'Propriétés du dossier',
+      label: t('Propriétés du dossier'),
       icon: <Info size={14} />,
       onClick: () => window.api.apps.properties(path)
     }
@@ -243,13 +244,13 @@ export function buildItemMenu(entry: DirEntry, ctx: MenuCtx): MenuEntry[] {
     const openWith: MenuEntry[] = []
     if (apps.vscode)
       openWith.push({
-        label: 'VS Code',
+        label: t('VS Code'),
         icon: <Code2 size={14} />,
         onClick: () => window.api.apps.openWith('vscode', targets)
       })
     if (apps.notepadpp)
       openWith.push({
-        label: 'Notepad++',
+        label: t('Notepad++'),
         icon: <PenLine size={14} />,
         onClick: () => window.api.apps.openWith('notepadpp', targets)
       })
@@ -262,7 +263,7 @@ export function buildItemMenu(entry: DirEntry, ctx: MenuCtx): MenuEntry[] {
     }
     if (openWith.length) openWith.push({ type: 'sep' })
     openWith.push({
-      label: 'Choisir un programme…',
+      label: t('Choisir un programme…'),
       icon: <AppWindow size={14} />,
       onClick: async () => {
         const exe = await window.api.apps.pickProgram()
@@ -273,14 +274,14 @@ export function buildItemMenu(entry: DirEntry, ctx: MenuCtx): MenuEntry[] {
     })
     openWith.push({
       // Boîte « Ouvrir avec » du système : toutes les applications du registre.
-      label: 'Applications Windows…',
+      label: t('Applications Windows…'),
       icon: <AppWindow size={14} />,
       onClick: () => window.api.apps.openAsDialog(entry.path)
     })
-    appEntries.push({ label: 'Ouvrir avec', icon: <AppWindow size={14} />, children: openWith })
+    appEntries.push({ label: t('Ouvrir avec'), icon: <AppWindow size={14} />, children: openWith })
   } else if (apps.vscode) {
     appEntries.push({
-      label: 'Ouvrir avec VS Code',
+      label: t('Ouvrir avec VS Code'),
       icon: <Code2 size={14} />,
       onClick: () => window.api.apps.openWith('vscode', targets)
     })
@@ -288,18 +289,18 @@ export function buildItemMenu(entry: DirEntry, ctx: MenuCtx): MenuEntry[] {
   if (apps.sevenzip) {
     const sz: MenuEntry[] = [
       {
-        label: n > 1 ? `Compresser (${n}) en .zip` : 'Compresser en .zip',
+        label: tn(n, 'Compresser en .zip', 'Compresser ({n}) en .zip'),
         icon: <FileArchive size={14} />,
         onClick: () => void window.api.apps.archive(targets)
       }
     ]
     if (entry.kind === 'file' && ARCHIVE_EXT.has(extOf(entry.name)))
       sz.push({
-        label: 'Extraire ici',
+        label: t('Extraire ici'),
         icon: <FileDown size={14} />,
         onClick: () => void window.api.apps.extract(entry.path)
       })
-    appEntries.push({ label: '7-Zip', icon: <FileArchive size={14} />, children: sz })
+    appEntries.push({ label: t('7-Zip'), icon: <FileArchive size={14} />, children: sz })
   }
 
   // Commandes personnalisées (exécutées dans le terminal intégré, jetons substitués).
@@ -308,7 +309,7 @@ export function buildItemMenu(entry: DirEntry, ctx: MenuCtx): MenuEntry[] {
     .commands.filter((c) => c.target === 'both' || c.target === (entry.kind === 'directory' ? 'directory' : 'file'))
   if (custom.length) {
     appEntries.push({
-      label: 'Commandes',
+      label: t('Commandes'),
       icon: <TerminalSquare size={14} />,
       children: custom.map((c) => ({
         label: c.name,
@@ -327,26 +328,26 @@ export function buildItemMenu(entry: DirEntry, ctx: MenuCtx): MenuEntry[] {
   }
 
   const entries: MenuEntry[] = [
-    { label: 'Ouvrir', icon: <FolderOpen size={14} />, onClick: () => ctx.onActivate(entry) },
+    { label: t('Ouvrir'), icon: <FolderOpen size={14} />, onClick: () => ctx.onActivate(entry) },
     {
-      label: "Ouvrir dans l'explorateur",
+      label: t("Ouvrir dans l'explorateur"),
       icon: <ExternalLink size={14} />,
       onClick: () => void window.api.fs.reveal(entry.path)
     },
     ...(entry.kind === 'directory'
       ? [
           {
-            label: 'Ouvrir un terminal ici',
+            label: t('Ouvrir un terminal ici'),
             icon: <TerminalSquare size={14} />,
             onClick: () => ctx.openTerminalHere(entry.path)
           } as MenuEntry,
           {
-            label: "Analyser l'espace disque",
+            label: t("Analyser l'espace disque"),
             icon: <PieChart size={14} />,
             onClick: () => useUiStore.getState().setDiskUsage(entry.path)
           } as MenuEntry,
           {
-            label: 'Créer des dossiers… (en lot)',
+            label: t('Créer des dossiers… (en lot)'),
             icon: <FolderPlus size={14} />,
             onClick: () => useUiStore.getState().setFolderCreator(true, entry.path)
           } as MenuEntry
@@ -355,51 +356,51 @@ export function buildItemMenu(entry: DirEntry, ctx: MenuCtx): MenuEntry[] {
     ...(entry.kind === 'file' && ARCHIVE_EXT.has(extOf(entry.name))
       ? [
           {
-            label: "Parcourir l'archive",
+            label: t("Parcourir l'archive"),
             icon: <FileArchive size={14} />,
             onClick: () => useUiStore.getState().setArchive(entry.path)
           } as MenuEntry
         ]
       : []),
     {
-      label: 'Créer un raccourci',
+      label: t('Créer un raccourci'),
       icon: <Link2 size={14} />,
       onClick: () => void window.api.fs.createShortcut(entry.path).then(ctx.refreshAfter)
     },
     ...(appEntries.length ? [{ type: 'sep' } as MenuEntry, ...appEntries] : []),
     { type: 'sep' },
     {
-      label: 'Copier le chemin',
+      label: t('Copier le chemin'),
       icon: <Copy size={14} />,
       onClick: () => void navigator.clipboard.writeText(entry.path)
     },
     {
-      label: 'Copier le nom',
+      label: t('Copier le nom'),
       icon: <Copy size={14} />,
       onClick: () => void navigator.clipboard.writeText(entry.name)
     },
     { type: 'sep' },
     n > 1
       ? {
-          label: `Renommer en masse (${n})…`,
+          label: t('Renommer en masse ({n})…', { n }),
           icon: <Pencil size={14} />,
           onClick: () => ctx.setBulkPaths(targets)
         }
-      : { label: 'Renommer', icon: <Pencil size={14} />, onClick: () => ctx.setRenaming(entry.path) },
+      : { label: t('Renommer'), icon: <Pencil size={14} />, onClick: () => ctx.setRenaming(entry.path) },
     {
-      label: n > 1 ? `Couper (${n})` : 'Couper',
+      label: tn(n, 'Couper', 'Couper ({n})'),
       icon: <Scissors size={14} />,
       onClick: () => clipFiles(targets, 'cut')
     },
     {
-      label: n > 1 ? `Copier (${n})` : 'Copier',
+      label: tn(n, 'Copier', 'Copier ({n})'),
       icon: <ClipboardCopy size={14} />,
       onClick: () => clipFiles(targets, 'copy')
     },
     ...(entry.kind === 'directory'
       ? [
           {
-            label: 'Coller dans le dossier',
+            label: t('Coller dans le dossier'),
             icon: <ClipboardPaste size={14} />,
             onClick: () => void pasteInto(entry.path)
           } as MenuEntry
@@ -408,7 +409,7 @@ export function buildItemMenu(entry: DirEntry, ctx: MenuCtx): MenuEntry[] {
     ...(useShelfStore.getState().enabled
       ? [
           {
-            label: n > 1 ? `Mettre sur l'étagère (${n})` : "Mettre sur l'étagère",
+            label: tn(n, "Mettre sur l'étagère", "Mettre sur l'étagère ({n})"),
             icon: <Layers size={14} />,
             onClick: () => useShelfStore.getState().add(targets)
           } as MenuEntry
@@ -416,7 +417,7 @@ export function buildItemMenu(entry: DirEntry, ctx: MenuCtx): MenuEntry[] {
       : []),
     buildSelectSubmenu(ctx, entry),
     {
-      label: 'Renommer',
+      label: t('Renommer'),
       icon: <Pencil size={14} />,
       onClick: () => {
         ctx.setSelected([entry.path])
@@ -427,8 +428,8 @@ export function buildItemMenu(entry: DirEntry, ctx: MenuCtx): MenuEntry[] {
       ? [
           {
             label: useFavoritesStore.getState().has(entry.path)
-              ? 'Retirer des favoris'
-              : 'Ajouter aux favoris',
+              ? t('Retirer des favoris')
+              : t('Ajouter aux favoris'),
             icon: useFavoritesStore.getState().has(entry.path) ? (
               <StarOff size={14} />
             ) : (
@@ -443,7 +444,7 @@ export function buildItemMenu(entry: DirEntry, ctx: MenuCtx): MenuEntry[] {
   if (repo) {
     entries.push({ type: 'sep' })
     entries.push({
-      label: 'Historique Git',
+      label: t('Historique Git'),
       icon: <History size={14} />,
       onClick: () => useUiStore.getState().setFileHistory(entry.path)
     })
@@ -451,23 +452,27 @@ export function buildItemMenu(entry: DirEntry, ctx: MenuCtx): MenuEntry[] {
 
   if (repo && git && git.category !== 'ignored') {
     entries.push({
-      label: 'Indexer',
+      label: t('Indexer'),
       icon: <Plus size={14} />,
       onClick: () => void window.api.git.stage(path, [entry.path]).then(ctx.refreshAfter)
     })
     entries.push({
-      label: 'Désindexer',
+      label: t('Désindexer'),
       icon: <Minus size={14} />,
       disabled: !git.staged,
       onClick: () => void window.api.git.unstage(path, [entry.path]).then(ctx.refreshAfter)
     })
     if (git.category !== 'untracked') {
       entries.push({
-        label: 'Annuler les modifications',
+        label: t('Annuler les modifications'),
         icon: <Undo2 size={14} />,
         danger: true,
         onClick: () => {
-          if (window.confirm(`Annuler les modifications de « ${entry.name} » ? Action irréversible.`)) {
+          if (
+            window.confirm(
+              t('Annuler les modifications de « {name} » ? Action irréversible.', { name: entry.name })
+            )
+          ) {
             void window.api.git.discard(path, entry.path).then(ctx.refreshAfter)
           }
         }
@@ -477,13 +482,13 @@ export function buildItemMenu(entry: DirEntry, ctx: MenuCtx): MenuEntry[] {
 
   entries.push({ type: 'sep' })
   entries.push({
-    label: n > 1 ? `Supprimer (${n}) → corbeille` : 'Supprimer (corbeille)',
+    label: tn(n, 'Supprimer (corbeille)', 'Supprimer ({n}) → corbeille'),
     icon: <Trash2 size={14} />,
     danger: true,
     onClick: () => void ctx.trashPaths(targets)
   })
   entries.push({
-    label: 'Propriétés',
+    label: t('Propriétés'),
     icon: <Info size={14} />,
     onClick: () => window.api.apps.properties(entry.path)
   })

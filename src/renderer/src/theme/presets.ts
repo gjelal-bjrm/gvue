@@ -1,5 +1,6 @@
 // Palettes et options de personnalisation (cf. maquette + section 7 de la spec).
 
+
 export interface AccentSwatch {
   label: string
   value: string

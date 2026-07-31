@@ -3,6 +3,7 @@ import { FileArchive, X, Folder, File, Loader2, FileDown, Search } from 'lucide-
 import { useUiStore } from '../state/useUiStore'
 import { useNavStore } from '../state/useNavStore'
 import { fmtBytes, baseName } from '../lib/format'
+import { t, tn } from '../i18n'
 import type { ArchiveEntry } from '@shared/types'
 
 /**
@@ -27,7 +28,7 @@ export default function ArchiveViewer(): JSX.Element | null {
     void window.api.archive.list(file).then((r) => {
       if (!alive) return
       if (r.ok) setEntries(r.entries)
-      else setError(r.error ?? 'Lecture impossible.')
+      else setError(r.error ?? t('Lecture impossible.'))
     })
     return () => {
       alive = false
@@ -61,7 +62,11 @@ export default function ArchiveViewer(): JSX.Element | null {
     void window.api.archive.extract(file).then((r) => {
       useUiStore
         .getState()
-        .showToast(r.ok ? 'Extraction lancée à côté de l’archive.' : `Extraction impossible : ${r.error}`)
+        .showToast(
+          r.ok
+            ? t('Extraction lancée à côté de l’archive.')
+            : t('Extraction impossible : {error}', { error: String(r.error) })
+        )
       if (r.ok) {
         useNavStore.getState().refreshAll()
         close()
@@ -83,7 +88,9 @@ export default function ArchiveViewer(): JSX.Element | null {
           </span>
           {entries && (
             <span className="shrink-0 text-[11px] text-fg-muted">
-              {entries.length} entrée{entries.length > 1 ? 's' : ''} · {fmtBytes(totalSize)} décompressé
+              {tn(entries.length, '{n} entrée · {size} décompressé', '{n} entrées · {size} décompressé', {
+                size: fmtBytes(totalSize)
+              })}
             </span>
           )}
           <button
@@ -100,7 +107,7 @@ export default function ArchiveViewer(): JSX.Element | null {
             <input
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              placeholder="Filtrer les entrées…"
+              placeholder={t('Filtrer les entrées…')}
               spellCheck={false}
               className="min-w-0 flex-1 bg-transparent text-[12px] text-fg outline-none placeholder:text-fg-muted"
             />
@@ -111,7 +118,7 @@ export default function ArchiveViewer(): JSX.Element | null {
         <div className="min-h-0 flex-1 overflow-auto p-2 font-mono text-[12px]">
           {entries === null && !error && (
             <div className="flex h-full items-center justify-center gap-2 text-fg-muted">
-              <Loader2 size={14} className="animate-spin" /> Lecture de l'archive…
+              <Loader2 size={14} className="animate-spin" /> {t("Lecture de l'archive…")}
             </div>
           )}
           {error && (
@@ -136,14 +143,14 @@ export default function ArchiveViewer(): JSX.Element | null {
 
         <div className="flex shrink-0 items-center gap-2 border-t border-border px-4 py-3">
           <span className="min-w-0 flex-1 truncate text-[11px] text-fg-muted">
-            Lecture seule — l'extraction crée un dossier au nom libre à côté de l'archive.
+            {t("Lecture seule — l'extraction crée un dossier au nom libre à côté de l'archive.")}
           </span>
           <button
             onClick={extractAll}
             disabled={!entries || entries.length === 0}
             className="flex shrink-0 items-center gap-1.5 rounded-app bg-accent px-3 py-1.5 text-[12px] font-medium text-white hover:opacity-90 disabled:opacity-40"
           >
-            <FileDown size={13} /> Extraire tout
+            <FileDown size={13} /> {t('Extraire tout')}
           </button>
         </div>
       </div>

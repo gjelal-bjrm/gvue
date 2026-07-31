@@ -4,6 +4,7 @@ import { fileIconSpec } from '../../lib/fileIcon'
 import { useOsIcon } from '../../lib/osIcons'
 import { gitBadge, extOf } from './helpers'
 import RenameInput from './RenameInput'
+import { t } from '../../i18n'
 
 /** Une ligne (virtualisée) de la liste de fichiers. */
 export default function Row(props: {
@@ -31,6 +32,7 @@ export default function Row(props: {
   const { Icon, color } = fileIconSpec(entry)
   const osIcon = useOsIcon(entry)
   const badge = git ? gitBadge(git.category) : null
+  const indexeSuffix = t('(indexé)')
   // Teinte le nom selon le statut Git (fichier suivi modifié, non suivi, conflit…).
   const nameColor = props.selected
     ? 'text-accent'
@@ -57,7 +59,11 @@ export default function Row(props: {
       onClick={props.onRowClick}
       onDoubleClick={props.onActivate}
       onContextMenu={props.onContext}
-      title={git ? `${entry.path} · ${git.category}${git.staged ? ' (indexé)' : ''}` : entry.path}
+      title={
+        git
+          ? `${entry.path} · ${git.category}${git.staged ? ' ' + indexeSuffix : ''}`
+          : entry.path
+      }
     >
       <div className="flex min-w-0 flex-1 items-center gap-2.5 px-2">
         <span className="relative grid h-4 w-4 shrink-0 place-items-center">
@@ -89,7 +95,7 @@ export default function Row(props: {
         )}
         {!props.renaming && entry.symlink && <span className="text-[11px] text-fg-muted">↗</span>}
         {!props.renaming && entry.hidden && (
-          <span className="ml-1 text-[11px] text-fg-muted">masqué</span>
+          <span className="ml-1 text-[11px] text-fg-muted">{t('masqué')}</span>
         )}
       </div>
       <div className="w-6 shrink-0 text-center text-[12px] font-semibold tabular-nums">

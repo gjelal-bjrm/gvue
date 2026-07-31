@@ -4,6 +4,7 @@ import type { RecycleItem } from '@shared/types'
 import { useUiStore } from '../state/useUiStore'
 import { useNavStore } from '../state/useNavStore'
 import { formatSize, formatDate } from '../lib/format'
+import { t, tn } from '../i18n'
 
 /**
  * Corbeille Windows dans GVue : liste des éléments supprimés (nom, emplacement
@@ -89,33 +90,48 @@ export default function RecycleBin(): JSX.Element | null {
     setBusy(false)
     const ui = useUiStore.getState()
     if (res.errors.length) {
-      ui.showToast(`${verb} : ${res.ok} réussi(s), ${res.errors.length} échec(s) — ${res.errors[0]}`)
+      ui.showToast(
+        t('{verb} : {ok} réussi(s), {errCount} échec(s) — {err0}', {
+          verb,
+          ok: res.ok,
+          errCount: res.errors.length,
+          err0: res.errors[0]
+        })
+      )
     } else {
-      ui.showToast(`${verb} : ${res.ok} élément${res.ok > 1 ? 's' : ''}.`)
+      ui.showToast(tn(res.ok, '{verb} : {n} élément.', '{verb} : {n} éléments.', { verb }))
     }
     await load()
     // Une restauration fait réapparaître des fichiers : rafraîchit les volets.
     useNavStore.getState().refreshAll()
   }
 
-  const restore = (): Promise<void> => act((ids) => window.api.bin.restore(ids), 'Restauration')
+  const restore = (): Promise<void> =>
+    act((ids) => window.api.bin.restore(ids), t('Restauration'))
 
   const removeForever = (): void => {
     const n = selectedIds.length
-    if (!window.confirm(`Supprimer définitivement ${n} élément${n > 1 ? 's' : ''} ? Irréversible.`))
+    if (
+      !window.confirm(
+        tn(n, 'Supprimer définitivement {n} élément ? Irréversible.', 'Supprimer définitivement {n} éléments ? Irréversible.')
+      )
+    )
       return
-    void act((ids) => window.api.bin.delete(ids), 'Suppression définitive')
+    void act((ids) => window.api.bin.delete(ids), t('Suppression définitive'))
   }
 
   const emptyAll = (): void => {
-    if (!window.confirm(`Vider la corbeille (${items.length} éléments) ? Irréversible.`)) return
+    if (!window.confirm(t('Vider la corbeille ({n} éléments) ? Irréversible.', { n: items.length })))
+      return
     void (async () => {
       setBusy(true)
       const res = await window.api.bin.empty()
       setBusy(false)
       useUiStore
         .getState()
-        .showToast(res.errors.length ? `Échec : ${res.errors[0]}` : 'Corbeille vidée.')
+        .showToast(
+          res.errors.length ? t('Échec : {err}', { err: res.errors[0] }) : t('Corbeille vidée.')
+        )
       await load()
     })()
   }
@@ -132,21 +148,21 @@ export default function RecycleBin(): JSX.Element | null {
         {/* En-tête */}
         <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-3">
           <Trash2 size={15} className="shrink-0 text-accent" />
-          <span className="text-[13px] font-medium text-fg">Corbeille</span>
+          <span className="text-[13px] font-medium text-fg">{t('Corbeille')}</span>
           <span className="text-[11px] text-fg-muted">
-            {items.length} élément{items.length > 1 ? 's' : ''}
+            {tn(items.length, '{n} élément', '{n} éléments')}
             {totalSize > 0 && ` · ${formatSize(totalSize, 'file')}`}
           </span>
           <button
             onClick={() => void load()}
-            title="Actualiser"
+            title={t('Actualiser')}
             className="ml-auto grid h-6 w-6 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg"
           >
             <RotateCw size={13} />
           </button>
           <button
             onClick={close}
-            title="Fermer (Échap)"
+            title={t('Fermer (Échap)')}
             className="grid h-6 w-6 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg"
           >
             <X size={15} />
@@ -160,7 +176,7 @@ export default function RecycleBin(): JSX.Element | null {
             <input
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              placeholder="Filtrer par nom ou emplacement…"
+              placeholder={t('Filtrer par nom ou emplacement…')}
               spellCheck={false}
               className="min-w-0 flex-1 bg-transparent text-[12px] text-fg outline-none placeholder:text-fg-muted"
             />
@@ -168,24 +184,25 @@ export default function RecycleBin(): JSX.Element | null {
           <button
             onClick={() => void restore()}
             disabled={busy || selectedIds.length === 0}
-            title="Remettre à l'emplacement d'origine"
+            title={t("Remettre à l'emplacement d'origine")}
             className="flex shrink-0 items-center gap-1.5 rounded-app bg-accent px-2.5 py-1.5 text-[12px] font-medium text-white hover:opacity-90 disabled:opacity-40"
           >
-            <Undo2 size={13} /> Restaurer{selectedIds.length > 0 ? ` (${selectedIds.length})` : ''}
+            <Undo2 size={13} /> {t('Restaurer')}
+            {selectedIds.length > 0 ? ` (${selectedIds.length})` : ''}
           </button>
           <button
             onClick={removeForever}
             disabled={busy || selectedIds.length === 0}
             className="flex shrink-0 items-center gap-1.5 rounded-app border border-border px-2.5 py-1.5 text-[12px] text-danger-fg hover:bg-bg-hover disabled:opacity-40"
           >
-            <Trash2 size={13} /> Supprimer
+            <Trash2 size={13} /> {t('Supprimer')}
           </button>
           <button
             onClick={emptyAll}
             disabled={busy || items.length === 0}
             className="flex shrink-0 items-center gap-1.5 rounded-app border border-border px-2.5 py-1.5 text-[12px] text-fg-secondary hover:bg-bg-hover disabled:opacity-40"
           >
-            Vider tout
+            {t('Vider tout')}
           </button>
         </div>
 
@@ -193,20 +210,20 @@ export default function RecycleBin(): JSX.Element | null {
         <div className="min-h-0 flex-1 overflow-auto">
           {loading ? (
             <p className="flex items-center justify-center gap-2 py-8 text-[12px] text-fg-muted">
-              <Loader2 size={14} className="animate-spin" /> Lecture de la corbeille…
+              <Loader2 size={14} className="animate-spin" /> {t('Lecture de la corbeille…')}
             </p>
           ) : visible.length === 0 ? (
             <p className="py-10 text-center text-[13px] text-fg-muted">
-              {items.length === 0 ? 'La corbeille est vide.' : 'Aucun élément ne correspond.'}
+              {items.length === 0 ? t('La corbeille est vide.') : t('Aucun élément ne correspond.')}
             </p>
           ) : (
             <table className="w-full text-[12px]">
               <thead className="sticky top-0 bg-bg-secondary text-[11px] uppercase tracking-wider text-fg-muted">
                 <tr className="border-b border-border">
-                  <th className="px-3 py-1.5 text-left font-normal">Nom</th>
-                  <th className="px-3 py-1.5 text-left font-normal">Emplacement d'origine</th>
-                  <th className="px-3 py-1.5 text-right font-normal">Taille</th>
-                  <th className="px-3 py-1.5 text-right font-normal">Supprimé le</th>
+                  <th className="px-3 py-1.5 text-left font-normal">{t('Nom')}</th>
+                  <th className="px-3 py-1.5 text-left font-normal">{t("Emplacement d'origine")}</th>
+                  <th className="px-3 py-1.5 text-right font-normal">{t('Taille')}</th>
+                  <th className="px-3 py-1.5 text-right font-normal">{t('Supprimé le')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -226,7 +243,9 @@ export default function RecycleBin(): JSX.Element | null {
                           close()
                         }
                       }}
-                      title={`${item.originalPath}\n(double-clic : ouvrir le dossier d'origine)`}
+                      title={t("{path}\n(double-clic : ouvrir le dossier d'origine)", {
+                        path: item.originalPath
+                      })}
                       className={`cursor-default border-b border-border/50 ${
                         selected ? 'bg-accent-soft' : 'hover:bg-bg-hover'
                       }`}
@@ -255,8 +274,7 @@ export default function RecycleBin(): JSX.Element | null {
         </div>
 
         <div className="shrink-0 border-t border-border px-3 py-1.5 text-[11px] text-fg-muted">
-          Clic pour sélectionner · Ctrl+clic multiple · Maj+clic plage · double-clic : ouvrir le
-          dossier d'origine
+          {t("Clic pour sélectionner · Ctrl+clic multiple · Maj+clic plage · double-clic : ouvrir le dossier d'origine")}
         </div>
       </div>
     </div>

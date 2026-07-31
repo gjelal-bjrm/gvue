@@ -2,11 +2,12 @@ import { useEffect, useMemo, useState } from 'react'
 import { PieChart, ArrowUp, X, Folder, File, ExternalLink, Loader2 } from 'lucide-react'
 import { useUiStore } from '../state/useUiStore'
 import { useNavStore } from '../state/useNavStore'
+import { t } from '../i18n'
 import type { UsageEntry } from '@shared/types'
 
 /** Formate une taille en octets (dossiers inclus). */
 function fmtBytes(n: number): string {
-  if (n < 1024) return `${n} o`
+  if (n < 1024) return `${n} ${t('o')}`
   const u = ['Ko', 'Mo', 'Go', 'To']
   let v = n / 1024
   let i = 0
@@ -14,7 +15,7 @@ function fmtBytes(n: number): string {
     v /= 1024
     i++
   }
-  return `${v.toFixed(v < 10 ? 1 : 0)} ${u[i]}`
+  return `${v.toFixed(v < 10 ? 1 : 0)} ${t(u[i])}`
 }
 
 /** Parent d'un chemin en slashes (null si racine de lecteur). */
@@ -79,11 +80,11 @@ export default function DiskUsage(): JSX.Element | null {
       >
         <div className="flex shrink-0 items-center gap-2 border-b border-border px-3 py-2.5">
           <PieChart size={15} className="text-accent" />
-          <span className="text-[13px] font-medium text-fg">Espace disque</span>
+          <span className="text-[13px] font-medium text-fg">{t('Espace disque')}</span>
           <button
             onClick={() => parent && setDir(parent)}
             disabled={!parent}
-            title="Dossier parent"
+            title={t('Dossier parent')}
             className="ml-2 grid h-6 w-6 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg disabled:opacity-30"
           >
             <ArrowUp size={15} />
@@ -95,7 +96,7 @@ export default function DiskUsage(): JSX.Element | null {
           {loading && <Loader2 size={14} className="shrink-0 animate-spin text-fg-muted" />}
           <button
             onClick={close}
-            title="Fermer"
+            title={t('Fermer')}
             className="grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg"
           >
             <X size={15} />
@@ -105,7 +106,7 @@ export default function DiskUsage(): JSX.Element | null {
         <div className="min-h-0 flex-1 overflow-auto py-1">
           {entries.length === 0 ? (
             <div className="px-3 py-8 text-center text-[13px] text-fg-muted">
-              {loading ? 'Calcul des tailles…' : 'Dossier vide'}
+              {loading ? t('Calcul des tailles…') : t('Dossier vide')}
             </div>
           ) : (
             entries.map((e) => {
@@ -146,7 +147,7 @@ export default function DiskUsage(): JSX.Element | null {
                       ev.stopPropagation()
                       openInGvue(e.dir ? e.path : dir)
                     }}
-                    title="Ouvrir dans GVue"
+                    title={t('Ouvrir dans GVue')}
                     className="grid h-5 w-5 shrink-0 place-items-center rounded text-fg-muted opacity-0 hover:bg-bg-hover hover:text-fg group-hover:opacity-100"
                   >
                     <ExternalLink size={13} />

@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { applyAppearance } from './theme/applyTheme'
+import { initLang } from './i18n'
 import './styles/global.css'
 
 // Remonte au journal du processus principal toute erreur/rejet non interceptés
@@ -30,8 +31,12 @@ window.addEventListener('unhandledrejection', (e) => {
 async function bootstrap(): Promise<void> {
   try {
     const config = await window.api.config.all()
+    // Langue figée avant le premier rendu : aucun flash, et t() peut rester
+    // une fonction pure appelée librement pendant le rendu.
+    initLang(config.language)
     applyAppearance(config.appearance)
   } catch {
+    initLang(undefined) // langue du système
     /* valeurs par défaut des variables CSS si la config est indisponible */
   }
 

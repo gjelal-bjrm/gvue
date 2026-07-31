@@ -11,6 +11,7 @@ import {
   X
 } from 'lucide-react'
 import type { GitBranches } from '@shared/types'
+import { t } from '../../i18n'
 
 /**
  * Barre du haut de la vue Git : sélecteur/créateur de branche, Fetch/Pull/Push,
@@ -46,7 +47,7 @@ export default function BranchBar(props: {
         <button
           onClick={() => setBranchMenu((o) => !o)}
           className="flex items-center gap-1.5 rounded-app border border-border px-2 py-1 text-[12px] text-fg hover:bg-bg-hover"
-          title="Changer de branche"
+          title={t('Changer de branche')}
         >
           <GitBranch size={14} className="text-accent" />
           <span className="max-w-[180px] truncate">{repo.branch}</span>
@@ -81,13 +82,13 @@ export default function BranchBar(props: {
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') createBranch()
                   }}
-                  placeholder="Nouvelle branche…"
+                  placeholder={t('Nouvelle branche…')}
                   spellCheck={false}
                   className="min-w-0 flex-1 rounded-app border border-border bg-bg px-2 py-1 text-[12px] text-fg outline-none placeholder:text-fg-muted focus:border-accent"
                 />
                 <button
                   onClick={createBranch}
-                  title="Créer la branche"
+                  title={t('Créer la branche')}
                   className="grid h-7 w-7 shrink-0 place-items-center rounded-app bg-accent text-white hover:opacity-90"
                 >
                   <Plus size={14} />
@@ -98,27 +99,27 @@ export default function BranchBar(props: {
         )}
       </div>
 
-      <HeaderBtn onClick={props.onFetch} disabled={props.busy} label="Fetch">
-        <DownloadCloud size={14} /> Fetch
+      <HeaderBtn onClick={props.onFetch} disabled={props.busy} label={t('Fetch')}>
+        <DownloadCloud size={14} /> {t('Fetch')}
       </HeaderBtn>
-      <HeaderBtn onClick={props.onPull} disabled={props.busy} label="Pull">
-        <ArrowDown size={14} /> Pull{repo.behind > 0 ? ` ${repo.behind}` : ''}
+      <HeaderBtn onClick={props.onPull} disabled={props.busy} label={t('Pull')}>
+        <ArrowDown size={14} /> {t('Pull{suffix}', { suffix: repo.behind > 0 ? ` ${repo.behind}` : '' })}
       </HeaderBtn>
-      <HeaderBtn onClick={props.onPush} disabled={props.busy} label="Push">
-        <ArrowUp size={14} /> Push{repo.ahead > 0 ? ` ${repo.ahead}` : ''}
+      <HeaderBtn onClick={props.onPush} disabled={props.busy} label={t('Push')}>
+        <ArrowUp size={14} /> {t('Push{suffix}', { suffix: repo.ahead > 0 ? ` ${repo.ahead}` : '' })}
       </HeaderBtn>
 
       <div className="ml-auto flex items-center gap-1">
         <button
           onClick={props.onRefresh}
-          title="Rafraîchir"
+          title={t('Rafraîchir')}
           className="grid h-7 w-7 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg"
         >
           <RotateCw size={14} />
         </button>
         <button
           onClick={props.onClose}
-          title="Fermer la vue Git"
+          title={t('Fermer la vue Git')}
           className="grid h-7 w-7 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg"
         >
           <X size={15} />

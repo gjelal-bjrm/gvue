@@ -29,6 +29,7 @@ import { logInfo, logError, getLogPath } from './services/logger'
 import { killAll } from './services/pty-manager'
 import { killAllSearches } from './services/search'
 import { closeWatch } from './services/fs-watch'
+import { t } from './i18n'
 
 /**
  * Garde-fous globaux : une erreur non interceptée ne doit pas tuer l'app en
@@ -39,9 +40,11 @@ process.on('uncaughtException', (err) => {
   logError('uncaughtException', err)
   if (app.isPackaged) {
     dialog.showErrorBox(
-      'GVue — erreur inattendue',
-      `Une erreur est survenue mais l'application reste ouverte.\n\n` +
-        `${err?.message ?? err}\n\nDétails : ${getLogPath()}`
+      t('GVue — erreur inattendue'),
+      t('Une erreur est survenue mais l\'application reste ouverte.\n\n{error}\n\nDétails : {log}', {
+        error: `${err?.message ?? err}`,
+        log: getLogPath()
+      })
     )
   }
 })

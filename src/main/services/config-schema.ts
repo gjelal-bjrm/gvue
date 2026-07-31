@@ -62,6 +62,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   treeExpandToCurrent: true,
   defaultShell: '',
   lastSeenVersion: '',
+  language: 'auto',
   hideGitIgnored: true,
   restoreSession: true,
   lastSession: { panes: [], activeIndex: 0 },

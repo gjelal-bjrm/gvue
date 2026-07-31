@@ -33,6 +33,7 @@ import {
   GitCompareArrows,
   Keyboard
 } from 'lucide-react'
+import { t } from '../i18n'
 import { useUiStore } from '../state/useUiStore'
 import { useNavStore, activePane } from '../state/useNavStore'
 import { useWorkspaceStore } from '../state/useWorkspaceStore'
@@ -120,86 +121,86 @@ export default function CommandPalette(): JSX.Element | null {
     const nav = useNavStore.getState
     const ui = useUiStore.getState
     const list: Command[] = [
-      { id: 'quickaccess', title: 'Accès rapide', icon: <Star size={15} />, run: () => {
+      { id: 'quickaccess', title: t('Accès rapide'), icon: <Star size={15} />, run: () => {
         useSearchStore.getState().close()
         nav().showQuickAccess()
       } },
-      { id: 'home', title: "Aller à l'accueil", icon: <Home size={15} />, run: () => nav().goHome() },
-      { id: 'parent', title: 'Dossier parent', icon: <ArrowUp size={15} />, run: () => nav().goParent(), hint: parent ? undefined : 'racine' },
-      { id: 'back', title: 'Précédent', icon: <ArrowLeft size={15} />, run: () => nav().goBack() },
-      { id: 'forward', title: 'Suivant', icon: <ArrowRight size={15} />, run: () => nav().goForward() },
-      { id: 'refresh', title: 'Rafraîchir', icon: <RotateCw size={14} />, run: () => nav().refresh() },
+      { id: 'home', title: t("Aller à l'accueil"), icon: <Home size={15} />, run: () => nav().goHome() },
+      { id: 'parent', title: t('Dossier parent'), icon: <ArrowUp size={15} />, run: () => nav().goParent(), hint: parent ? undefined : t('racine') },
+      { id: 'back', title: t('Précédent'), icon: <ArrowLeft size={15} />, run: () => nav().goBack() },
+      { id: 'forward', title: t('Suivant'), icon: <ArrowRight size={15} />, run: () => nav().goForward() },
+      { id: 'refresh', title: t('Rafraîchir'), icon: <RotateCw size={14} />, run: () => nav().refresh() },
       {
         id: 'hidden',
-        title: showHidden ? 'Masquer les éléments cachés' : 'Afficher les éléments cachés',
+        title: showHidden ? t('Masquer les éléments cachés') : t('Afficher les éléments cachés'),
         icon: <Eye size={15} />,
         run: () => nav().toggleHidden()
       },
       {
         id: 'gitignored',
-        title: hideGitIgnored ? 'Afficher les fichiers ignorés (.gitignore)' : 'Masquer les fichiers ignorés (.gitignore)',
+        title: hideGitIgnored ? t('Afficher les fichiers ignorés (.gitignore)') : t('Masquer les fichiers ignorés (.gitignore)'),
         icon: <Filter size={15} />,
         run: () => nav().toggleGitIgnored()
       },
       {
         id: 'terminal',
-        title: terminalOpen ? 'Masquer le terminal' : 'Afficher le terminal',
+        title: terminalOpen ? t('Masquer le terminal') : t('Afficher le terminal'),
         icon: <TerminalSquare size={15} />,
         run: () => ui().toggleTerminal()
       },
       {
         id: 'newterminal',
-        title: 'Nouveau terminal',
+        title: t('Nouveau terminal'),
         icon: <Plus size={15} />,
         run: () => {
           ui().setTerminalOpen(true)
           void useTerminalStore.getState().openTab()
         }
       },
-      { id: 'launcher', title: 'Lanceur', icon: <Rocket size={15} />, run: () => nav().showLauncher() },
-      { id: 'new-window', title: 'Nouvelle fenêtre', hint: 'Ctrl+Maj+N', icon: <AppWindow size={15} />, run: () => void window.api.window.new() },
-      { id: 'go-to-file', title: 'Aller à un fichier…', hint: 'Ctrl+E', icon: <Search size={15} />, run: () => ui().setFileFinder(true) },
-      { id: 'disk-usage', title: 'Espace disque (dossier courant)', icon: <PieChart size={15} />, run: () => ui().setDiskUsage(path) },
-      { id: 'make-folders', title: 'Créer des dossiers…', icon: <FolderPlus size={15} />, run: () => ui().setFolderCreator(true) },
-      { id: 'custom-commands', title: 'Commandes personnalisées…', icon: <TerminalSquare size={15} />, run: () => ui().setCustomCmd(true) },
-      { id: 'check-update', title: 'Vérifier les mises à jour', icon: <DownloadCloud size={15} />, run: () => useUpdateStore.getState().check() },
-      { id: 'whats-new', title: 'Nouveautés…', icon: <Sparkles size={15} />, run: () => ui().setWhatsNew('') },
-      { id: 'undo', title: 'Annuler la dernière opération', hint: 'Ctrl+Z', icon: <Undo2 size={15} />, run: () => void undoLastOp() },
+      { id: 'launcher', title: t('Lanceur'), icon: <Rocket size={15} />, run: () => nav().showLauncher() },
+      { id: 'new-window', title: t('Nouvelle fenêtre'), hint: 'Ctrl+Maj+N', icon: <AppWindow size={15} />, run: () => void window.api.window.new() },
+      { id: 'go-to-file', title: t('Aller à un fichier…'), hint: 'Ctrl+E', icon: <Search size={15} />, run: () => ui().setFileFinder(true) },
+      { id: 'disk-usage', title: t('Espace disque (dossier courant)'), icon: <PieChart size={15} />, run: () => ui().setDiskUsage(path) },
+      { id: 'make-folders', title: t('Créer des dossiers…'), icon: <FolderPlus size={15} />, run: () => ui().setFolderCreator(true) },
+      { id: 'custom-commands', title: t('Commandes personnalisées…'), icon: <TerminalSquare size={15} />, run: () => ui().setCustomCmd(true) },
+      { id: 'check-update', title: t('Vérifier les mises à jour'), icon: <DownloadCloud size={15} />, run: () => useUpdateStore.getState().check() },
+      { id: 'whats-new', title: t('Nouveautés…'), icon: <Sparkles size={15} />, run: () => ui().setWhatsNew('') },
+      { id: 'undo', title: t('Annuler la dernière opération'), hint: 'Ctrl+Z', icon: <Undo2 size={15} />, run: () => void undoLastOp() },
       {
         id: 'restore-session',
-        title: 'Rouvrir les dossiers au démarrage (activer/désactiver)',
+        title: t('Rouvrir les dossiers au démarrage (activer/désactiver)'),
         icon: <RotateCw size={15} />,
         run: () =>
           void window.api.config.get('restoreSession').then((v) => {
             void window.api.config.set('restoreSession', !v)
             useUiStore.getState().showToast(
-              !v ? 'La session sera restaurée au prochain démarrage.' : 'Démarrage sur l’Accès rapide rétabli.'
+              !v ? t('La session sera restaurée au prochain démarrage.') : t('Démarrage sur l’Accès rapide rétabli.')
             )
           })
       },
-      { id: 'shortcuts', title: 'Raccourcis clavier…', hint: 'F1', icon: <Keyboard size={15} />, run: () => ui().setShortcuts(true) },
-      { id: 'open-log', title: 'Ouvrir le journal de diagnostic', icon: <FileText size={15} />, run: () => void window.api.log.path().then((p) => window.api.fs.reveal(p)) },
-      { id: 'new-tab', title: 'Nouvel onglet', hint: 'Ctrl+T', icon: <Plus size={15} />, run: () => void nav().addTab() },
-      { id: 'view-mode', title: 'Basculer vue liste / grille', icon: <LayoutGrid size={15} />, run: () => nav().toggleViewMode() },
-      { id: 'split', title: 'Diviser — nouveau volet', icon: <Columns2 size={15} />, run: () => void nav().addPane() },
-      { id: 'preview', title: "Panneau d'aperçu", icon: <PanelRight size={15} />, run: () => ui().togglePreview() },
-      { id: 'appearance', title: 'Paramètres (apparence, général, à propos)', icon: <Palette size={15} />, run: () => ui().toggleAppearance() },
-      { id: 'theme-light', title: 'Thème : clair', icon: <Sun size={15} />, run: () => useAppearanceStore.getState().update({ theme: 'light' }) },
-      { id: 'theme-dark', title: 'Thème : sombre', icon: <Moon size={15} />, run: () => useAppearanceStore.getState().update({ theme: 'dark' }) },
-      { id: 'theme-auto', title: 'Thème : auto', icon: <SunMoon size={15} />, run: () => useAppearanceStore.getState().update({ theme: 'auto' }) }
+      { id: 'shortcuts', title: t('Raccourcis clavier…'), hint: 'F1', icon: <Keyboard size={15} />, run: () => ui().setShortcuts(true) },
+      { id: 'open-log', title: t('Ouvrir le journal de diagnostic'), icon: <FileText size={15} />, run: () => void window.api.log.path().then((p) => window.api.fs.reveal(p)) },
+      { id: 'new-tab', title: t('Nouvel onglet'), hint: 'Ctrl+T', icon: <Plus size={15} />, run: () => void nav().addTab() },
+      { id: 'view-mode', title: t('Basculer vue liste / grille'), icon: <LayoutGrid size={15} />, run: () => nav().toggleViewMode() },
+      { id: 'split', title: t('Diviser — nouveau volet'), icon: <Columns2 size={15} />, run: () => void nav().addPane() },
+      { id: 'preview', title: t("Panneau d'aperçu"), icon: <PanelRight size={15} />, run: () => ui().togglePreview() },
+      { id: 'appearance', title: t('Paramètres (apparence, général, à propos)'), icon: <Palette size={15} />, run: () => ui().toggleAppearance() },
+      { id: 'theme-light', title: t('Thème : clair'), icon: <Sun size={15} />, run: () => useAppearanceStore.getState().update({ theme: 'light' }) },
+      { id: 'theme-dark', title: t('Thème : sombre'), icon: <Moon size={15} />, run: () => useAppearanceStore.getState().update({ theme: 'dark' }) },
+      { id: 'theme-auto', title: t('Thème : auto'), icon: <SunMoon size={15} />, run: () => useAppearanceStore.getState().update({ theme: 'auto' }) }
     ]
 
     if (paneCount > 1) {
       list.push({
         id: 'close-pane',
-        title: "Fermer l'onglet actif",
+        title: t("Fermer l'onglet actif"),
         hint: 'Ctrl+W',
         icon: <Columns2 size={15} />,
         run: () => nav().closePane(useNavStore.getState().activeId)
       })
       list.push({
         id: 'compare-panes',
-        title: 'Comparer les volets',
+        title: t('Comparer les volets'),
         icon: <GitCompareArrows size={15} />,
         run: () => ui().setCompare(true)
       })
@@ -212,7 +213,7 @@ export default function CommandPalette(): JSX.Element | null {
       }
       list.push({
         id: 'git-view',
-        title: 'Git : vue détaillée (fichiers + diff)',
+        title: t('Git : vue détaillée (fichiers + diff)'),
         icon: <FolderGit2 size={15} />,
         run: () => {
           useSearchStore.getState().close()
@@ -221,33 +222,33 @@ export default function CommandPalette(): JSX.Element | null {
       })
       list.push({
         id: 'git-pull',
-        title: 'Git : Pull',
+        title: t('Git : Pull'),
         hint: repo.behind > 0 ? `↓${repo.behind}` : undefined,
         icon: <ArrowDownToLine size={15} />,
         run: () => void window.api.git.pull(path).then(refreshGit)
       })
       list.push({
         id: 'git-push',
-        title: 'Git : Push',
+        title: t('Git : Push'),
         hint: repo.ahead > 0 ? `↑${repo.ahead}` : undefined,
         icon: <ArrowUpFromLine size={15} />,
         run: () => void window.api.git.push(path).then(refreshGit)
       })
     }
 
-    for (const t of runnerTasks) {
+    for (const task of runnerTasks) {
       list.push({
-        id: `run-${t.id}`,
-        title: `Lancer : ${t.name}`,
+        id: `run-${task.id}`,
+        title: t('Lancer : {name}', { name: task.name }),
         icon: <Play size={15} />,
-        run: () => void useRunnerStore.getState().runTask(t.id)
+        run: () => void useRunnerStore.getState().runTask(task.id)
       })
     }
 
     for (const name of Object.keys(workspaces)) {
       list.push({
         id: `ws-${name}`,
-        title: `Espace de travail : ${name}`,
+        title: t('Espace de travail : {name}', { name }),
         icon: <LayoutGrid size={15} />,
         run: () => void useWorkspaceStore.getState().load(name)
       })
@@ -256,7 +257,7 @@ export default function CommandPalette(): JSX.Element | null {
     for (const p of projects) {
       list.push({
         id: `proj-${p.root}`,
-        title: `Projet : ${p.name}`,
+        title: t('Projet : {name}', { name: p.name }),
         hint: p.branch,
         icon: <FolderGit2 size={15} />,
         run: () => nav().navigate(p.root)
@@ -318,7 +319,7 @@ export default function CommandPalette(): JSX.Element | null {
               setSelected(0)
             }}
             onKeyDown={onKeyDown}
-            placeholder="Tapez une commande…"
+            placeholder={t('Tapez une commande…')}
             spellCheck={false}
             className="w-full bg-transparent py-3 text-[14px] text-fg outline-none placeholder:text-fg-muted"
           />
@@ -326,7 +327,7 @@ export default function CommandPalette(): JSX.Element | null {
 
         <div ref={listRef} className="min-h-0 flex-1 overflow-auto py-1">
           {filtered.length === 0 ? (
-            <div className="px-3 py-6 text-center text-[13px] text-fg-muted">Aucune commande</div>
+            <div className="px-3 py-6 text-center text-[13px] text-fg-muted">{t('Aucune commande')}</div>
           ) : (
             filtered.map((c, i) => (
               <button

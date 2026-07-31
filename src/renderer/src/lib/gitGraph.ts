@@ -1,4 +1,5 @@
 import type { GitCommit } from '@shared/types'
+import { t } from '../i18n'
 
 /**
  * Calcul des couloirs du graphe Git (façon GitKraken/gitk), pur et testable.
@@ -136,13 +137,13 @@ export function parseRefs(refs: string[]): CommitDecorations {
 export function relativeDate(tsSeconds: number, nowMs: number): string {
   if (!tsSeconds) return ''
   const diff = Math.max(0, Math.floor(nowMs / 1000) - tsSeconds)
-  if (diff < 60) return "à l'instant"
-  if (diff < 3600) return `il y a ${Math.floor(diff / 60)} min`
-  if (diff < 86400) return `il y a ${Math.floor(diff / 3600)} h`
-  if (diff < 7 * 86400) return `il y a ${Math.floor(diff / 86400)} j`
+  if (diff < 60) return t("à l'instant")
+  if (diff < 3600) return t('il y a {n} min', { n: Math.floor(diff / 60) })
+  if (diff < 86400) return t('il y a {n} h', { n: Math.floor(diff / 3600) })
+  if (diff < 7 * 86400) return t('il y a {n} j', { n: Math.floor(diff / 86400) })
   const d = new Date(tsSeconds * 1000)
   const sameYear = d.getFullYear() === new Date(nowMs).getFullYear()
   const day = d.getDate()
-  const month = d.toLocaleDateString('fr-FR', { month: 'short' })
+  const month = d.toLocaleDateString(undefined, { month: 'short' })
   return sameYear ? `${day} ${month}` : `${day} ${month} ${d.getFullYear()}`
 }

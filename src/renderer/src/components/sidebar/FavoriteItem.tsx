@@ -1,5 +1,6 @@
 import { Star, X, Play, Square, Settings2 } from 'lucide-react'
 import { baseName } from '../../lib/format'
+import { t } from '../../i18n'
 
 /**
  * Favori de la sidebar (ouvrir au clic, retirer au survol). Comme les projets,
@@ -34,14 +35,14 @@ export default function FavoriteItem(props: {
       </button>
       <button
         onClick={props.onConfig}
-        title="Définir la commande du ▶"
+        title={t('Définir la commande du ▶')}
         className="grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted opacity-0 hover:bg-bg-hover hover:text-fg group-hover:opacity-100"
       >
         <Settings2 size={13} />
       </button>
       <button
         onClick={props.onPlay}
-        title={props.running ? 'Arrêter' : props.configured ? 'Lancer' : 'Définir puis lancer'}
+        title={props.running ? t('Arrêter') : props.configured ? t('Lancer') : t('Définir puis lancer')}
         className={`grid h-6 w-6 shrink-0 place-items-center rounded hover:bg-bg-hover ${
           props.running
             ? 'text-danger-fg'
@@ -52,7 +53,7 @@ export default function FavoriteItem(props: {
       </button>
       <button
         onClick={props.onRemove}
-        title="Retirer des favoris"
+        title={t('Retirer des favoris')}
         className="grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted opacity-0 hover:bg-bg-hover hover:text-danger-fg group-hover:opacity-100"
       >
         <X size={12} />

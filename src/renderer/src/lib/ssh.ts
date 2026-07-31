@@ -1,4 +1,5 @@
 import type { SshHost, SshForward } from '@shared/types'
+import { t } from '../i18n'
 
 /**
  * Options OpenSSH d'une redirection de port (pur, testable).
@@ -97,13 +98,12 @@ export function forwardsToText(forwards: SshForward[] | undefined): string {
  */
 export function toSshConfigText(hosts: SshHost[]): string {
   const quote = (s: string): string => (/\s/.test(s) ? `"${s}"` : s)
-  const blocks: string[] = [
-    '# Généré par GVue — collez dans ~/.ssh/config (ou incluez ce fichier).',
-    '# Compatible OpenSSH, VS Code Remote-SSH, git.'
-  ]
+  const genComment = t('Généré par GVue — collez dans ~/.ssh/config (ou incluez ce fichier).')
+  const blocks: string[] = [`# ${genComment}`, '# Compatible OpenSSH, VS Code Remote-SSH, git.']
   for (const h of hosts) {
     if (!h.hostName) {
-      blocks.push(`\n# ${h.name} : déjà défini dans votre ~/.ssh/config (alias).`)
+      const aliasComment = t('{name} : déjà défini dans votre ~/.ssh/config (alias).', { name: h.name })
+      blocks.push(`\n# ${aliasComment}`)
       continue
     }
     const lines = [`\nHost ${quote(h.name)}`, `  HostName ${h.hostName}`]
@@ -127,7 +127,11 @@ export function describeForward(f: SshForward): string {
   if (f.type === 'dynamic') return `SOCKS ${bind}${f.listenPort}`
   return f.type === 'local'
     ? `${bind}${f.listenPort} → ${f.destHost}:${f.destPort}`
-    : `serveur:${f.listenPort} → ${f.destHost}:${f.destPort} (distant)`
+    : t('serveur:{port} → {host}:{destPort} (distant)', {
+        port: f.listenPort,
+        host: f.destHost ?? '',
+        destPort: f.destPort ?? ''
+      })
 }
 
 /**

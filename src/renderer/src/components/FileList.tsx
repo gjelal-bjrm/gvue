@@ -9,6 +9,7 @@ import { useUiStore } from '../state/useUiStore'
 import { useTerminalStore } from '../state/useTerminalStore'
 import { pathKey } from '../lib/format'
 import { copyOrMove } from '../lib/fileActions'
+import { t, tn } from '../i18n'
 import ContextMenu from './ContextMenu'
 import BulkRenameDialog from './BulkRenameDialog'
 import Row from './filelist/Row'
@@ -227,10 +228,11 @@ export default function FileList(props: { paneId: string }): JSX.Element {
       }
     }
     if (failed.length) {
+      const list = failed.slice(0, 3).join(', ') + (failed.length > 3 ? '…' : '')
       useUiStore
         .getState()
         .showToast(
-          `Corbeille : ${failed.length} échec(s) — ${failed.slice(0, 3).join(', ')}${failed.length > 3 ? '…' : ''}`
+          tn(failed.length, 'Corbeille : {n} échec — {list}', 'Corbeille : {n} échecs — {list}', { list })
         )
     }
     setSelected([])
@@ -447,7 +449,7 @@ export default function FileList(props: { paneId: string }): JSX.Element {
                 onActivate(visible[0])
               }
             }}
-            placeholder="Filtrer ce dossier…"
+            placeholder={t('Filtrer ce dossier…')}
             spellCheck={false}
             className="min-w-0 flex-1 bg-transparent text-[12px] text-fg outline-none placeholder:text-fg-muted"
           />
@@ -457,7 +459,7 @@ export default function FileList(props: { paneId: string }): JSX.Element {
               setFilter('')
               setFilterOn(false)
             }}
-            title="Fermer le filtre (Échap)"
+            title={t('Fermer le filtre (Échap)')}
             className="grid h-5 w-5 shrink-0 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg"
           >
             <X size={13} />
@@ -507,12 +509,12 @@ export default function FileList(props: { paneId: string }): JSX.Element {
           <div className="pointer-events-none absolute left-1/2 top-3 z-10 -translate-x-1/2">
             <div className="flex items-center gap-2 rounded-app border border-border bg-bg-secondary px-3 py-1.5 text-[12px] text-fg-secondary shadow-lg">
               <Loader2 size={14} className="animate-spin text-accent" />
-              Chargement…
+              {t('Chargement…')}
             </div>
           </div>
         )}
         {!loading && visible.length === 0 && !error && (
-          <div className="p-8 text-center text-[13px] text-fg-muted">Dossier vide</div>
+          <div className="p-8 text-center text-[13px] text-fg-muted">{t('Dossier vide')}</div>
         )}
         <div style={{ height: rowVirtualizer.getTotalSize(), position: 'relative' }}>
           {lasso &&

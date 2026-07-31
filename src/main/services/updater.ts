@@ -1,5 +1,6 @@
 import { app, ipcMain, BrowserWindow } from 'electron'
 import { IPC } from '@shared/ipc'
+import { t } from '../i18n'
 import type { UpdateStatus } from '@shared/types'
 
 /**
@@ -41,7 +42,7 @@ function reportError(e: unknown): void {
     // Distinct de « à jour » : aucune release exploitable n'a été trouvée.
     broadcast({
       state: 'error',
-      message: 'Aucune release exploitable trouvée sur GitHub (latest.yml manquant ou release absente).'
+      message: t('Aucune release exploitable trouvée sur GitHub (latest.yml manquant ou release absente).')
     })
   } else {
     broadcast({ state: 'error', message: msg })

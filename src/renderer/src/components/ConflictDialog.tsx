@@ -1,6 +1,7 @@
 import { AlertTriangle, File, Folder } from 'lucide-react'
 import { useUiStore } from '../state/useUiStore'
 import { fmtBytes, formatDate } from '../lib/format'
+import { t, tn } from '../i18n'
 import type { ConflictInfo } from '@shared/types'
 
 /**
@@ -29,7 +30,7 @@ export default function ConflictDialog(): JSX.Element | null {
         <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-3">
           <AlertTriangle size={15} className="text-warning-fg" />
           <span className="text-[13px] font-medium text-fg">
-            {n} élément{n > 1 ? 's existent' : ' existe'} déjà dans la destination
+            {tn(n, '{n} élément existe déjà dans la destination', '{n} éléments existent déjà dans la destination')}
           </span>
         </div>
 
@@ -37,36 +38,38 @@ export default function ConflictDialog(): JSX.Element | null {
           {req.conflicts.slice(0, 200).map((c) => (
             <Row key={c.targetPath} c={c} />
           ))}
-          {n > 200 && <p className="px-1 py-1 text-fg-muted">… +{n - 200} autres</p>}
+          {n > 200 && (
+            <p className="px-1 py-1 text-fg-muted">{t('… +{count} autres', { count: n - 200 })}</p>
+          )}
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-border px-4 py-3">
           <span className="mr-auto max-w-[220px] text-[11px] text-fg-muted">
-            « Remplacer » envoie les éléments existants à la corbeille (récupérable).
+            {t('« Remplacer » envoie les éléments existants à la corbeille (récupérable).')}
           </span>
           <button
             onClick={() => pick(null)}
             className="rounded-app px-2.5 py-1.5 text-[12px] text-fg-secondary hover:bg-bg-hover"
           >
-            Annuler
+            {t('Annuler')}
           </button>
           <button
             onClick={() => pick('skip')}
             className="rounded-app border border-border px-2.5 py-1.5 text-[12px] text-fg hover:bg-bg-hover"
           >
-            Ignorer les conflits
+            {t('Ignorer les conflits')}
           </button>
           <button
             onClick={() => pick('rename')}
             className="rounded-app border border-border px-2.5 py-1.5 text-[12px] text-fg hover:bg-bg-hover"
           >
-            Garder les deux
+            {t('Garder les deux')}
           </button>
           <button
             onClick={() => pick('overwrite')}
             className="rounded-app bg-accent px-2.5 py-1.5 text-[12px] font-medium text-white hover:opacity-90"
           >
-            Remplacer{n > 1 ? ' tout' : ''}
+            {tn(n, 'Remplacer', 'Remplacer tout')}
           </button>
         </div>
       </div>
@@ -77,7 +80,9 @@ export default function ConflictDialog(): JSX.Element | null {
 function Row({ c }: { c: ConflictInfo }): JSX.Element {
   const Icon = c.target.dir ? Folder : File
   const detail = (s: { size: number; modifiedMs: number; dir: boolean }): string =>
-    s.dir ? `dossier · ${formatDate(s.modifiedMs)}` : `${fmtBytes(s.size)} · ${formatDate(s.modifiedMs)}`
+    s.dir
+      ? t('dossier · {date}', { date: formatDate(s.modifiedMs) })
+      : t('{size} · {date}', { size: fmtBytes(s.size), date: formatDate(s.modifiedMs) })
   const newer = !c.source.dir && !c.target.dir && c.source.modifiedMs > c.target.modifiedMs + 2000
   return (
     <div className="rounded-app px-1.5 py-1 hover:bg-bg-hover" title={c.targetPath}>
@@ -86,13 +91,13 @@ function Row({ c }: { c: ConflictInfo }): JSX.Element {
         <span className="min-w-0 flex-1 truncate text-fg">{c.name}</span>
         {newer && (
           <span className="shrink-0 rounded bg-info-bg px-1.5 text-[10px] text-info-fg">
-            source plus récente
+            {t('source plus récente')}
           </span>
         )}
       </div>
       <div className="flex items-center gap-2 pl-6 text-[11px] text-fg-muted tabular-nums">
-        <span className="min-w-0 flex-1 truncate">source : {detail(c.source)}</span>
-        <span className="min-w-0 flex-1 truncate">existant : {detail(c.target)}</span>
+        <span className="min-w-0 flex-1 truncate">{t('source : {detail}', { detail: detail(c.source) })}</span>
+        <span className="min-w-0 flex-1 truncate">{t('existant : {detail}', { detail: detail(c.target) })}</span>
       </div>
     </div>
   )

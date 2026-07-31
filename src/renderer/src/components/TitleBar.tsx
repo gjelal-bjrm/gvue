@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Minus, Square, Copy, X } from 'lucide-react'
 import Logo from './Logo'
+import { t } from '../i18n'
 import { useAppearanceStore } from '../state/useAppearanceStore'
 
 /**
@@ -31,11 +32,11 @@ export default function TitleBar(): JSX.Element {
       </div>
 
       <div className="no-drag flex h-full">
-        <CtrlBtn label="Réduire" onClick={() => window.api.window.action('minimize')}>
+        <CtrlBtn label={t('Réduire')} onClick={() => window.api.window.action('minimize')}>
           <Minus size={15} />
         </CtrlBtn>
         <CtrlBtn
-          label={maximized ? 'Restaurer' : 'Agrandir'}
+          label={maximized ? t('Restaurer') : t('Agrandir')}
           onClick={() => window.api.window.action('maximize-toggle')}
         >
           {maximized ? <Copy size={13} /> : <Square size={12} />}
@@ -43,8 +44,8 @@ export default function TitleBar(): JSX.Element {
         <button
           className="grid w-11 place-items-center text-fg-secondary transition-colors hover:bg-[#e5573f] hover:text-white"
           onClick={() => window.api.window.action('close')}
-          title="Fermer"
-          aria-label="Fermer"
+          title={t('Fermer')}
+          aria-label={t('Fermer')}
         >
           <X size={16} />
         </button>

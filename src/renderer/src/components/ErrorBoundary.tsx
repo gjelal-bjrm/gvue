@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { t } from '../i18n'
 
 interface Props {
   children: ReactNode
@@ -77,10 +78,9 @@ export class ErrorBoundary extends Component<Props, State> {
             boxShadow: '0 10px 40px rgba(0,0,0,0.4)'
           }}
         >
-          <h1 style={{ margin: '0 0 8px', fontSize: 18 }}>Une erreur est survenue</h1>
+          <h1 style={{ margin: '0 0 8px', fontSize: 18 }}>{t('Une erreur est survenue')}</h1>
           <p style={{ margin: '0 0 16px', color: 'var(--fg-secondary, #aaa)' }}>
-            GVue a rencontré un problème d'affichage. Tes fichiers ne sont pas affectés.
-            Recharge la fenêtre pour reprendre.
+            {t("GVue a rencontré un problème d'affichage. Tes fichiers ne sont pas affectés. Recharge la fenêtre pour reprendre.")}
           </p>
 
           <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
@@ -96,7 +96,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 fontWeight: 600
               }}
             >
-              Recharger
+              {t('Recharger')}
             </button>
             <button
               onClick={this.copyDetails}
@@ -109,7 +109,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 cursor: 'pointer'
               }}
             >
-              Copier les détails
+              {t('Copier les détails')}
             </button>
           </div>
 

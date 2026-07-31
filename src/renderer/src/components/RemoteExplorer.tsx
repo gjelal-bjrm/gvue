@@ -27,6 +27,7 @@ import { useNavStore, activePane } from '../state/useNavStore'
 import { formatSize, formatDate, baseName } from '../lib/format'
 import { sshSubtitle, sshCdCommandFor, hostKeyOf } from '../lib/ssh'
 import { useTerminalStore } from '../state/useTerminalStore'
+import { t, tn } from '../i18n'
 
 /** Chemin parent d'un chemin distant POSIX (« / » reste « / »). */
 function remoteParent(p: string): string {
@@ -100,7 +101,7 @@ export default function RemoteExplorer(): JSX.Element | null {
     const r = await window.api.sftp.list(key, dir)
     setLoading(false)
     if (r.error) {
-      toast(`SFTP : ${r.error}`)
+      toast(t('SFTP : {error}', { error: r.error }))
       setEntries([])
     } else {
       setEntries(r.entries ?? [])
@@ -218,8 +219,13 @@ export default function RemoteExplorer(): JSX.Element | null {
     setBusy(true)
     const r = await window.api.sftp.edit(hostKey, entry)
     setBusy(false)
-    if (r.error) toast(`Édition : ${r.error}`)
-    else toast(`${entry.name} ouvert — chaque sauvegarde est ré-téléversée sur le serveur.`)
+    if (r.error) toast(t('Édition : {error}', { error: r.error }))
+    else
+      toast(
+        t('{name} ouvert — chaque sauvegarde est ré-téléversée sur le serveur.', {
+          name: entry.name
+        })
+      )
   }
 
   const downloadSel = async (): Promise<void> => {
@@ -229,8 +235,12 @@ export default function RemoteExplorer(): JSX.Element | null {
     setBusy(false)
     toast(
       r.errors.length
-        ? `Téléchargement : ${r.ok} OK, ${r.errors.length} échec(s) — ${r.errors[0]}`
-        : `${r.ok} élément${r.ok > 1 ? 's' : ''} téléchargé${r.ok > 1 ? 's' : ''}.`
+        ? t('Téléchargement : {ok} OK, {count} échec(s) — {err}', {
+            ok: r.ok,
+            count: r.errors.length,
+            err: r.errors[0]
+          })
+        : tn(r.ok, '{n} élément téléchargé.', '{n} éléments téléchargés.')
     )
     useNavStore.getState().refreshAll()
   }
@@ -243,8 +253,14 @@ export default function RemoteExplorer(): JSX.Element | null {
     setBusy(false)
     toast(
       r.errors.length
-        ? `Téléversement : ${r.ok} OK, ${r.errors.length} échec(s) — ${r.errors[0]}`
-        : `${r.ok} élément${r.ok > 1 ? 's' : ''} téléversé${r.ok > 1 ? 's' : ''} vers ${path}`
+        ? t('Téléversement : {ok} OK, {count} échec(s) — {err}', {
+            ok: r.ok,
+            count: r.errors.length,
+            err: r.errors[0]
+          })
+        : tn(r.ok, '{n} élément téléversé vers {path}', '{n} éléments téléversés vers {path}', {
+            path
+          })
     )
     if (r.ok > 0) {
       const deploy: Deploy = { paths, remoteDir: path, contents }
@@ -268,8 +284,14 @@ export default function RemoteExplorer(): JSX.Element | null {
     setBusy(false)
     toast(
       r.errors.length
-        ? `Redéploiement : ${r.ok} OK, ${r.errors.length} échec(s) — ${r.errors[0]}`
-        : `Redéployé : ${r.ok} élément${r.ok > 1 ? 's' : ''} → ${lastDeploy.remoteDir}`
+        ? t('Redéploiement : {ok} OK, {count} échec(s) — {err}', {
+            ok: r.ok,
+            count: r.errors.length,
+            err: r.errors[0]
+          })
+        : tn(r.ok, 'Redéployé : {n} élément → {dir}', 'Redéployé : {n} éléments → {dir}', {
+            dir: lastDeploy.remoteDir
+          })
     )
     if (path === lastDeploy.remoteDir) void refresh(hostKey, path)
   }
@@ -285,7 +307,7 @@ export default function RemoteExplorer(): JSX.Element | null {
     const clean = name.trim()
     if (!clean) return
     const r = await window.api.sftp.mkdir(hostKey, path === '/' ? `/${clean}` : `${path}/${clean}`)
-    if (r.error) toast(`Nouveau dossier : ${r.error}`)
+    if (r.error) toast(t('Nouveau dossier : {error}', { error: r.error }))
     else void refresh(hostKey, path)
   }
 
@@ -295,7 +317,7 @@ export default function RemoteExplorer(): JSX.Element | null {
     if (!name || name === entry.name) return
     const to = `${remoteParent(entry.path)}/${name}`.replace('//', '/')
     const r = await window.api.sftp.rename(hostKey, entry.path, to)
-    if (r.error) toast(`Renommage : ${r.error}`)
+    if (r.error) toast(t('Renommage : {error}', { error: r.error }))
     else void refresh(hostKey, path)
   }
 
@@ -304,14 +326,25 @@ export default function RemoteExplorer(): JSX.Element | null {
     const n = selected.length
     if (
       !window.confirm(
-        `Supprimer ${n} élément${n > 1 ? 's' : ''} du SERVEUR ? Pas de corbeille en SFTP : c'est définitif.`
+        tn(
+          n,
+          "Supprimer {n} élément du SERVEUR ? Pas de corbeille en SFTP : c'est définitif.",
+          "Supprimer {n} éléments du SERVEUR ? Pas de corbeille en SFTP : c'est définitif."
+        )
       )
     )
       return
     setBusy(true)
     const r = await window.api.sftp.delete(hostKey, selected)
     setBusy(false)
-    if (r.errors.length) toast(`Suppression : ${r.ok} OK, ${r.errors.length} échec(s) — ${r.errors[0]}`)
+    if (r.errors.length)
+      toast(
+        t('Suppression : {ok} OK, {count} échec(s) — {err}', {
+          ok: r.ok,
+          count: r.errors.length,
+          err: r.errors[0]
+        })
+      )
     void refresh(hostKey, path)
   }
 
@@ -378,9 +411,9 @@ export default function RemoteExplorer(): JSX.Element | null {
             onClick={() => {
               void window.api.sftp.forgetPassword(hostKey)
               setSavedPwd(false)
-              toast('Mot de passe enregistré oublié.')
+              toast(t('Mot de passe enregistré oublié.'))
             }}
-            title="Oublier le mot de passe enregistré pour ce serveur"
+            title={t('Oublier le mot de passe enregistré pour ce serveur')}
             className="grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-danger-fg"
           >
             <KeyRound size={13} />
@@ -398,7 +431,7 @@ export default function RemoteExplorer(): JSX.Element | null {
                 sshHostKey: hostKey
               })
             }}
-            title={`Ouvrir un terminal SSH dans ${path}`}
+            title={t('Ouvrir un terminal SSH dans {path}', { path })}
             className="ml-auto grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-accent"
           >
             <TerminalSquare size={14} />
@@ -406,7 +439,7 @@ export default function RemoteExplorer(): JSX.Element | null {
         )}
         <button
           onClick={disconnect}
-          title="Se déconnecter et fermer"
+          title={t('Se déconnecter et fermer')}
           className={`grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg ${
             phase.step === 'ready' ? '' : 'ml-auto'
           }`}
@@ -417,19 +450,19 @@ export default function RemoteExplorer(): JSX.Element | null {
 
       {phase.step === 'connecting' && (
         <p className="flex items-center justify-center gap-2 py-14 text-[13px] text-fg-muted">
-          <Loader2 size={15} className="animate-spin" /> Connexion à {host.name}…
+          <Loader2 size={15} className="animate-spin" /> {t('Connexion à {host}…', { host: host.name })}
         </p>
       )}
 
       {phase.step === 'fingerprint' && (
         <div className="flex flex-col items-center gap-3 px-4 py-8 text-center">
           <ShieldQuestion size={26} className="text-warning-fg" />
-          <p className="text-[13px] text-fg">Première connexion à ce serveur.</p>
+          <p className="text-[13px] text-fg">{t('Première connexion à ce serveur.')}</p>
           <p className="break-all text-[11px] text-fg-secondary">
-            Empreinte : <code className="font-mono">{phase.fingerprint}</code>
+            {t('Empreinte :')} <code className="font-mono">{phase.fingerprint}</code>
           </p>
           <p className="text-[11px] text-fg-muted">
-            Mémorisée après validation ; toute future différence bloquera la connexion.
+            {t('Mémorisée après validation ; toute future différence bloquera la connexion.')}
           </p>
           <div className="flex gap-2">
             <button
@@ -439,13 +472,13 @@ export default function RemoteExplorer(): JSX.Element | null {
               }}
               className="rounded-app bg-accent px-3 py-1.5 text-[12px] font-medium text-white hover:opacity-90"
             >
-              Faire confiance
+              {t('Faire confiance')}
             </button>
             <button
               onClick={disconnect}
               className="rounded-app border border-border px-3 py-1.5 text-[12px] text-fg-secondary hover:bg-bg-hover"
             >
-              Annuler
+              {t('Annuler')}
             </button>
           </div>
         </div>
@@ -455,7 +488,7 @@ export default function RemoteExplorer(): JSX.Element | null {
         <div className="flex flex-col items-center gap-3 px-4 py-8 text-center">
           <KeyRound size={24} className="text-accent" />
           <p className="text-[13px] text-fg">
-            Mot de passe — {host.user ? `${host.user}@` : ''}
+            {t('Mot de passe —')} {host.user ? `${host.user}@` : ''}
             {host.hostName ?? host.name}
           </p>
           {phase.message && <p className="text-[12px] text-danger-fg">{phase.message}</p>}
@@ -481,10 +514,12 @@ export default function RemoteExplorer(): JSX.Element | null {
                 onChange={(e) => setRemember(e.target.checked)}
                 className="accent-[var(--accent)]"
               />
-              Retenir le mot de passe (chiffré par Windows)
+              {t('Retenir le mot de passe (chiffré par Windows)')}
             </label>
           ) : (
-            <p className="text-[11px] text-fg-muted">Utilisé pour cette session, jamais stocké.</p>
+            <p className="text-[11px] text-fg-muted">
+              {t('Utilisé pour cette session, jamais stocké.')}
+            </p>
           )}
           <button
             onClick={() =>
@@ -496,7 +531,7 @@ export default function RemoteExplorer(): JSX.Element | null {
             }
             className="rounded-app bg-accent px-3 py-1.5 text-[12px] font-medium text-white hover:opacity-90"
           >
-            Se connecter
+            {t('Se connecter')}
           </button>
         </div>
       )}
@@ -506,15 +541,14 @@ export default function RemoteExplorer(): JSX.Element | null {
           <p className="max-w-full break-words text-[12px] text-danger-fg">{phase.message}</p>
           {/timed out/i.test(phase.message) && (
             <p className="text-[11px] text-fg-muted">
-              Le serveur n'a pas répondu — beaucoup limitent les connexions rapprochées
-              (anti-abus). Patientez ~30 secondes avant de réessayer.
+              {t("Le serveur n'a pas répondu — beaucoup limitent les connexions rapprochées (anti-abus). Patientez ~30 secondes avant de réessayer.")}
             </p>
           )}
           <button
             onClick={() => void attempt({ acceptFingerprint: acceptedFpRef.current })}
             className="rounded-app border border-border px-3 py-1.5 text-[12px] text-fg-secondary hover:bg-bg-hover"
           >
-            Réessayer
+            {t('Réessayer')}
           </button>
         </div>
       )}
@@ -523,17 +557,21 @@ export default function RemoteExplorer(): JSX.Element | null {
         <>
           {/* Rangée 1 : navigation distante */}
           <div className="flex shrink-0 items-center gap-1 border-b border-border px-2 py-1.5">
-            <IconBtn onClick={() => navigate(remoteParent(path))} title="Dossier parent" disabled={path === '/'}>
+            <IconBtn
+              onClick={() => navigate(remoteParent(path))}
+              title={t('Dossier parent')}
+              disabled={path === '/'}
+            >
               <ArrowUp size={15} />
             </IconBtn>
-            <IconBtn onClick={() => void refresh(hostKey, path)} title="Actualiser">
+            <IconBtn onClick={() => void refresh(hostKey, path)} title={t('Actualiser')}>
               <RotateCw size={13} />
             </IconBtn>
             {/* Chemin + historique des dossiers récents de CE serveur. */}
             <div className="relative min-w-0 flex-1">
               <button
                 onClick={() => setRecentOpen((o) => !o)}
-                title={`${path}\nCliquer : dossiers récents sur ce serveur`}
+                title={t('{path}\nCliquer : dossiers récents sur ce serveur', { path })}
                 className="flex w-full items-center gap-1 rounded-app border border-border bg-bg px-2 py-1 text-left"
               >
                 <code className="min-w-0 flex-1 truncate font-mono text-[11px] text-fg-secondary">
@@ -564,17 +602,26 @@ export default function RemoteExplorer(): JSX.Element | null {
                 </>
               )}
             </div>
-            <IconBtn onClick={() => setCreating(true)} title="Nouveau dossier distant" disabled={busy}>
+            <IconBtn
+              onClick={() => setCreating(true)}
+              title={t('Nouveau dossier distant')}
+              disabled={busy}
+            >
               <FolderPlus size={14} />
             </IconBtn>
             <IconBtn
               onClick={() => selected.length === 1 && setRenaming(selected[0])}
-              title="Renommer"
+              title={t('Renommer')}
               disabled={busy || selected.length !== 1}
             >
               <Pencil size={13} />
             </IconBtn>
-            <IconBtn onClick={() => void deleteSel()} title="Supprimer du serveur (définitif)" disabled={busy || selected.length === 0} danger>
+            <IconBtn
+              onClick={() => void deleteSel()}
+              title={t('Supprimer du serveur (définitif)')}
+              disabled={busy || selected.length === 0}
+              danger
+            >
               <Trash2 size={13} />
             </IconBtn>
           </div>
@@ -584,37 +631,40 @@ export default function RemoteExplorer(): JSX.Element | null {
             <button
               onClick={() => void downloadSel()}
               disabled={busy || selected.length === 0}
-              title={`Télécharger la sélection distante vers ${localDir || 'le volet local'}`}
+              title={t('Télécharger la sélection distante vers {dir}', {
+                dir: localDir || t('le volet local')
+              })}
               className="flex items-center gap-1 rounded-app border border-border px-2 py-1 text-[11px] text-fg-secondary hover:bg-bg-hover disabled:opacity-40"
             >
-              <Download size={12} /> ← Télécharger{selected.length > 0 ? ` (${selected.length})` : ''}
+              <Download size={12} /> ← {t('Télécharger')}
+              {selected.length > 0 ? ` (${selected.length})` : ''}
             </button>
             <button
               onClick={() => void uploadPaths(localSel)}
               disabled={busy || localSel.length === 0}
-              title="Téléverser la sélection du volet local ici (ou glissez-déposez)"
+              title={t('Téléverser la sélection du volet local ici (ou glissez-déposez)')}
               className="flex items-center gap-1 rounded-app border border-border px-2 py-1 text-[11px] text-fg-secondary hover:bg-bg-hover disabled:opacity-40"
             >
-              <Upload size={12} /> Téléverser →{localSel.length > 0 ? ` (${localSel.length})` : ''}
+              <Upload size={12} /> {t('Téléverser')} →{localSel.length > 0 ? ` (${localSel.length})` : ''}
             </button>
             {localSingleDir && (
               <button
                 onClick={() => void uploadPaths([localSingleDir], true)}
                 disabled={busy}
-                title={`Envoyer le CONTENU de ${baseName(localSingleDir)}/ dans ${path} (sans créer le dossier — le geste « déployer dist »)`}
+                title={t('Envoyer le CONTENU de {name}/ dans {path} (sans créer le dossier — le geste « déployer dist »)', { name: baseName(localSingleDir), path })}
                 className="flex items-center gap-1 rounded-app border border-accent px-2 py-1 text-[11px] text-accent hover:bg-accent-soft disabled:opacity-40"
               >
-                <FolderInput size={12} /> Contenu de {baseName(localSingleDir)}/ →
+                <FolderInput size={12} /> {t('Contenu de {name}/ →', { name: baseName(localSingleDir) })}
               </button>
             )}
             {lastDeploy && (
               <button
                 onClick={() => void redeploy()}
                 disabled={busy}
-                title={`Rejouer le dernier envoi : ${deployLabel}`}
+                title={t('Rejouer le dernier envoi : {label}', { label: deployLabel })}
                 className="flex items-center gap-1 rounded-app bg-accent px-2 py-1 text-[11px] font-medium text-white hover:opacity-90 disabled:opacity-40"
               >
-                <Rocket size={12} /> Redéployer
+                <Rocket size={12} /> {t('Redéployer')}
               </button>
             )}
           </div>
@@ -622,11 +672,11 @@ export default function RemoteExplorer(): JSX.Element | null {
           <div className="min-h-0 flex-1 overflow-auto">
             {loading ? (
               <p className="flex items-center justify-center gap-2 py-8 text-[12px] text-fg-muted">
-                <Loader2 size={14} className="animate-spin" /> Chargement…
+                <Loader2 size={14} className="animate-spin" /> {t('Chargement…')}
               </p>
             ) : entries.length === 0 && !creating ? (
               <p className="px-3 py-10 text-center text-[13px] text-fg-muted">
-                Dossier vide — glissez des fichiers du volet local pour les téléverser.
+                {t('Dossier vide — glissez des fichiers du volet local pour les téléverser.')}
               </p>
             ) : (
               <table className="w-full text-[12px]">
@@ -639,7 +689,7 @@ export default function RemoteExplorer(): JSX.Element | null {
                       <td colSpan={4} className="px-0.5 py-1.5">
                         <input
                           autoFocus
-                          placeholder="Nom du nouveau dossier…"
+                          placeholder={t('Nom du nouveau dossier…')}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') void mkdirHere((e.target as HTMLInputElement).value)
                             if (e.key === 'Escape') setCreating(false)
@@ -661,7 +711,9 @@ export default function RemoteExplorer(): JSX.Element | null {
                         onDoubleClick={() => onActivate(entry)}
                         title={
                           entry.kind === 'file'
-                            ? `${entry.path}\nDouble-clic : modifier (ré-téléversé à la sauvegarde)`
+                            ? t('{path}\nDouble-clic : modifier (ré-téléversé à la sauvegarde)', {
+                                path: entry.path
+                              })
                             : entry.path
                         }
                         className={`cursor-default border-b border-border/40 ${
@@ -707,7 +759,7 @@ export default function RemoteExplorer(): JSX.Element | null {
                                 e.stopPropagation()
                                 void editEntry(entry)
                               }}
-                              title="Modifier (ré-téléversé à chaque sauvegarde)"
+                              title={t('Modifier (ré-téléversé à chaque sauvegarde)')}
                               className="grid h-5 w-5 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-accent"
                             >
                               <FileEdit size={12} />
@@ -745,7 +797,7 @@ export default function RemoteExplorer(): JSX.Element | null {
           )}
 
           <div className="shrink-0 border-t border-border px-3 py-1.5 text-[11px] text-fg-muted">
-            Glissez du volet local vers ici pour téléverser · téléchargements → dossier local actif
+            {t('Glissez du volet local vers ici pour téléverser · téléchargements → dossier local actif')}
           </div>
         </>
       )}

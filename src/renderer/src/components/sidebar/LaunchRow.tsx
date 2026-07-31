@@ -1,5 +1,6 @@
 import { Play, Square } from 'lucide-react'
 import type { RunnerTask } from '@shared/types'
+import { t } from '../../i18n'
 
 /** Ligne d'un lancement dans la liste repliable (Play/Stop au survol). */
 export default function LaunchRow(props: {
@@ -17,7 +18,7 @@ export default function LaunchRow(props: {
       {props.running ? (
         <button
           onClick={props.onStop}
-          title="Arrêter"
+          title={t('Arrêter')}
           className="grid h-5 w-5 shrink-0 place-items-center rounded text-danger-fg hover:bg-bg-hover"
         >
           <Square size={12} />
@@ -25,7 +26,7 @@ export default function LaunchRow(props: {
       ) : (
         <button
           onClick={props.onRun}
-          title="Lancer"
+          title={t('Lancer')}
           className="grid h-5 w-5 shrink-0 place-items-center rounded text-fg-muted opacity-0 hover:bg-bg-hover hover:text-success-fg group-hover:opacity-100"
         >
           <Play size={12} />

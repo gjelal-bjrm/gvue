@@ -3,6 +3,7 @@ import { join, dirname, basename, extname } from 'node:path'
 import { spawn } from 'node:child_process'
 import { assertAbsolute } from './filesystem'
 import { freeName } from './fileops'
+import { t } from '../i18n'
 import type { DetectedApps, ExternalAppId } from '@shared/types'
 
 /**
@@ -116,8 +117,8 @@ export async function archive(
   destDir?: string
 ): Promise<{ ok: boolean; error?: string }> {
   const exe = sevenZip()
-  if (!exe) return { ok: false, error: '7-Zip introuvable.' }
-  if (paths.length === 0) return { ok: false, error: 'Aucun élément.' }
+  if (!exe) return { ok: false, error: t('7-Zip introuvable.') }
+  if (paths.length === 0) return { ok: false, error: t('Aucun élément.') }
   const safe = paths.map((p) => assertAbsolute(p))
   const parent = dirname(safe[0])
   const outParent = destDir ? assertAbsolute(destDir) : parent
@@ -134,7 +135,7 @@ export async function extract(
   destDir?: string
 ): Promise<{ ok: boolean; error?: string }> {
   const exe = sevenZip()
-  if (!exe) return { ok: false, error: '7-Zip introuvable.' }
+  if (!exe) return { ok: false, error: t('7-Zip introuvable.') }
   const archivePath = assertAbsolute(archiveInput)
   const parent = dirname(archivePath)
   const outParent = destDir ? assertAbsolute(destDir) : parent

@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { Sparkles, X } from 'lucide-react'
+import { t } from '../i18n'
 import { useUiStore } from '../state/useUiStore'
 import { useUpdateStore } from '../state/useUpdateStore'
 import Logo from './Logo'
@@ -47,9 +48,9 @@ export default function WhatsNew(): JSX.Element | null {
           <Logo size={22} />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 text-[14px] font-medium text-fg">
-              <Sparkles size={15} className="text-accent" /> Nouveautés de GVue
+              <Sparkles size={15} className="text-accent" /> {t('Nouveautés de GVue')}
             </div>
-            {version && <div className="text-[11px] text-fg-muted">version {version}</div>}
+            {version && <div className="text-[11px] text-fg-muted">{t('version {version}', { version })}</div>}
           </div>
           <button
             onClick={close}
@@ -61,7 +62,7 @@ export default function WhatsNew(): JSX.Element | null {
 
         <div className="min-h-0 flex-1 overflow-auto p-4 text-[13px]">
           {shown.length === 0 ? (
-            <p className="text-fg-muted">Aucune note de version disponible.</p>
+            <p className="text-fg-muted">{t('Aucune note de version disponible.')}</p>
           ) : (
             shown.map((r) => (
               <div key={r.version} className="mb-4 last:mb-0">
@@ -69,7 +70,7 @@ export default function WhatsNew(): JSX.Element | null {
                   v{r.version}
                 </div>
                 {r.notes.length === 0 ? (
-                  <p className="text-fg-muted">Mise à jour appliquée.</p>
+                  <p className="text-fg-muted">{t('Mise à jour appliquée.')}</p>
                 ) : (
                   <ul className="space-y-1.5">
                     {r.notes.map((n, i) => (
@@ -90,7 +91,7 @@ export default function WhatsNew(): JSX.Element | null {
             onClick={close}
             className="rounded-app bg-accent px-3 py-1.5 text-[12px] font-medium text-white hover:opacity-90"
           >
-            Super, merci !
+            {t('Super, merci !')}
           </button>
         </div>
       </div>

@@ -15,6 +15,7 @@ import { pathKey } from '../../lib/format'
 import { computeGraph, laneColor, parseRefs, relativeDate, type GraphRow } from '../../lib/gitGraph'
 import DiffView from './DiffView'
 import { badge } from './badge'
+import { t, tn } from '../../i18n'
 
 // Géométrie du graphe : hauteur de rangée fixe pour aligner lignes et points.
 const ROW_H = 44
@@ -107,7 +108,7 @@ export default function GitHistory({ root }: { root: string }): JSX.Element {
               <input
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
-                placeholder="Filtrer (message, auteur, hash)…"
+                placeholder={t('Filtrer (message, auteur, hash)…')}
                 spellCheck={false}
                 className="min-w-0 flex-1 bg-transparent text-[12px] text-fg outline-none placeholder:text-fg-muted"
               />
@@ -124,8 +125,8 @@ export default function GitHistory({ root }: { root: string }): JSX.Element {
               onClick={() => setAllBranches((v) => !v)}
               title={
                 allBranches
-                  ? 'Afficher uniquement la branche courante'
-                  : 'Afficher toutes les branches (graphe complet)'
+                  ? t('Afficher uniquement la branche courante')
+                  : t('Afficher toutes les branches (graphe complet)')
               }
               className={`flex h-7 shrink-0 items-center gap-1 rounded-app border px-1.5 text-[11px] ${
                 allBranches
@@ -133,18 +134,18 @@ export default function GitHistory({ root }: { root: string }): JSX.Element {
                   : 'border-border text-fg-muted hover:bg-bg-hover hover:text-fg'
               }`}
             >
-              <GitBranch size={12} /> Toutes
+              <GitBranch size={12} /> {t('Toutes')}
             </button>
           </div>
 
           <div className="min-h-0 flex-1 overflow-auto">
             {loading && commits.length === 0 ? (
               <p className="flex items-center justify-center gap-1.5 px-3 py-4 text-[12px] text-fg-muted">
-                <Loader2 size={13} className="animate-spin" /> Chargement…
+                <Loader2 size={13} className="animate-spin" /> {t('Chargement…')}
               </p>
             ) : visible.length === 0 ? (
               <p className="px-3 py-3 text-center text-[12px] text-fg-muted">
-                {q ? 'Aucun commit ne correspond au filtre.' : 'Aucun commit.'}
+                {q ? t('Aucun commit ne correspond au filtre.') : t('Aucun commit.')}
               </p>
             ) : (
               visible.map(({ c, row }) => (
@@ -165,7 +166,7 @@ export default function GitHistory({ root }: { root: string }): JSX.Element {
                 disabled={loading}
                 className="my-1.5 block w-full py-1.5 text-center text-[12px] text-accent hover:bg-bg-hover disabled:opacity-50"
               >
-                {loading ? 'Chargement…' : 'Charger plus de commits'}
+                {loading ? t('Chargement…') : t('Charger plus de commits')}
               </button>
             )}
           </div>
@@ -190,7 +191,7 @@ export default function GitHistory({ root }: { root: string }): JSX.Element {
                   </span>
                   <button
                     onClick={() => void navigator.clipboard?.writeText(selCommit.hash)}
-                    title="Copier le hash complet"
+                    title={t('Copier le hash complet')}
                     className="flex shrink-0 items-center gap-1 rounded px-1 font-mono hover:bg-bg-hover hover:text-fg"
                   >
                     {selCommit.shortHash} <Copy size={11} />
@@ -205,10 +206,10 @@ export default function GitHistory({ root }: { root: string }): JSX.Element {
               <div className="shrink-0 px-3 py-1 text-[11px] uppercase tracking-wider text-fg-muted">
                 {loadingFiles ? (
                   <span className="flex items-center gap-1.5">
-                    <Loader2 size={11} className="animate-spin" /> Chargement…
+                    <Loader2 size={11} className="animate-spin" /> {t('Chargement…')}
                   </span>
                 ) : (
-                  `${files.length} fichier${files.length > 1 ? 's' : ''} modifié${files.length > 1 ? 's' : ''}`
+                  tn(files.length, '{n} fichier modifié', '{n} fichiers modifiés')
                 )}
               </div>
               <div className="min-h-0 flex-1 overflow-auto p-1.5">
@@ -239,7 +240,7 @@ export default function GitHistory({ root }: { root: string }): JSX.Element {
             </>
           ) : (
             <div className="flex h-full items-center justify-center px-4 text-center text-[12px] text-fg-muted">
-              Sélectionnez un commit pour voir ses fichiers.
+              {t('Sélectionnez un commit pour voir ses fichiers.')}
             </div>
           )}
         </div>
@@ -252,7 +253,7 @@ export default function GitHistory({ root }: { root: string }): JSX.Element {
         <div className="flex h-full flex-col">
           {!selFile ? (
             <div className="flex h-full items-center justify-center text-[12px] text-fg-muted">
-              {selCommit ? 'Sélectionnez un fichier pour voir le diff.' : ''}
+              {selCommit ? t('Sélectionnez un fichier pour voir le diff.') : ''}
             </div>
           ) : (
             <div className="min-h-0 flex-1 overflow-auto p-2">
@@ -263,7 +264,7 @@ export default function GitHistory({ root }: { root: string }): JSX.Element {
                 <DiffView diff={diff} />
               ) : (
                 <p className="px-1 text-[12px] text-fg-muted">
-                  Pas de diff textuel (fichier binaire, vide, ou renommage sans modification).
+                  {t('Pas de diff textuel (fichier binaire, vide, ou renommage sans modification).')}
                 </p>
               )}
             </div>

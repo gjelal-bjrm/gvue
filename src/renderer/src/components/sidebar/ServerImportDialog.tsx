@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { DownloadCloud, X, Loader2, Server } from 'lucide-react'
 import type { SshHost } from '@shared/types'
 import { sshSubtitle } from '../../lib/ssh'
+import { t } from '../../i18n'
 
 /**
  * Import des sessions PuTTY/WinSCP — le dialogue façon WinSCP, en mieux :
@@ -85,7 +86,7 @@ export default function ServerImportDialog(props: {
               className={`flex cursor-pointer items-center gap-2 rounded-app px-1.5 py-1 hover:bg-bg-hover ${
                 already ? 'opacity-50' : ''
               }`}
-              title={already ? 'Un serveur de ce nom existe déjà dans GVue' : sshSubtitle(h)}
+              title={already ? t('Un serveur de ce nom existe déjà dans GVue') : sshSubtitle(h)}
             >
               <input
                 type="checkbox"
@@ -114,10 +115,10 @@ export default function ServerImportDialog(props: {
       >
         <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-3">
           <DownloadCloud size={15} className="text-accent" />
-          <span className="text-[13px] font-medium text-fg">Importer des serveurs</span>
+          <span className="text-[13px] font-medium text-fg">{t('Importer des serveurs')}</span>
           <button
             onClick={props.onClose}
-            title="Fermer (Échap)"
+            title={t('Fermer (Échap)')}
             className="ml-auto grid h-6 w-6 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg"
           >
             <X size={15} />
@@ -127,18 +128,17 @@ export default function ServerImportDialog(props: {
         <div className="min-h-0 flex-1 overflow-auto p-2">
           {!sources ? (
             <p className="flex items-center justify-center gap-2 py-8 text-[12px] text-fg-muted">
-              <Loader2 size={14} className="animate-spin" /> Recherche des sessions PuTTY/WinSCP…
+              <Loader2 size={14} className="animate-spin" /> {t('Recherche des sessions PuTTY/WinSCP…')}
             </p>
           ) : total === 0 ? (
             <p className="px-3 py-8 text-center text-[12px] text-fg-muted">
-              Aucune session PuTTY ou WinSCP trouvée sur cette machine
-              (registre et WinSCP.ini vérifiés).
+              {t('Aucune session PuTTY ou WinSCP trouvée sur cette machine (registre et WinSCP.ini vérifiés).')}
             </p>
           ) : (
             <>
               <Group title="PuTTY" source="putty" hosts={sources.putty} />
               <Group title="WinSCP" source="winscp" hosts={sources.winscp} />
-              <Group title="Fichier ~/.ssh/config" source="sshConfig" hosts={sources.sshConfig} />
+              <Group title={t('Fichier ~/.ssh/config')} source="sshConfig" hosts={sources.sshConfig} />
             </>
           )}
         </div>
@@ -159,12 +159,11 @@ export default function ServerImportDialog(props: {
               }}
               className="mb-2 text-[11px] text-fg-muted hover:text-fg"
             >
-              {checked.size > 0 ? 'Tout décocher' : 'Tout cocher'}
+              {checked.size > 0 ? t('Tout décocher') : t('Tout cocher')}
             </button>
           )}
           <p className="mb-2 text-[11px] text-fg-muted">
-            Nom, hôte, utilisateur et port uniquement — les mots de passe ne sont jamais
-            importés : GVue utilise vos clés SSH ou le demande à la connexion.
+            {t('Nom, hôte, utilisateur et port uniquement — les mots de passe ne sont jamais importés : GVue utilise vos clés SSH ou le demande à la connexion.')}
           </p>
           <div className="flex gap-1.5">
             <button
@@ -172,13 +171,13 @@ export default function ServerImportDialog(props: {
               disabled={checked.size === 0}
               className="flex flex-1 items-center justify-center gap-1.5 rounded-app bg-accent px-2 py-1.5 text-[12px] font-medium text-white hover:opacity-90 disabled:opacity-40"
             >
-              Importer ({checked.size})
+              {t('Importer ({count})', { count: checked.size })}
             </button>
             <button
               onClick={props.onClose}
               className="flex-1 rounded-app border border-border px-2 py-1.5 text-[12px] text-fg-secondary hover:bg-bg-hover"
             >
-              Annuler
+              {t('Annuler')}
             </button>
           </div>
         </div>

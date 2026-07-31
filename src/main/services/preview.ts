@@ -1,6 +1,7 @@
 import { promises as fs } from 'node:fs'
 import * as path from 'node:path'
 import { assertAbsolute } from './filesystem'
+import { t } from '../i18n'
 import type { PreviewData, PreviewKind } from '@shared/types'
 
 /**
@@ -100,7 +101,7 @@ export async function readPreview(input: string): Promise<PreviewData> {
   // Image → data URL (bornée en taille).
   if (IMG_MIME[ext]) {
     if (st.size > IMAGE_MAX) {
-      return { ...base, kind: 'binary', lang: ext, note: 'Image trop volumineuse pour l’aperçu.' }
+      return { ...base, kind: 'binary', lang: ext, note: t('Image trop volumineuse pour l’aperçu.') }
     }
     const buf = await fs.readFile(file)
     return { ...base, kind: 'image', lang: ext, content: `data:${IMG_MIME[ext]};base64,${buf.toString('base64')}` }
@@ -119,7 +120,7 @@ export async function readPreview(input: string): Promise<PreviewData> {
   }
 
   if (kind === 'binary') {
-    return { ...base, kind: 'binary', lang: ext, note: 'Fichier binaire — aperçu indisponible.' }
+    return { ...base, kind: 'binary', lang: ext, note: t('Fichier binaire — aperçu indisponible.') }
   }
 
   const { text, truncated } = await readHead(file, st.size, TEXT_MAX)

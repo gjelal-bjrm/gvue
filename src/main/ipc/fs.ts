@@ -9,6 +9,7 @@ import { justRecipes } from '../services/justfile'
 import { pushRecent, pushRecentFile, getConfig } from '../services/config-store'
 import { watchDir } from '../services/fs-watch'
 import { pushUndo, undoLast, peekUndo } from '../services/undo-stack'
+import { t } from '../i18n'
 
 // Icône minimale pour le glisser-déposer natif (startDrag exige une icône non vide).
 const DRAG_ICON = nativeImage
@@ -188,7 +189,11 @@ export function registerFsHandlers(): void {
 
   ipcMain.handle(IPC.fsMakeDirs, async (_e, baseDir: string, rels: string[]) => {
     const res = await filesystem.makeDirs(baseDir, rels)
-    pushUndo({ kind: 'create', label: `Création de ${res.created} dossier(s)`, paths: res.paths })
+    pushUndo({
+      kind: 'create',
+      label: t('Création de {n} dossier(s)', { n: res.created }),
+      paths: res.paths
+    })
     return res
   })
 
@@ -226,7 +231,7 @@ export function registerFsHandlers(): void {
     if (!wc.isDestroyed()) wc.send(IPC.fsOnCopyProgress, null)
     pushUndo({
       kind: 'copy',
-      label: `Copie de ${res.ok} élément(s)`,
+      label: t('Copie de {n} élément(s)', { n: res.ok }),
       paths: (res.ops ?? []).map((o) => o.to)
     })
     return res
@@ -238,7 +243,11 @@ export function registerFsHandlers(): void {
     const paths = await applyConflictMode(rawPaths, destDir, mode)
     if (paths.length === 0) return { ok: 0, errors: [], ops: [] }
     const res = await fileops.move(paths, destDir)
-    pushUndo({ kind: 'move', label: `Déplacement de ${res.ok} élément(s)`, pairs: res.ops ?? [] })
+    pushUndo({
+      kind: 'move',
+      label: t('Déplacement de {n} élément(s)', { n: res.ok }),
+      pairs: res.ops ?? []
+    })
     return res
   })
 
@@ -248,7 +257,7 @@ export function registerFsHandlers(): void {
     if (res.ok && res.path && res.path !== from) {
       pushUndo({
         kind: 'rename',
-        label: `Renommage de « ${basename(from)} »`,
+        label: t('Renommage de « {name} »', { name: basename(from) }),
         pairs: [{ from, to: res.path }]
       })
     }
@@ -257,7 +266,11 @@ export function registerFsHandlers(): void {
 
   ipcMain.handle(IPC.fsRenameMany, async (_e, paths: string[], newNames: string[]) => {
     const res = await fileops.renameMany(paths, newNames)
-    pushUndo({ kind: 'rename', label: `Renommage de ${res.ok} élément(s)`, pairs: res.ops ?? [] })
+    pushUndo({
+      kind: 'rename',
+      label: t('Renommage de {n} élément(s)', { n: res.ok }),
+      pairs: res.ops ?? []
+    })
     return res
   })
 
@@ -284,7 +297,7 @@ export function registerFsHandlers(): void {
       const dir = destDir ? filesystem.assertAbsolute(destDir) : dirname(target)
       const link = await fileops.freeName(dir, `${basename(target)} - Raccourci.lnk`)
       const ok = shell.writeShortcutLink(link, 'create', { target })
-      return ok ? { ok: true, path: link } : { ok: false, error: 'Échec de création du raccourci.' }
+      return ok ? { ok: true, path: link } : { ok: false, error: t('Échec de création du raccourci.') }
     } catch (e) {
       return { ok: false, error: e instanceof Error ? e.message : String(e) }
     }

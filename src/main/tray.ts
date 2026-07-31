@@ -9,6 +9,7 @@ import { createWindow } from './window'
 import { appIconPath } from './icon'
 import { checkForUpdates } from './services/updater'
 import { readSshConfigHosts } from './services/ssh-config'
+import { t } from './i18n'
 import type { SshHost } from '@shared/types'
 
 // Hôtes du ~/.ssh/config, rafraîchis à chaque ouverture du menu (lecture
@@ -94,7 +95,7 @@ function buildMenu(): Menu {
 
   // Garantit un sous-menu non vide (sinon Electron masque l'entrée).
   const orEmpty = (items: Electron.MenuItemConstructorOptions[]): Electron.MenuItemConstructorOptions[] =>
-    items.length ? items : [{ label: '(vide)', enabled: false }]
+    items.length ? items : [{ label: t('(vide)'), enabled: false }]
 
   const folderItem = (p: string): Electron.MenuItemConstructorOptions => ({
     label: basename(p) || p,
@@ -111,13 +112,13 @@ function buildMenu(): Menu {
       label: basename(root) || root,
       toolTip: root,
       submenu: [
-        { label: 'Ouvrir le dossier', click: () => sendToWindow(IPC.trayOpenPath, root) },
+        { label: t('Ouvrir le dossier'), click: () => sendToWindow(IPC.trayOpenPath, root) },
         {
-          label: 'Démarrer',
+          label: t('Démarrer'),
           toolTip: cmd,
           click: () => void runExternal(cmd, root, `GVue — ${basename(root)}`)
         },
-        { label: 'Démarrer dans GVue', toolTip: cmd, click: () => sendToWindow(IPC.trayRunProject, root) }
+        { label: t('Démarrer dans GVue'), toolTip: cmd, click: () => sendToWindow(IPC.trayRunProject, root) }
       ]
     }
   }
@@ -127,8 +128,8 @@ function buildMenu(): Menu {
     label: h.name,
     toolTip: h.hostName ?? h.name,
     submenu: [
-      { label: 'Terminal SSH', click: () => sendToWindow(IPC.trayOpenSsh, h) },
-      { label: 'Fichiers (SFTP)', click: () => sendToWindow(IPC.trayBrowseSsh, h) }
+      { label: t('Terminal SSH'), click: () => sendToWindow(IPC.trayOpenSsh, h) },
+      { label: t('Fichiers (SFTP)'), click: () => sendToWindow(IPC.trayBrowseSsh, h) }
     ]
   })
   // Respecte le réglage « import à la demande » et évite les doublons.
@@ -140,22 +141,22 @@ function buildMenu(): Menu {
   ]
 
   return Menu.buildFromTemplate([
-    { label: 'Ouvrir GVue', click: () => showWindow() },
+    { label: t('Ouvrir GVue'), click: () => showWindow() },
     { type: 'separator' },
-    { label: 'Accès rapide', submenu: orEmpty(topFolders.map(folderItem)) },
-    { label: 'Projets', submenu: orEmpty(projectRoots.map(projectItem)) },
-    { label: 'SSH / SFTP', submenu: orEmpty(servers.map(serverItem)) },
+    { label: t('Accès rapide'), submenu: orEmpty(topFolders.map(folderItem)) },
+    { label: t('Projets'), submenu: orEmpty(projectRoots.map(projectItem)) },
+    { label: t('SSH / SFTP'), submenu: orEmpty(servers.map(serverItem)) },
     {
-      label: 'Lancements',
+      label: t('Lancements'),
       submenu: orEmpty([
-        ...tasks.map((t) => ({
-          label: t.name,
-          click: () => sendToWindow(IPC.trayRunTask, t.id)
+        ...tasks.map((task) => ({
+          label: task.name,
+          click: () => sendToWindow(IPC.trayRunTask, task.id)
         })),
         ...(profiles.length
           ? ([{ type: 'separator' as const }] as Electron.MenuItemConstructorOptions[]).concat(
               profiles.map((p) => ({
-                label: `Profil : ${p.name}`,
+                label: t('Profil : {name}', { name: p.name }),
                 click: () => sendToWindow(IPC.trayRunTask, p.id)
               }))
             )
@@ -163,7 +164,7 @@ function buildMenu(): Menu {
       ])
     },
     {
-      label: 'Espaces de travail',
+      label: t('Espaces de travail'),
       submenu: orEmpty(
         Object.keys(workspaces).map((n) => ({
           label: n,
@@ -172,10 +173,10 @@ function buildMenu(): Menu {
       )
     },
     { type: 'separator' },
-    { label: 'Vérifier les mises à jour', click: () => checkForUpdates(true) },
-    { label: `Version ${app.getVersion()}`, enabled: false },
+    { label: t('Vérifier les mises à jour'), click: () => checkForUpdates(true) },
+    { label: t('Version {v}', { v: app.getVersion() }), enabled: false },
     { type: 'separator' },
-    { label: 'Quitter GVue', click: () => app.quit() }
+    { label: t('Quitter GVue'), click: () => app.quit() }
   ])
 }
 

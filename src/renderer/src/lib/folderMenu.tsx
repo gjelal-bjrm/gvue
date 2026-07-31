@@ -14,6 +14,7 @@ import { useNavStore } from '../state/useNavStore'
 import { useUiStore } from '../state/useUiStore'
 import { useTerminalStore } from '../state/useTerminalStore'
 import { useFavoritesStore } from '../state/useFavoritesStore'
+import { t } from '../i18n'
 
 /**
  * Menu contextuel commun pour un dossier (sidebar, arbre, favoris, projets).
@@ -28,38 +29,38 @@ export function buildFolderMenu(dir: string): MenuEntry[] {
     void useTerminalStore.getState().openTab(undefined, dir)
   }
   return [
-    { label: 'Ouvrir', icon: <FolderOpen size={14} />, onClick: () => useNavStore.getState().navigate(dir) },
-    { label: 'Ouvrir un terminal ici', icon: <TerminalSquare size={14} />, onClick: openTerminalHere },
+    { label: t('Ouvrir'), icon: <FolderOpen size={14} />, onClick: () => useNavStore.getState().navigate(dir) },
+    { label: t('Ouvrir un terminal ici'), icon: <TerminalSquare size={14} />, onClick: openTerminalHere },
     { type: 'sep' },
     {
-      label: 'Créer des dossiers… (en lot)',
+      label: t('Créer des dossiers… (en lot)'),
       icon: <FolderPlus size={14} />,
       onClick: () => useUiStore.getState().setFolderCreator(true, dir)
     },
     {
-      label: "Analyser l'espace disque",
+      label: t("Analyser l'espace disque"),
       icon: <PieChart size={14} />,
       onClick: () => useUiStore.getState().setDiskUsage(dir)
     },
     { type: 'sep' },
     {
-      label: 'Copier le chemin',
+      label: t('Copier le chemin'),
       icon: <Copy size={14} />,
       onClick: () => void navigator.clipboard?.writeText(dir)
     },
     {
-      label: "Révéler dans l'explorateur",
+      label: t("Révéler dans l'explorateur"),
       icon: <ExternalLink size={14} />,
       onClick: () => void window.api.fs.reveal(dir)
     },
     { type: 'sep' },
     {
-      label: isFav ? 'Retirer des favoris' : 'Ajouter aux favoris',
+      label: isFav ? t('Retirer des favoris') : t('Ajouter aux favoris'),
       icon: isFav ? <StarOff size={14} /> : <Star size={14} />,
       onClick: () => fav.toggle(dir)
     },
     {
-      label: 'Propriétés',
+      label: t('Propriétés'),
       icon: <Info size={14} />,
       onClick: () => window.api.apps.properties(dir)
     }

@@ -1,5 +1,6 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { assertAbsolute } from './filesystem'
+import { t } from '../i18n'
 import type { SearchOptions, SearchMatch, SearchDone } from '@shared/types'
 
 /**
@@ -36,9 +37,7 @@ function resolveRgPath(): string {
     rgPath = require.resolve(`${pkg}/bin/${binaryName}`).replace('app.asar', 'app.asar.unpacked')
     return rgPath
   } catch {
-    loadError =
-      "Le binaire « ripgrep » est introuvable. Installez la dépendance avec " +
-      '« npm install @vscode/ripgrep » pour activer la recherche.'
+    loadError = t('Le binaire « ripgrep » est introuvable. Installez la dépendance avec « npm install @vscode/ripgrep » pour activer la recherche.')
     throw new Error(loadError)
   }
 }
@@ -126,7 +125,7 @@ export function startSearch(
   }
 
   if (!opts.query) {
-    onDone(searchId, doneError('Motif de recherche vide.'))
+    onDone(searchId, doneError(t('Motif de recherche vide.')))
     return
   }
 

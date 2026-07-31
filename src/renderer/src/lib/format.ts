@@ -1,4 +1,5 @@
 import type { DirEntry } from '@shared/types'
+import { t } from '../i18n'
 
 /** Joint un nom d'enfant à un chemin parent en devinant le séparateur. */
 export function childPath(parent: string, name: string): string {
@@ -36,8 +37,8 @@ export function relativeTo(base: string, full: string): string {
 /** Formate une taille en octets de façon lisible. */
 export function formatSize(bytes: number, kind: DirEntry['kind']): string {
   if (kind === 'directory') return ''
-  if (bytes < 1024) return `${bytes} o`
-  const units = ['Ko', 'Mo', 'Go', 'To']
+  if (bytes < 1024) return `${bytes} ${t('o')}`
+  const units = [t('Ko'), t('Mo'), t('Go'), t('To')]
   let value = bytes / 1024
   let i = 0
   while (value >= 1024 && i < units.length - 1) {
@@ -49,8 +50,8 @@ export function formatSize(bytes: number, kind: DirEntry['kind']): string {
 
 /** Formate un nombre d'octets de façon lisible (sans filtrer les dossiers). */
 export function fmtBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} o`
-  const units = ['Ko', 'Mo', 'Go', 'To']
+  if (bytes < 1024) return `${bytes} ${t('o')}`
+  const units = [t('Ko'), t('Mo'), t('Go'), t('To')]
   let value = bytes / 1024
   let i = 0
   while (value >= 1024 && i < units.length - 1) {
@@ -88,7 +89,7 @@ export function formatRelativeDate(ms: number): string {
   if (diffDays <= 0) {
     return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
   }
-  if (diffDays === 1) return 'hier'
+  if (diffDays === 1) return t('hier')
   if (diffDays < 7) {
     return d.toLocaleDateString(undefined, { weekday: 'short' })
   }

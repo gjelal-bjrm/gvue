@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { ShellInfo } from '@shared/types'
 import { useNavStore, activePane } from './useNavStore'
 import { disposeTerminal } from '../lib/terminalBridge'
+import { t } from '../i18n'
 
 export interface TermTab {
   /** Identifiant d'onglet = ptyId (unique). */
@@ -97,7 +98,7 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
     const shell =
       list.find((s) => s.id === shellId) ?? list.find((s) => s.id === def) ?? list[0]
     if (!shell) {
-      set({ error: 'Aucun shell disponible.' })
+      set({ error: t('Aucun shell disponible.') })
       return
     }
     const cwd = explicitCwd || activePane(useNavStore.getState()).path || shell.path
@@ -112,8 +113,10 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
       // Marque l'onglet comme terminé quand le process se ferme, puis se désabonne.
       const disposeExit = window.api.terminal.onExit(ptyId, () => {
         set((s) => ({
-          tabs: s.tabs.map((t) =>
-            t.id === ptyId ? { ...t, exited: true, title: `${t.shell.label} (terminé)` } : t
+          tabs: s.tabs.map((tab) =>
+            tab.id === ptyId
+              ? { ...tab, exited: true, title: t('{label} (terminé)', { label: tab.shell.label }) }
+              : tab
           )
         }))
         disposeExit()
@@ -146,7 +149,7 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
       list.find((s) => s.id === get().defaultShellId) ??
       list[0]
     if (!shell) {
-      set({ error: 'Aucun shell disponible.' })
+      set({ error: t('Aucun shell disponible.') })
       return null
     }
     try {
@@ -162,7 +165,9 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
       })
       const disposeExit = window.api.terminal.onExit(ptyId, () => {
         set((s) => ({
-          tabs: s.tabs.map((t) => (t.id === ptyId ? { ...t, exited: true, title: `${title} (terminé)` } : t))
+          tabs: s.tabs.map((tab) =>
+            tab.id === ptyId ? { ...tab, exited: true, title: t('{title} (terminé)', { title }) } : tab
+          )
         }))
         disposeExit()
       })

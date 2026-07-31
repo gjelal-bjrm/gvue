@@ -502,6 +502,8 @@ export interface AppConfig {
   defaultShell: string
   /** Dernière version dont les « nouveautés » ont été vues (pour la pop-up de MAJ). */
   lastSeenVersion: string
+  /** Langue de l'interface : « auto » suit la langue du système. */
+  language: 'auto' | 'fr' | 'en'
   hideGitIgnored: boolean
   /** Rouvrir les dossiers de la dernière session au démarrage. */
   restoreSession: boolean

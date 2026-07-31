@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Server, X, Check, Info, ChevronRight, ChevronDown } from 'lucide-react'
 import type { SshHost } from '@shared/types'
 import { hostKeyOf, parseForwards, describeForward, forwardsToText } from '../../lib/ssh'
+import { t } from '../../i18n'
 
 /**
  * Dialogue d'ajout d'un serveur SSH/SFTP : un champ = un libellé + une aide,
@@ -111,11 +112,11 @@ export default function ServerAddForm(props: {
         <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-3">
           <Server size={15} className="text-accent" />
           <span className="text-[13px] font-medium text-fg">
-            {e ? `Modifier « ${e.name} »` : 'Ajouter un serveur'}
+            {e ? t('Modifier « {name} »', { name: e.name }) : t('Ajouter un serveur')}
           </span>
           <button
             onClick={props.onClose}
-            title="Fermer (Échap)"
+            title={t('Fermer (Échap)')}
             className="ml-auto grid h-6 w-6 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg"
           >
             <X size={15} />
@@ -124,8 +125,8 @@ export default function ServerAddForm(props: {
 
         <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto p-4">
           <Field
-            label="Serveur (hôte ou IP)"
-            hint="Ex. : serveur.exemple.com ou 192.168.1.10 — « user@hôte » est accepté aussi."
+            label={t('Serveur (hôte ou IP)')}
+            hint={t('Ex. : serveur.exemple.com ou 192.168.1.10 — « user@hôte » est accepté aussi.')}
             required
           >
             <input
@@ -133,7 +134,7 @@ export default function ServerAddForm(props: {
               value={hostName}
               onChange={(e) => setHostName(e.target.value)}
               onKeyDown={onKey}
-              placeholder="serveur.exemple.com"
+              placeholder={t('serveur.exemple.com')}
               spellCheck={false}
               className={field}
             />
@@ -141,7 +142,7 @@ export default function ServerAddForm(props: {
 
           <div className="flex gap-2">
             <div className="min-w-0 flex-1">
-              <Field label="Utilisateur" hint="Compte de connexion (root, ubuntu, deploy…).">
+              <Field label={t('Utilisateur')} hint={t('Compte de connexion (root, ubuntu, deploy…).')}>
                 <input
                   value={user}
                   onChange={(e) => setUser(e.target.value)}
@@ -153,7 +154,7 @@ export default function ServerAddForm(props: {
               </Field>
             </div>
             <div className="w-24 shrink-0">
-              <Field label="Port" hint="22 par défaut.">
+              <Field label={t('Port')} hint={t('22 par défaut.')}>
                 <input
                   value={port}
                   onChange={(e) => setPort(e.target.value.replace(/\D/g, ''))}
@@ -166,25 +167,25 @@ export default function ServerAddForm(props: {
             </div>
           </div>
 
-          <Field label="Libellé" hint="Nom affiché dans la liste. Vide = le nom d'hôte.">
+          <Field label={t('Libellé')} hint={t("Nom affiché dans la liste. Vide = le nom d'hôte.")}>
             <input
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               onKeyDown={onKey}
-              placeholder="Prod — site vitrine"
+              placeholder={t('Prod — site vitrine')}
               spellCheck={false}
               className={field}
             />
           </Field>
 
           <Field
-            label="Mot de passe (facultatif)"
+            label={t('Mot de passe (facultatif)')}
             hint={
               canSave
                 ? e
-                  ? "Laissez vide pour conserver l'existant. S'il est saisi, il est chiffré par Windows."
-                  : "Laissez vide pour qu'il soit demandé à la connexion. S'il est saisi, il est chiffré par Windows — les clés SSH restent plus sûres."
-                : 'Chiffrement indisponible sur cette machine : le mot de passe sera demandé à chaque connexion.'
+                  ? t("Laissez vide pour conserver l'existant. S'il est saisi, il est chiffré par Windows.")
+                  : t("Laissez vide pour qu'il soit demandé à la connexion. S'il est saisi, il est chiffré par Windows — les clés SSH restent plus sûres.")
+                : t('Chiffrement indisponible sur cette machine : le mot de passe sera demandé à chaque connexion.')
             }
           >
             <input
@@ -193,14 +194,14 @@ export default function ServerAddForm(props: {
               onChange={(e) => setPassword(e.target.value)}
               onKeyDown={onKey}
               disabled={!canSave}
-              placeholder={canSave ? '••••••••' : 'indisponible'}
+              placeholder={canSave ? '••••••••' : t('indisponible')}
               className={`${field} disabled:opacity-50`}
             />
           </Field>
 
           <Field
-            label="Tunnels (redirections de port)"
-            hint="Une par ligne. « 3001:localhost:3001 » rend le service distant accessible sur http://localhost:3001. Préfixez par R (distant) ou D (proxy SOCKS)."
+            label={t('Tunnels (redirections de port)')}
+            hint={t('Une par ligne. « 3001:localhost:3001 » rend le service distant accessible sur http://localhost:3001. Préfixez par R (distant) ou D (proxy SOCKS).')}
           >
             <textarea
               value={tunnels}
@@ -225,7 +226,7 @@ export default function ServerAddForm(props: {
             className="flex items-center gap-1 text-left text-[12px] text-fg-secondary hover:text-fg"
           >
             {advancedOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
-            Options avancées
+            {t('Options avancées')}
             {!advancedOpen && (keyFile || proxyJump || x11 || compression) && (
               <span className="text-[10px] text-accent">●</span>
             )}
@@ -233,27 +234,27 @@ export default function ServerAddForm(props: {
           {advancedOpen && (
             <div className="flex flex-col gap-3 rounded-app border border-border bg-bg p-2.5">
               <Field
-                label="Clé privée"
-                hint="Chemin d'une clé OpenSSH (ex. C:\Users\vous\.ssh\id_ed25519). Les .ppk PuTTY doivent être convertis (PuTTYgen → Export OpenSSH key)."
+                label={t('Clé privée')}
+                hint={t("Chemin d'une clé OpenSSH (ex. C:\\Users\\vous\\.ssh\\id_ed25519). Les .ppk PuTTY doivent être convertis (PuTTYgen → Export OpenSSH key).")}
               >
                 <input
                   value={keyFile}
                   onChange={(ev) => setKeyFile(ev.target.value)}
                   onKeyDown={onKey}
-                  placeholder="C:\Users\vous\.ssh\id_ed25519"
+                  placeholder={t('C:\\Users\\vous\\.ssh\\id_ed25519')}
                   spellCheck={false}
                   className={`${field} font-mono`}
                 />
               </Field>
               <Field
-                label="Relais / bastion (ProxyJump)"
-                hint="« user@relais » ou « user@relais:port » — la connexion transite par cette machine. Terminal SSH uniquement pour l'instant."
+                label={t('Relais / bastion (ProxyJump)')}
+                hint={t('« user@relais » ou « user@relais:port » — la connexion transite par cette machine. Terminal SSH uniquement pour l\'instant.')}
               >
                 <input
                   value={proxyJump}
                   onChange={(ev) => setProxyJump(ev.target.value)}
                   onKeyDown={onKey}
-                  placeholder="user@bastion.exemple.com"
+                  placeholder={t('user@bastion.exemple.com')}
                   spellCheck={false}
                   className={field}
                 />
@@ -266,7 +267,7 @@ export default function ServerAddForm(props: {
                     onChange={(ev) => setKeepAlive(ev.target.checked)}
                     className="accent-[var(--accent)]"
                   />
-                  Keep-alive (recommandé — évite les déconnexions des sessions inactives)
+                  {t('Keep-alive (recommandé — évite les déconnexions des sessions inactives)')}
                 </label>
                 <label className="flex items-center gap-1.5">
                   <input
@@ -275,7 +276,7 @@ export default function ServerAddForm(props: {
                     onChange={(ev) => setX11(ev.target.checked)}
                     className="accent-[var(--accent)]"
                   />
-                  Transfert X11 (applications graphiques distantes)
+                  {t('Transfert X11 (applications graphiques distantes)')}
                 </label>
                 <label className="flex items-center gap-1.5">
                   <input
@@ -284,7 +285,7 @@ export default function ServerAddForm(props: {
                     onChange={(ev) => setCompression(ev.target.checked)}
                     className="accent-[var(--accent)]"
                   />
-                  Compression (liaisons lentes)
+                  {t('Compression (liaisons lentes)')}
                 </label>
               </div>
             </div>
@@ -293,9 +294,9 @@ export default function ServerAddForm(props: {
           <p className="flex items-start gap-1.5 rounded-app border border-border bg-bg px-2 py-1.5 text-[11px] text-fg-muted">
             <Info size={13} className="mt-px shrink-0" />
             <span>
-              Le clic ouvre un terminal SSH, l'icône dossier l'explorateur de fichiers (SFTP).
-              Les hôtes de votre <code className="font-mono">~/.ssh/config</code> apparaissent
-              automatiquement, sans passer par ce formulaire.
+              {t("Le clic ouvre un terminal SSH, l'icône dossier l'explorateur de fichiers (SFTP). Les hôtes de votre")}{' '}
+              <code className="font-mono">~/.ssh/config</code>{' '}
+              {t('apparaissent automatiquement, sans passer par ce formulaire.')}
             </span>
           </p>
         </div>
@@ -306,13 +307,13 @@ export default function ServerAddForm(props: {
             disabled={!valid}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-app bg-accent px-2 py-1.5 text-[12px] font-medium text-white hover:opacity-90 disabled:opacity-40"
           >
-            <Check size={13} /> {e ? 'Enregistrer' : 'Ajouter'}
+            <Check size={13} /> {e ? t('Enregistrer') : t('Ajouter')}
           </button>
           <button
             onClick={props.onClose}
             className="flex-1 rounded-app border border-border px-2 py-1.5 text-[12px] text-fg-secondary hover:bg-bg-hover"
           >
-            Annuler
+            {t('Annuler')}
           </button>
         </div>
       </div>

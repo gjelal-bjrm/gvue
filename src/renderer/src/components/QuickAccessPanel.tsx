@@ -19,6 +19,7 @@ import type { DirEntry, QuickAccessData } from '@shared/types'
 import { formatRelativeDate, formatDate, parentPath } from '../lib/format'
 import { fileIconSpec } from '../lib/fileIcon'
 import ContextMenu, { type MenuEntry } from './ContextMenu'
+import { t } from '../i18n'
 
 /**
  * Page « Accès rapide » (façon explorateur Windows) : dossiers fréquents et
@@ -53,9 +54,9 @@ export default function QuickAccessPanel(): JSX.Element {
     const apps = useAppsStore.getState().apps
     const isDir = entry.kind === 'directory'
     const items: MenuEntry[] = [
-      { label: 'Ouvrir', icon: <FolderOpen size={14} />, onClick: () => activate(entry) },
+      { label: t('Ouvrir'), icon: <FolderOpen size={14} />, onClick: () => activate(entry) },
       {
-        label: "Ouvrir dans l'explorateur",
+        label: t("Ouvrir dans l'explorateur"),
         icon: <ExternalLink size={14} />,
         onClick: () => void window.api.fs.reveal(entry.path)
       }
@@ -64,13 +65,13 @@ export default function QuickAccessPanel(): JSX.Element {
     const appItems: MenuEntry[] = []
     if (apps.vscode)
       appItems.push({
-        label: 'Ouvrir avec VS Code',
+        label: t('Ouvrir avec VS Code'),
         icon: <Code2 size={14} />,
         onClick: () => window.api.apps.openWith('vscode', [entry.path])
       })
     if (!isDir && apps.notepadpp)
       appItems.push({
-        label: 'Éditer avec Notepad++',
+        label: t('Éditer avec Notepad++'),
         icon: <PenLine size={14} />,
         onClick: () => window.api.apps.openWith('notepadpp', [entry.path])
       })
@@ -78,13 +79,15 @@ export default function QuickAccessPanel(): JSX.Element {
       const ext = extOf(entry.name)
       for (const exe of useOpenWithStore.getState().get(ext)) {
         appItems.push({
-          label: `Ouvrir avec ${(exe.split(/[\\/]/).pop() ?? exe).replace(/\.exe$/i, '')}`,
+          label: t('Ouvrir avec {name}', {
+            name: (exe.split(/[\\/]/).pop() ?? exe).replace(/\.exe$/i, '')
+          }),
           icon: <AppWindow size={14} />,
           onClick: () => window.api.apps.openPathWith(exe, [entry.path])
         })
       }
       appItems.push({
-        label: 'Ouvrir avec…',
+        label: t('Ouvrir avec…'),
         icon: <AppWindow size={14} />,
         onClick: async () => {
           const exe = await window.api.apps.pickProgram()
@@ -96,7 +99,7 @@ export default function QuickAccessPanel(): JSX.Element {
     }
     if (apps.sevenzip)
       appItems.push({
-        label: 'Compresser en .zip (7-Zip)',
+        label: t('Compresser en .zip (7-Zip)'),
         icon: <FileArchive size={14} />,
         onClick: () => void window.api.apps.archive([entry.path])
       })
@@ -105,12 +108,12 @@ export default function QuickAccessPanel(): JSX.Element {
     items.push(
       { type: 'sep' },
       {
-        label: 'Copier le chemin',
+        label: t('Copier le chemin'),
         icon: <Copy size={14} />,
         onClick: () => void navigator.clipboard.writeText(entry.path)
       },
       {
-        label: 'Copier le nom',
+        label: t('Copier le nom'),
         icon: <Copy size={14} />,
         onClick: () => void navigator.clipboard.writeText(entry.name)
       }
@@ -119,7 +122,7 @@ export default function QuickAccessPanel(): JSX.Element {
     if (isDir) {
       const fav = useFavoritesStore.getState()
       items.push({
-        label: fav.has(entry.path) ? 'Retirer des favoris' : 'Ajouter aux favoris',
+        label: fav.has(entry.path) ? t('Retirer des favoris') : t('Ajouter aux favoris'),
         icon: fav.has(entry.path) ? <StarOff size={14} /> : <Star size={14} />,
         onClick: () => useFavoritesStore.getState().toggle(entry.path)
       })
@@ -128,7 +131,7 @@ export default function QuickAccessPanel(): JSX.Element {
     items.push(
       { type: 'sep' },
       {
-        label: 'Supprimer (corbeille)',
+        label: t('Supprimer (corbeille)'),
         icon: <Trash2 size={14} />,
         danger: true,
         onClick: () => void window.api.fs.trash(entry.path).then(load)
@@ -151,19 +154,19 @@ export default function QuickAccessPanel(): JSX.Element {
     <div className="flex h-full flex-col bg-bg">
       <div className="flex shrink-0 items-center gap-2 border-b border-border px-3 py-2.5">
         <Star size={15} className="text-accent" />
-        <span className="text-[13px] font-medium text-fg">Accès rapide</span>
+        <span className="text-[13px] font-medium text-fg">{t('Accès rapide')}</span>
       </div>
 
       <div className="flex-1 overflow-auto p-3">
         {empty && (
           <div className="p-8 text-center text-[13px] text-fg-muted">
-            Naviguez dans des dossiers et ouvrez des fichiers pour peupler l’accès rapide.
+            {t('Naviguez dans des dossiers et ouvrez des fichiers pour peupler l’accès rapide.')}
           </div>
         )}
 
         {frequent.length > 0 && (
           <section className="mb-5">
-            <GroupTitle>Dossiers fréquents ({frequent.length})</GroupTitle>
+            <GroupTitle>{t('Dossiers fréquents ({n})', { n: frequent.length })}</GroupTitle>
             <div className="grid grid-cols-[repeat(auto-fill,minmax(190px,1fr))] gap-1.5">
               {frequent.map((e) => (
                 <FolderCard
@@ -181,7 +184,7 @@ export default function QuickAccessPanel(): JSX.Element {
 
         {recentFiles.length > 0 && (
           <section>
-            <GroupTitle>Fichiers récents ({recentFiles.length})</GroupTitle>
+            <GroupTitle>{t('Fichiers récents ({n})', { n: recentFiles.length })}</GroupTitle>
             <div className="flex flex-col">
               {recentFiles.map((e) => (
                 <FileRow

@@ -23,6 +23,7 @@ import { useShelfStore } from '../state/useShelfStore'
 import { ACCENT_SWATCHES, FONT_CHOICES } from '../theme/presets'
 import { THEMES, themeById, THEME_VAR_KEYS, hueShift } from '../theme/themes'
 import ThemeEditor from './ThemeEditor'
+import { t } from '../i18n'
 import type { Appearance, CustomTheme, UpdateStatus } from '@shared/types'
 
 /** Cartes des thèmes de base (le mode historique clair/sombre/auto). */
@@ -31,6 +32,8 @@ const BASE_THEME_CARDS: {
   label: string
   colors: { bg: string; panel: string; fg: string }
 }[] = [
+  // Libellés en français brut : ce tableau est évalué à l'import, AVANT
+  // initLang() — la traduction se fait au rendu (t(c.label)).
   { mode: 'auto', label: 'Auto', colors: { bg: '#17171c', panel: '#ffffff', fg: '#e7e7ef' } },
   { mode: 'light', label: 'Clair', colors: { bg: '#ffffff', panel: '#f5f5f7', fg: '#1c1c22' } },
   { mode: 'dark', label: 'Sombre', colors: { bg: '#17171c', panel: '#1d1d23', fg: '#e7e7ef' } }
@@ -40,21 +43,21 @@ const BASE_THEME_CARDS: {
 function updateLabel(s: UpdateStatus): string {
   switch (s.state) {
     case 'checking':
-      return 'Recherche de mises à jour…'
+      return t('Recherche de mises à jour…')
     case 'available':
-      return `Mise à jour v${s.version} disponible…`
+      return t('Mise à jour v{v} disponible…', { v: s.version })
     case 'downloading':
-      return `Téléchargement… ${s.percent}%`
+      return t('Téléchargement… {p}%', { p: s.percent })
     case 'ready':
-      return `Mise à jour v${s.version} prête — redémarrez pour installer`
+      return t('Mise à jour v{v} prête — redémarrez pour installer', { v: s.version })
     case 'none':
-      return 'À jour ✓'
+      return t('À jour ✓')
     case 'error':
-      return 'Échec de la vérification'
+      return t('Échec de la vérification')
     case 'unsupported':
-      return 'Mises à jour indisponibles (mode dev)'
+      return t('Mises à jour indisponibles (mode dev)')
     default:
-      return 'Cliquez sur « Vérifier » pour rechercher'
+      return t('Cliquez sur « Vérifier » pour rechercher')
   }
 }
 
@@ -75,11 +78,11 @@ export default function SettingsPanel(): JSX.Element {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 font-medium">
           <Settings size={16} className="text-accent" />
-          Paramètres
+          {t('Paramètres')}
         </div>
         <button
           onClick={closePanel}
-          title="Fermer le panneau"
+          title={t('Fermer le panneau')}
           className="grid h-6 w-6 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg"
         >
           <X size={15} />
@@ -90,9 +93,9 @@ export default function SettingsPanel(): JSX.Element {
       <div className="flex gap-1 rounded-app border border-border bg-bg p-0.5">
         {(
           [
-            ['appearance', 'Apparence'],
-            ['general', 'Général'],
-            ['about', 'À propos']
+            ['appearance', t('Apparence')],
+            ['general', t('Général')],
+            ['about', t('À propos')]
           ] as [Section, string][]
         ).map(([key, label]) => (
           <button
@@ -197,28 +200,27 @@ function AppearanceSection(): JSX.Element {
         ]
         patch.themeId = id
       }
-      if (Object.keys(patch).length === 0) throw new Error('aucun réglage reconnu')
+      if (Object.keys(patch).length === 0) throw new Error(t('aucun réglage reconnu'))
       update(patch)
-      useUiStore.getState().showToast('Thème importé.')
+      useUiStore.getState().showToast(t('Thème importé.'))
     } catch (e) {
-      useUiStore
-        .getState()
-        .showToast(`Import impossible : ${e instanceof Error ? e.message : 'fichier invalide'}`)
+      const msg = e instanceof Error ? e.message : t('fichier invalide')
+      useUiStore.getState().showToast(t('Import impossible : {msg}', { msg }))
     }
   }
 
   return (
     <div className="flex flex-col gap-5">
-      <Field label="Couleur d'accent">
+      <Field label={t("Couleur d'accent")}>
         <div className="flex flex-wrap gap-2">
           {ACCENT_SWATCHES.map((s) => {
             const active = appearance.accent.toLowerCase() === s.value.toLowerCase()
             return (
               <button
                 key={s.value}
-                aria-label={s.label}
+                aria-label={t(s.label)}
                 aria-pressed={active}
-                title={s.label}
+                title={t(s.label)}
                 onClick={() => update({ accent: s.value })}
                 className="grid h-[22px] w-[22px] place-items-center rounded-full border-2 transition-transform hover:scale-110"
                 style={{
@@ -232,7 +234,7 @@ function AppearanceSection(): JSX.Element {
           })}
           {/* Sélecteur libre */}
           <label
-            title="Couleur personnalisée"
+            title={t('Couleur personnalisée')}
             className="relative grid h-[22px] w-[22px] cursor-pointer place-items-center overflow-hidden rounded-full border-2 border-dashed border-border"
           >
             <input
@@ -246,56 +248,56 @@ function AppearanceSection(): JSX.Element {
         </div>
       </Field>
 
-      <Field label="Thème">
+      <Field label={t('Thème')}>
         <div className="grid grid-cols-3 gap-1.5">
           {BASE_THEME_CARDS.map((c) => (
             <ThemeCard
               key={c.mode}
-              label={c.label}
+              label={t(c.label)}
               colors={{ ...c.colors, accent: appearance.accent }}
               split={c.mode === 'auto'}
               active={appearance.themeId === '' && appearance.theme === c.mode}
               onClick={() => update({ themeId: '', theme: c.mode })}
             />
           ))}
-          {THEMES.map((t) => (
+          {THEMES.map((th) => (
             <ThemeCard
-              key={t.id}
-              label={t.label}
+              key={th.id}
+              label={t(th.label)}
               colors={{
-                bg: t.vars.bg,
-                panel: t.vars['bg-secondary'],
-                fg: t.vars.fg,
-                accent: t.accent ?? appearance.accent
+                bg: th.vars.bg,
+                panel: th.vars['bg-secondary'],
+                fg: th.vars.fg,
+                accent: th.accent ?? appearance.accent
               }}
-              active={appearance.themeId === t.id}
-              onClick={() => update({ themeId: t.id, ...(t.accent ? { accent: t.accent } : {}) })}
+              active={appearance.themeId === th.id}
+              onClick={() => update({ themeId: th.id, ...(th.accent ? { accent: th.accent } : {}) })}
             />
           ))}
-          {appearance.customThemes.map((t) => (
-            <div key={t.id} className="group relative">
+          {appearance.customThemes.map((ct) => (
+            <div key={ct.id} className="group relative">
               <ThemeCard
-                label={t.label}
+                label={ct.label}
                 colors={{
-                  bg: t.vars.bg ?? '#17171c',
-                  panel: t.vars['bg-secondary'] ?? '#1d1d23',
-                  fg: t.vars.fg ?? '#e7e7ef',
+                  bg: ct.vars.bg ?? '#17171c',
+                  panel: ct.vars['bg-secondary'] ?? '#1d1d23',
+                  fg: ct.vars.fg ?? '#e7e7ef',
                   accent: appearance.accent
                 }}
-                active={appearance.themeId === t.id}
-                onClick={() => update({ themeId: t.id })}
+                active={appearance.themeId === ct.id}
+                onClick={() => update({ themeId: ct.id })}
               />
               <div className="absolute right-0.5 top-0.5 flex gap-0.5 opacity-0 group-hover:opacity-100">
                 <button
-                  onClick={() => setEditor({ editing: t })}
-                  title="Modifier ce thème"
+                  onClick={() => setEditor({ editing: ct })}
+                  title={t('Modifier ce thème')}
                   className="grid h-[18px] w-5 place-items-center rounded bg-bg/80 text-fg-secondary hover:text-fg"
                 >
                   <Pencil size={10} />
                 </button>
                 <button
-                  onClick={() => useAppearanceStore.getState().deleteCustomTheme(t.id)}
-                  title="Supprimer ce thème"
+                  onClick={() => useAppearanceStore.getState().deleteCustomTheme(ct.id)}
+                  title={t('Supprimer ce thème')}
                   className="grid h-[18px] w-5 place-items-center rounded bg-bg/80 text-fg-secondary hover:text-danger-fg"
                 >
                   <Trash2 size={10} />
@@ -305,17 +307,20 @@ function AppearanceSection(): JSX.Element {
           ))}
           <button
             onClick={() => setEditor({ editing: null })}
-            title="Créer un thème personnalisé à partir du thème affiché"
+            title={t('Créer un thème personnalisé à partir du thème affiché')}
             className="flex min-h-[70px] flex-col items-center justify-center gap-1 rounded-app border border-dashed border-border text-fg-muted transition-colors hover:border-accent hover:text-accent"
           >
             <Plus size={15} />
-            <span className="text-[10px]">Créer</span>
+            <span className="text-[10px]">{t('Créer')}</span>
           </button>
         </div>
         {appearance.themeId !== '' && !editor && (
           <p className="mt-1.5 text-[11px] text-fg-muted">
-            {themeById(appearance.themeId)?.tagline ??
-              appearance.customThemes.find((t) => t.id === appearance.themeId)?.label}
+            {(() => {
+              const tagline = themeById(appearance.themeId)?.tagline
+              if (tagline) return t(tagline)
+              return appearance.customThemes.find((ct) => ct.id === appearance.themeId)?.label
+            })()}
           </p>
         )}
         {editor && (
@@ -323,12 +328,12 @@ function AppearanceSection(): JSX.Element {
         )}
       </Field>
 
-      <Field label="Bascule automatique jour/nuit">
+      <Field label={t('Bascule automatique jour/nuit')}>
         <Segmented<'on' | 'off'>
           value={appearance.themeSchedule.enabled ? 'on' : 'off'}
           options={[
-            { value: 'on', label: 'Activée' },
-            { value: 'off', label: 'Désactivée' }
+            { value: 'on', label: t('Activée') },
+            { value: 'off', label: t('Désactivée') }
           ]}
           onChange={(v) =>
             update({ themeSchedule: { ...appearance.themeSchedule, enabled: v === 'on' } })
@@ -337,7 +342,7 @@ function AppearanceSection(): JSX.Element {
         {appearance.themeSchedule.enabled && (
           <div className="mt-2 flex flex-col gap-1.5">
             <ScheduleRow
-              label="Jour dès"
+              label={t('Jour dès')}
               time={appearance.themeSchedule.dayFrom}
               theme={appearance.themeSchedule.day}
               customs={appearance.customThemes}
@@ -345,7 +350,7 @@ function AppearanceSection(): JSX.Element {
               onTheme={(v) => update({ themeSchedule: { ...appearance.themeSchedule, day: v } })}
             />
             <ScheduleRow
-              label="Nuit dès"
+              label={t('Nuit dès')}
               time={appearance.themeSchedule.nightFrom}
               theme={appearance.themeSchedule.night}
               customs={appearance.customThemes}
@@ -358,18 +363,18 @@ function AppearanceSection(): JSX.Element {
         )}
       </Field>
 
-      <Field label="Densité">
+      <Field label={t('Densité')}>
         <Segmented<Appearance['density']>
           value={appearance.density}
           options={[
-            { value: 'comfortable', label: 'Confort' },
-            { value: 'compact', label: 'Compact' }
+            { value: 'comfortable', label: t('Confort') },
+            { value: 'compact', label: t('Compact') }
           ]}
           onChange={(v) => update({ density: v })}
         />
       </Field>
 
-      <Field label={`Coins arrondis — ${appearance.radiusPx} px`}>
+      <Field label={t('Coins arrondis — {n} px', { n: appearance.radiusPx })}>
         <input
           type="range"
           min={0}
@@ -385,27 +390,27 @@ function AppearanceSection(): JSX.Element {
         />
       </Field>
 
-      <Field label="Style des bordures">
+      <Field label={t('Style des bordures')}>
         <Segmented<Appearance['borderStyle']>
           value={appearance.borderStyle}
           options={[
-            { value: 'solid', label: 'Pleines' },
-            { value: 'dashed', label: 'Tirets' },
-            { value: 'dotted', label: 'Points' }
+            { value: 'solid', label: t('Pleines') },
+            { value: 'dashed', label: t('Tirets') },
+            { value: 'dotted', label: t('Points') }
           ]}
           onChange={(v) => update({ borderStyle: v })}
         />
       </Field>
 
-      <Field label="Cadre de la fenêtre">
+      <Field label={t('Cadre de la fenêtre')}>
         <div className="grid grid-cols-5 gap-1.5">
           {(
             [
-              { value: 'none', label: 'Aucun' },
-              { value: 'accent', label: 'Accent' },
-              { value: 'gradient', label: 'Dégradé' },
-              { value: 'neon', label: 'Néon' },
-              { value: 'aurora', label: 'Aurora' }
+              { value: 'none', label: t('Aucun') },
+              { value: 'accent', label: t('Accent') },
+              { value: 'gradient', label: t('Dégradé') },
+              { value: 'neon', label: t('Néon') },
+              { value: 'aurora', label: t('Aurora') }
             ] as { value: Appearance['frameStyle']; label: string }[]
           ).map((o) => (
             <FrameCard
@@ -419,12 +424,11 @@ function AppearanceSection(): JSX.Element {
           ))}
         </div>
         <p className="mt-1.5 text-[11px] text-fg-muted">
-          Un liseré décoratif autour de la fenêtre — les couleurs suivent votre accent
-          (Aurora est animé). Inclus dans les presets et l'export de thème.
+          {t("Un liseré décoratif autour de la fenêtre — les couleurs suivent votre accent (Aurora est animé). Inclus dans les presets et l'export de thème.")}
         </p>
       </Field>
 
-      <Field label="Police">
+      <Field label={t('Police')}>
         <select
           value={appearance.fontFamily}
           onChange={(e) => update({ fontFamily: e.target.value })}
@@ -432,13 +436,13 @@ function AppearanceSection(): JSX.Element {
         >
           {FONT_CHOICES.map((f) => (
             <option key={f.label} value={f.value}>
-              {f.label}
+              {t(f.label)}
             </option>
           ))}
         </select>
       </Field>
 
-      <Field label={`Taille de l'interface — ${appearance.fontSize}px`}>
+      <Field label={t("Taille de l'interface — {n}px", { n: appearance.fontSize })}>
         <input
           type="range"
           min={11}
@@ -450,7 +454,11 @@ function AppearanceSection(): JSX.Element {
         />
       </Field>
 
-      <Field label={`Opacité de la fenêtre — ${Math.round(appearance.windowOpacity * 100)} %`}>
+      <Field
+        label={t('Opacité de la fenêtre — {n} %', {
+          n: Math.round(appearance.windowOpacity * 100)
+        })}
+      >
         <input
           type="range"
           min={0.3}
@@ -462,32 +470,32 @@ function AppearanceSection(): JSX.Element {
         />
       </Field>
 
-      <Field label="Curseur clignotant du titre">
+      <Field label={t('Curseur clignotant du titre')}>
         <Segmented<'on' | 'off'>
           value={appearance.titleCursor ? 'on' : 'off'}
           options={[
-            { value: 'on', label: 'Activé' },
-            { value: 'off', label: 'Désactivé' }
+            { value: 'on', label: t('Activé') },
+            { value: 'off', label: t('Désactivé') }
           ]}
           onChange={(v) => update({ titleCursor: v === 'on' })}
         />
       </Field>
 
-      <Field label="Partager le thème">
+      <Field label={t('Partager le thème')}>
         <div className="flex gap-1.5">
           <button
             onClick={exportTheme}
-            title="Télécharge un fichier gvue-theme.json avec l'apparence courante"
+            title={t("Télécharge un fichier gvue-theme.json avec l'apparence courante")}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-app border border-border bg-bg px-2 py-1.5 text-[12px] text-fg-secondary hover:bg-bg-hover hover:text-fg"
           >
-            <Download size={13} /> Exporter
+            <Download size={13} /> {t('Exporter')}
           </button>
           <button
             onClick={() => importRef.current?.click()}
-            title="Applique un thème depuis un fichier gvue-theme.json"
+            title={t('Applique un thème depuis un fichier gvue-theme.json')}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-app border border-border bg-bg px-2 py-1.5 text-[12px] text-fg-secondary hover:bg-bg-hover hover:text-fg"
           >
-            <Upload size={13} /> Importer
+            <Upload size={13} /> {t('Importer')}
           </button>
           <input
             ref={importRef}
@@ -503,7 +511,7 @@ function AppearanceSection(): JSX.Element {
         </div>
       </Field>
 
-      <Field label="Presets">
+      <Field label={t('Presets')}>
         <div className="flex gap-2">
           <input
             value={presetName}
@@ -511,14 +519,14 @@ function AppearanceSection(): JSX.Element {
             onKeyDown={(e) => {
               if (e.key === 'Enter') onSavePreset()
             }}
-            placeholder="Nom du preset…"
+            placeholder={t('Nom du preset…')}
             spellCheck={false}
             className="min-w-0 flex-1 rounded-app border border-border bg-bg px-2 py-1.5 text-[12px] text-fg outline-none placeholder:text-fg-muted focus:border-accent"
           />
           <button
             onClick={onSavePreset}
             disabled={!presetName.trim()}
-            title="Enregistrer l'apparence courante"
+            title={t("Enregistrer l'apparence courante")}
             className="flex shrink-0 items-center gap-1.5 rounded-app bg-accent px-2.5 text-[12px] font-medium text-white hover:opacity-90 disabled:opacity-40"
           >
             <Save size={14} />
@@ -533,14 +541,14 @@ function AppearanceSection(): JSX.Element {
               >
                 <button
                   onClick={() => applyPreset(name)}
-                  title="Appliquer ce preset"
+                  title={t('Appliquer ce preset')}
                   className="min-w-0 flex-1 truncate px-2 py-1.5 text-left text-[12px] text-fg-secondary hover:text-fg"
                 >
                   {name}
                 </button>
                 <button
                   onClick={() => deletePreset(name)}
-                  title="Supprimer ce preset"
+                  title={t('Supprimer ce preset')}
                   className="grid h-7 w-7 shrink-0 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-danger-fg"
                 >
                   <Trash2 size={14} />
@@ -674,16 +682,16 @@ function ScheduleRow(props: {
         onChange={(e) => props.onTheme(e.target.value)}
         className="min-w-0 flex-1 rounded-app border border-border bg-bg px-1.5 py-1 text-[12px] text-fg outline-none focus:border-accent"
       >
-        <option value="light">Clair</option>
-        <option value="dark">Sombre</option>
-        {THEMES.map((t) => (
-          <option key={t.id} value={t.id}>
-            {t.label}
+        <option value="light">{t('Clair')}</option>
+        <option value="dark">{t('Sombre')}</option>
+        {THEMES.map((th) => (
+          <option key={th.id} value={th.id}>
+            {t(th.label)}
           </option>
         ))}
-        {props.customs.map((t) => (
-          <option key={t.id} value={t.id}>
-            {t.label}
+        {props.customs.map((ct) => (
+          <option key={ct.id} value={ct.id}>
+            {ct.label}
           </option>
         ))}
       </select>
@@ -712,6 +720,7 @@ function GeneralSection(): JSX.Element {
   const [sshAutoList, setSshAutoList] = useState(true)
   const [mcp, setMcp] = useState<{ enabled: boolean; bridgePath: string } | null>(null)
   const [copiedCmd, setCopiedCmd] = useState(false)
+  const [language, setLanguageState] = useState<'auto' | 'fr' | 'en'>('auto')
 
   // Charge les réglages persistés (et synchronise le store des terminaux, qui
   // ne lit sa config qu'à l'ouverture du panneau terminal).
@@ -727,12 +736,24 @@ function GeneralSection(): JSX.Element {
       .get('sshConfigAutoList')
       .then((v) => setSshAutoList(v !== false))
       .catch(() => setSshAutoList(true))
+    void window.api.config
+      .get('language')
+      .then((v) => setLanguageState(v === 'fr' || v === 'en' ? v : 'auto'))
+      .catch(() => setLanguageState('auto'))
   }, [])
+
+  // La langue est figée au démarrage du renderer : changer = enregistrer puis
+  // recharger la fenêtre (aucun abonnement nécessaire dans les composants).
+  const changeLanguage = (v: 'auto' | 'fr' | 'en'): void => {
+    if (v === language) return
+    setLanguageState(v)
+    void window.api.config.set('language', v).then(() => window.location.reload())
+  }
 
   const toggleIntegration = (enabled: boolean): void => {
     void window.api.integration.set(enabled).then((ok) => {
       if (ok) setIntegration((s) => (s ? { ...s, enabled } : s))
-      else useUiStore.getState().showToast("Échec de la modification du menu de l'Explorateur.")
+      else useUiStore.getState().showToast(t("Échec de la modification du menu de l'Explorateur."))
     })
   }
 
@@ -754,26 +775,41 @@ function GeneralSection(): JSX.Element {
 
   return (
     <div className="flex flex-col gap-5">
-      <Field label="Au démarrage">
+      <Field label={t('Langue de l’interface')}>
+        <Segmented<'auto' | 'fr' | 'en'>
+          value={language}
+          options={[
+            { value: 'auto', label: t('Auto (système)') },
+            { value: 'fr', label: t('Français') },
+            { value: 'en', label: t('English') }
+          ]}
+          onChange={changeLanguage}
+        />
+        <p className="mt-1.5 text-[11px] text-fg-muted">
+          {t('Appliqué immédiatement — la fenêtre se recharge.')}
+        </p>
+      </Field>
+
+      <Field label={t('Au démarrage')}>
         <Segmented<'restore' | 'home'>
           value={restore === false ? 'home' : 'restore'}
           options={[
-            { value: 'restore', label: 'Rouvrir les dossiers' },
-            { value: 'home', label: 'Accès rapide' }
+            { value: 'restore', label: t('Rouvrir les dossiers') },
+            { value: 'home', label: t('Accès rapide') }
           ]}
           onChange={(v) => setRestoreSession(v === 'restore')}
         />
         <p className="mt-1.5 text-[11px] text-fg-muted">
-          Restaure colonnes, onglets et dossiers de la dernière session.
+          {t('Restaure colonnes, onglets et dossiers de la dernière session.')}
         </p>
       </Field>
 
-      <Field label="Affichage des fichiers">
+      <Field label={t('Affichage des fichiers')}>
         <Segmented<'list' | 'grid'>
           value={viewMode}
           options={[
-            { value: 'list', label: 'Liste' },
-            { value: 'grid', label: 'Grille (vignettes)' }
+            { value: 'list', label: t('Liste') },
+            { value: 'grid', label: t('Grille (vignettes)') }
           ]}
           onChange={(v) => {
             if (v !== viewMode) toggleViewMode()
@@ -781,7 +817,9 @@ function GeneralSection(): JSX.Element {
         />
         {viewMode === 'grid' && (
           <div className="mt-2">
-            <p className="mb-1 text-[11px] text-fg-muted">Taille des vignettes — {gridSize}px</p>
+            <p className="mb-1 text-[11px] text-fg-muted">
+              {t('Taille des vignettes — {n}px', { n: gridSize })}
+            </p>
             <input
               type="range"
               min={72}
@@ -791,18 +829,20 @@ function GeneralSection(): JSX.Element {
               onChange={(e) => setGridSize(Number(e.target.value))}
               className="w-full accent-[var(--accent)]"
             />
-            <p className="mt-0.5 text-[11px] text-fg-muted">Astuce : Ctrl + molette sur la grille.</p>
+            <p className="mt-0.5 text-[11px] text-fg-muted">
+              {t('Astuce : Ctrl + molette sur la grille.')}
+            </p>
           </div>
         )}
       </Field>
 
-      <Field label="Éléments masqués et ignorés">
+      <Field label={t('Éléments masqués et ignorés')}>
         <div className="flex flex-col gap-2">
           <Segmented<'on' | 'off'>
             value={showHidden ? 'on' : 'off'}
             options={[
-              { value: 'off', label: 'Masquer les cachés' },
-              { value: 'on', label: 'Afficher les cachés' }
+              { value: 'off', label: t('Masquer les cachés') },
+              { value: 'on', label: t('Afficher les cachés') }
             ]}
             onChange={(v) => {
               if ((v === 'on') !== showHidden) toggleHidden()
@@ -811,8 +851,8 @@ function GeneralSection(): JSX.Element {
           <Segmented<'on' | 'off'>
             value={hideGitIgnored ? 'off' : 'on'}
             options={[
-              { value: 'off', label: 'Masquer les ignorés (.gitignore)' },
-              { value: 'on', label: 'Afficher les ignorés' }
+              { value: 'off', label: t('Masquer les ignorés (.gitignore)') },
+              { value: 'on', label: t('Afficher les ignorés') }
             ]}
             onChange={(v) => {
               if ((v === 'off') !== hideGitIgnored) toggleGitIgnored()
@@ -820,32 +860,32 @@ function GeneralSection(): JSX.Element {
           />
         </div>
         <p className="mt-1.5 text-[11px] text-fg-muted">
-          Aussi via les icônes 👁 / filtre de la barre d'outils. Mémorisé (et par espace de travail).
+          {t("Aussi via les icônes 👁 / filtre de la barre d'outils. Mémorisé (et par espace de travail).")}
         </p>
       </Field>
 
-      <Field label="Terminaux liés aux onglets de dossier">
+      <Field label={t('Terminaux liés aux onglets de dossier')}>
         <Segmented<'on' | 'off'>
           value={linked ? 'on' : 'off'}
           options={[
-            { value: 'on', label: 'Activé' },
-            { value: 'off', label: 'Désactivé' }
+            { value: 'on', label: t('Activé') },
+            { value: 'off', label: t('Désactivé') }
           ]}
           onChange={(v) => {
             if ((v === 'on') !== linked) toggleLinked()
           }}
         />
         <p className="mt-1.5 text-[11px] text-fg-muted">
-          Le panneau terminal n'affiche que les terminaux de l'onglet de dossier actif.
+          {t("Le panneau terminal n'affiche que les terminaux de l'onglet de dossier actif.")}
         </p>
       </Field>
 
-      <Field label="Hôtes du fichier ~/.ssh/config">
+      <Field label={t('Hôtes du fichier ~/.ssh/config')}>
         <Segmented<'auto' | 'demand'>
           value={sshAutoList ? 'auto' : 'demand'}
           options={[
-            { value: 'auto', label: 'Listés automatiquement' },
-            { value: 'demand', label: 'Import à la demande' }
+            { value: 'auto', label: t('Listés automatiquement') },
+            { value: 'demand', label: t('Import à la demande') }
           ]}
           onChange={(v) => {
             setSshAutoList(v === 'auto')
@@ -853,79 +893,72 @@ function GeneralSection(): JSX.Element {
           }}
         />
         <p className="mt-1.5 text-[11px] text-fg-muted">
-          « À la demande » : la section SSH / SFTP ne montre que vos serveurs importés ou
-          ajoutés — utile quand le ssh_config contient des dizaines d'entrées. Le fichier
-          reste proposé comme source dans « ⇪ Importer ».
+          {t("« À la demande » : la section SSH / SFTP ne montre que vos serveurs importés ou ajoutés — utile quand le ssh_config contient des dizaines d'entrées. Le fichier reste proposé comme source dans « ⇪ Importer ».")}
         </p>
       </Field>
 
       {integration?.supported && (
-        <Field label="Menu de l'Explorateur Windows">
+        <Field label={t("Menu de l'Explorateur Windows")}>
           <Segmented<'on' | 'off'>
             value={integration.enabled ? 'on' : 'off'}
             options={[
-              { value: 'on', label: 'Activé' },
-              { value: 'off', label: 'Désactivé' }
+              { value: 'on', label: t('Activé') },
+              { value: 'off', label: t('Désactivé') }
             ]}
             onChange={(v) => toggleIntegration(v === 'on')}
           />
           <p className="mt-1.5 text-[11px] text-fg-muted">
-            Ajoute « Ouvrir dans GVue » au clic droit sur les dossiers et lecteurs dans
-            l'Explorateur. Par-utilisateur, aucun droit administrateur, réversible ici.
-            Sous Windows 11, l'entrée apparaît dans « Afficher plus d'options » (Maj+F10) —
-            le nouveau menu réserve son premier niveau aux applications empaquetées MSIX.
+            {t("Ajoute « Ouvrir dans GVue » au clic droit sur les dossiers et lecteurs dans l'Explorateur. Par-utilisateur, aucun droit administrateur, réversible ici. Sous Windows 11, l'entrée apparaît dans « Afficher plus d'options » (Maj+F10) — le nouveau menu réserve son premier niveau aux applications empaquetées MSIX.")}
           </p>
         </Field>
       )}
 
-      <Field label="Étagère (panier de fichiers)">
+      <Field label={t('Étagère (panier de fichiers)')}>
         <Segmented<'on' | 'off'>
           value={shelfEnabled ? 'on' : 'off'}
           options={[
-            { value: 'on', label: 'Activée' },
-            { value: 'off', label: 'Désactivée' }
+            { value: 'on', label: t('Activée') },
+            { value: 'off', label: t('Désactivée') }
           ]}
           onChange={(v) => useShelfStore.getState().setEnabled(v === 'on')}
         />
         <p className="mt-1.5 text-[11px] text-fg-muted">
-          Panier flottant : déposez-y des fichiers (glisser ou clic droit) depuis plusieurs
-          dossiers, puis collez tout d'un coup à destination.
+          {t("Panier flottant : déposez-y des fichiers (glisser ou clic droit) depuis plusieurs dossiers, puis collez tout d'un coup à destination.")}
         </p>
       </Field>
 
-      <Field label="Commandes personnalisées">
+      <Field label={t('Commandes personnalisées')}>
         <button
           onClick={() => useUiStore.getState().setCustomCmd(true)}
           className="flex items-center gap-1.5 rounded-app border border-border bg-bg px-2.5 py-1.5 text-[12px] text-fg-secondary hover:bg-bg-hover hover:text-fg"
         >
-          <TerminalSquare size={14} /> Gérer les commandes du menu contextuel…
+          <TerminalSquare size={14} /> {t('Gérer les commandes du menu contextuel…')}
         </button>
       </Field>
 
-      <Field label="Serveur MCP (agents IA)">
+      <Field label={t('Serveur MCP (agents IA)')}>
         <Segmented<'on' | 'off'>
           value={mcp?.enabled ? 'on' : 'off'}
           options={[
-            { value: 'on', label: 'Activé' },
-            { value: 'off', label: 'Désactivé' }
+            { value: 'on', label: t('Activé') },
+            { value: 'off', label: t('Désactivé') }
           ]}
           onChange={(v) => toggleMcp(v === 'on')}
         />
         <p className="mt-1.5 text-[11px] text-fg-muted">
-          Expose le contexte de GVue (onglets, sélection, dépôt Git, logs des terminaux)
-          aux agents IA comme Claude Code — local uniquement (127.0.0.1 + jeton).
+          {t('Expose le contexte de GVue (onglets, sélection, dépôt Git, logs des terminaux) aux agents IA comme Claude Code — local uniquement (127.0.0.1 + jeton).')}
         </p>
         {mcp?.enabled && (
           <div className="mt-2">
             <p className="mb-1 text-[11px] text-fg-muted">
-              Enregistrement côté Claude Code (une seule fois) :
+              {t('Enregistrement côté Claude Code (une seule fois) :')}
             </p>
             <button
               onClick={copyMcpCmd}
-              title="Copier la commande"
+              title={t('Copier la commande')}
               className="w-full truncate rounded-app border border-border bg-bg px-2 py-1.5 text-left font-mono text-[11px] text-fg-secondary hover:border-accent hover:bg-bg-hover"
             >
-              {copiedCmd ? '✓ Copié !' : mcpRegisterCmd}
+              {copiedCmd ? t('✓ Copié !') : mcpRegisterCmd}
             </button>
           </div>
         )}
@@ -943,35 +976,37 @@ function AboutSection(): JSX.Element {
 
   return (
     <div className="flex flex-col gap-5">
-      <Field label="Version">
+      <Field label={t('Version')}>
         <div className="flex items-center justify-between gap-2 rounded-app border border-border bg-bg px-2.5 py-2">
           <div className="min-w-0">
-            <div className="text-[12px] font-medium text-fg">GVue v{version || '—'}</div>
+            <div className="text-[12px] font-medium text-fg">
+              {t('GVue v{v}', { v: version || '—' })}
+            </div>
             <div className="truncate text-[11px] text-fg-muted">{updateLabel(updateStatus)}</div>
           </div>
           <button
             onClick={checkUpdate}
-            title="Vérifier les mises à jour"
+            title={t('Vérifier les mises à jour')}
             className="flex shrink-0 items-center gap-1.5 rounded-app border border-border px-2 py-1.5 text-[12px] text-fg-secondary hover:bg-bg-hover hover:text-fg"
           >
-            <DownloadCloud size={14} /> Vérifier
+            <DownloadCloud size={14} /> {t('Vérifier')}
           </button>
         </div>
       </Field>
 
-      <Field label="Diagnostic">
+      <Field label={t('Diagnostic')}>
         <div className="flex flex-col gap-1.5">
           <button
             onClick={() => useUiStore.getState().setWhatsNew('')}
             className="flex items-center gap-1.5 rounded-app border border-border bg-bg px-2.5 py-1.5 text-left text-[12px] text-fg-secondary hover:bg-bg-hover hover:text-fg"
           >
-            <Sparkles size={14} /> Nouveautés de cette version…
+            <Sparkles size={14} /> {t('Nouveautés de cette version…')}
           </button>
           <button
             onClick={() => void window.api.log.path().then((p) => window.api.fs.reveal(p))}
             className="flex items-center gap-1.5 rounded-app border border-border bg-bg px-2.5 py-1.5 text-left text-[12px] text-fg-secondary hover:bg-bg-hover hover:text-fg"
           >
-            <FileText size={14} /> Ouvrir le journal de diagnostic
+            <FileText size={14} /> {t('Ouvrir le journal de diagnostic')}
           </button>
         </div>
       </Field>

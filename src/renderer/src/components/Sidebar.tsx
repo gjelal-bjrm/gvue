@@ -34,6 +34,7 @@ import ServerAddForm from './sidebar/ServerAddForm'
 import ServerImportDialog from './sidebar/ServerImportDialog'
 import { useTerminalStore } from '../state/useTerminalStore'
 import { sshCommandFor, mergeHosts, hostKeyOf, toSshConfigText } from '../lib/ssh'
+import { t, tn } from '../i18n'
 
 /**
  * Sidebar : lanceur, accès rapide, lecteurs, favoris et projets — orchestration
@@ -143,7 +144,8 @@ export default function Sidebar(): JSX.Element {
   // « Tout effacer pour tout ré-importer » (demande utilisateur).
   const removeAllServers = (): void => {
     const n = manualHosts.length
-    if (!window.confirm(`Retirer les ${n} serveurs de la liste ? (ré-importables ensuite)`)) return
+    if (!window.confirm(t('Retirer les {n} serveurs de la liste ? (ré-importables ensuite)', { n })))
+      return
     setManualHosts([])
     void window.api.config.set('sshHosts', [])
   }
@@ -199,16 +201,16 @@ export default function Sidebar(): JSX.Element {
   // Regroupe les lancements selon l'axe choisi (projet ou catégorie).
   const groups = useMemo(() => {
     const map = new Map<string, RunnerTask[]>()
-    for (const t of tasks) {
+    for (const task of tasks) {
       const label =
         groupAxis === 'project'
-          ? t.project
-            ? baseName(t.project)
-            : 'Sans projet'
-          : t.category || 'Sans catégorie'
+          ? task.project
+            ? baseName(task.project)
+            : t('Sans projet')
+          : task.category || t('Sans catégorie')
       const arr = map.get(label)
-      if (arr) arr.push(t)
-      else map.set(label, [t])
+      if (arr) arr.push(task)
+      else map.set(label, [task])
     }
     return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]))
   }, [tasks, groupAxis])
@@ -216,13 +218,13 @@ export default function Sidebar(): JSX.Element {
   // Contenu de chaque section réordonnable (clé → titre + corps).
   const sections: Record<string, { title: string; body: React.ReactNode }> = {
     thispc: {
-      title: 'Ce PC',
+      title: t('Ce PC'),
       body: (
         <>
           {home && (
             <Item
               icon={Home}
-              label="Accueil"
+              label={t('Accueil')}
               active={isActive(home)}
               onClick={() => navigate(home)}
               onContextMenu={(e) => openCtx(e, home)}
@@ -231,7 +233,7 @@ export default function Sidebar(): JSX.Element {
           {locations?.desktop && (
             <Item
               icon={Monitor}
-              label="Bureau"
+              label={t('Bureau')}
               active={isActive(locations.desktop)}
               onClick={() => navigate(locations.desktop)}
               onContextMenu={(e) => openCtx(e, locations.desktop)}
@@ -240,7 +242,7 @@ export default function Sidebar(): JSX.Element {
           {locations?.downloads && (
             <Item
               icon={Download}
-              label="Téléchargements"
+              label={t('Téléchargements')}
               active={isActive(locations.downloads)}
               onClick={() => navigate(locations.downloads)}
               onContextMenu={(e) => openCtx(e, locations.downloads)}
@@ -249,7 +251,7 @@ export default function Sidebar(): JSX.Element {
           {locations?.documents && (
             <Item
               icon={FileText}
-              label="Documents"
+              label={t('Documents')}
               active={isActive(locations.documents)}
               onClick={() => navigate(locations.documents)}
               onContextMenu={(e) => openCtx(e, locations.documents)}
@@ -257,7 +259,7 @@ export default function Sidebar(): JSX.Element {
           )}
           <Item
             icon={Trash2}
-            label="Corbeille"
+            label={t('Corbeille')}
             active={recycleBinOpen}
             onClick={() => useUiStore.getState().setRecycleBin(true)}
           />
@@ -265,15 +267,15 @@ export default function Sidebar(): JSX.Element {
       )
     },
     drives: {
-      title: 'Lecteurs',
+      title: t('Lecteurs'),
       body: <FolderTree />
     },
     favorites: {
-      title: 'Favoris',
+      title: t('Favoris'),
       body:
         favorites.length === 0 ? (
           <p className="px-2 text-[12px] text-fg-muted">
-            Aucun favori — clic droit sur un dossier → « Ajouter aux favoris ».
+            {t('Aucun favori — clic droit sur un dossier → « Ajouter aux favoris ».')}
           </p>
         ) : (
           favorites.map((f) => (
@@ -296,11 +298,11 @@ export default function Sidebar(): JSX.Element {
         )
     },
     projects: {
-      title: 'Projets',
+      title: t('Projets'),
       body: (
         <>
           {projects.length === 0 ? (
-            <p className="px-2 text-[12px] text-fg-muted">Visitez un dépôt Git pour le voir ici.</p>
+            <p className="px-2 text-[12px] text-fg-muted">{t('Visitez un dépôt Git pour le voir ici.')}</p>
           ) : (
             projects.map((p) => (
               <ProjectItem
@@ -330,11 +332,10 @@ export default function Sidebar(): JSX.Element {
                 setHiddenCount(0)
                 void window.api.git.unhideProjects().then(setProjects)
               }}
-              title="Réafficher les projets retirés de la liste"
+              title={t('Réafficher les projets retirés de la liste')}
               className="mt-0.5 w-full rounded-app px-2 py-1 text-left text-[11px] text-fg-muted hover:bg-bg-hover hover:text-fg"
             >
-              + {hiddenCount} projet{hiddenCount > 1 ? 's' : ''} masqué
-              {hiddenCount > 1 ? 's' : ''} — tout réafficher
+              + {tn(hiddenCount, '{n} projet masqué — tout réafficher', '{n} projets masqués — tout réafficher')}
             </button>
           )}
         </>
@@ -344,20 +345,19 @@ export default function Sidebar(): JSX.Element {
       // Le libellé nomme les protocoles (sans ambiguïté avec un « serveur » de
       // projet ou un lecteur réseau) ; la clé de section reste « servers »,
       // car elle est persistée dans l'ordre de la sidebar.
-      title: 'SSH / SFTP',
+      title: t('SSH / SFTP'),
       body: (
         <>
           {!sshOk && (
             <p className="px-2 text-[12px] text-warning-fg">
-              OpenSSH introuvable — activez « Client OpenSSH » dans les fonctionnalités
-              facultatives de Windows.
+              {t('OpenSSH introuvable — activez « Client OpenSSH » dans les fonctionnalités facultatives de Windows.')}
             </p>
           )}
           {shownConfigHosts.length === 0 && manualHosts.length === 0 && !addServerOpen && (
             <p className="px-2 text-[12px] text-fg-muted">
               {sshAutoList
-                ? 'Les hôtes de ~/.ssh/config apparaissent ici automatiquement.'
-                : 'Import à la demande : « ⇪ Importer » liste aussi votre ~/.ssh/config.'}
+                ? t('Les hôtes de ~/.ssh/config apparaissent ici automatiquement.')
+                : t('Import à la demande : « ⇪ Importer » liste aussi votre ~/.ssh/config.')}
             </p>
           )}
           {shownConfigHosts.map((h) => (
@@ -405,31 +405,31 @@ export default function Sidebar(): JSX.Element {
                 onClick={() => setAddServerOpen(true)}
                 className="mt-0.5 w-full rounded-app px-2 py-1 text-left text-[11px] text-fg-muted hover:bg-bg-hover hover:text-fg"
               >
-                + Ajouter un serveur…
+                {t('+ Ajouter un serveur…')}
               </button>
               <button
                 onClick={() => setImportOpen(true)}
-                title="Récupérer les sessions PuTTY, WinSCP ou ~/.ssh/config"
+                title={t('Récupérer les sessions PuTTY, WinSCP ou ~/.ssh/config')}
                 className="w-full rounded-app px-2 py-1 text-left text-[11px] text-fg-muted hover:bg-bg-hover hover:text-fg"
               >
-                ⇪ Importer (PuTTY / WinSCP / ssh_config)…
+                {t('⇪ Importer (PuTTY / WinSCP / ssh_config)…')}
               </button>
               {(manualHosts.length > 0 || shownConfigHosts.length > 0) && (
                 <button
                   onClick={exportServers}
-                  title="Exporter la liste au format ssh_config standard (OpenSSH, VS Code Remote-SSH…)"
+                  title={t('Exporter la liste au format ssh_config standard (OpenSSH, VS Code Remote-SSH…)')}
                   className="w-full rounded-app px-2 py-1 text-left text-[11px] text-fg-muted hover:bg-bg-hover hover:text-fg"
                 >
-                  ⤓ Exporter (format ssh_config)
+                  {t('⤓ Exporter (format ssh_config)')}
                 </button>
               )}
               {manualHosts.length > 1 && (
                 <button
                   onClick={removeAllServers}
-                  title="Retirer tous les serveurs de la liste (ré-importables ensuite)"
+                  title={t('Retirer tous les serveurs de la liste (ré-importables ensuite)')}
                   className="w-full rounded-app px-2 py-1 text-left text-[11px] text-fg-muted hover:bg-bg-hover hover:text-danger-fg"
                 >
-                  ✕ Tout retirer…
+                  {t('✕ Tout retirer…')}
                 </button>
               )}
             </>
@@ -453,7 +453,7 @@ export default function Sidebar(): JSX.Element {
   return (
     <nav className="flex h-full w-full flex-col gap-5 overflow-y-auto bg-bg-secondary p-2.5 text-[13px]">
       <div className="flex flex-col gap-0.5">
-        <Item icon={Rocket} label="Lanceur" active={launcher} onClick={openLauncher} />
+        <Item icon={Rocket} label={t('Lanceur')} active={launcher} onClick={openLauncher} />
 
         {/* Liste repliable des lancements, regroupés par projet/catégorie. */}
         {tasks.length > 0 && (
@@ -464,17 +464,17 @@ export default function Sidebar(): JSX.Element {
                 className="flex min-w-0 flex-1 items-center gap-1 rounded-app px-2 py-[var(--row-pad)] text-left text-[12px] text-fg-secondary hover:bg-bg-hover hover:text-fg"
               >
                 {launchOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
-                <span className="truncate">Lancements</span>
+                <span className="truncate">{t('Lancements')}</span>
                 <span className="text-[11px] text-fg-muted">({tasks.length})</span>
               </button>
               {launchOpen && (
                 <button
                   onClick={() => setGroupAxis((a) => (a === 'project' ? 'category' : 'project'))}
-                  title="Changer le regroupement (projet / catégorie)"
+                  title={t('Changer le regroupement (projet / catégorie)')}
                   className="mr-1 flex shrink-0 items-center gap-1 rounded-app px-1.5 py-0.5 text-[10px] text-fg-muted hover:bg-bg-hover hover:text-fg"
                 >
                   {groupAxis === 'project' ? <FolderGit2 size={11} /> : <Tag size={11} />}
-                  {groupAxis === 'project' ? 'Projet' : 'Cat.'}
+                  {groupAxis === 'project' ? t('Projet') : t('Cat.')}
                 </button>
               )}
             </div>
@@ -502,7 +502,7 @@ export default function Sidebar(): JSX.Element {
           </div>
         )}
 
-        <Item icon={Star} label="Accès rapide" active={quickAccess} onClick={openQuickAccess} />
+        <Item icon={Star} label={t('Accès rapide')} active={quickAccess} onClick={openQuickAccess} />
       </div>
 
       {order.map((key) => {

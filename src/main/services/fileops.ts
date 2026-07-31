@@ -1,6 +1,7 @@
 import { promises as fs } from 'node:fs'
 import * as path from 'node:path'
 import { assertAbsolute, normalize } from './filesystem'
+import { t } from '../i18n'
 
 /**
  * Opérations sur fichiers (copier / déplacer) pour le glisser-déposer et le
@@ -80,10 +81,10 @@ export async function rename(input: string, newName: string): Promise<CreateResu
   try {
     const src = assertAbsolute(input)
     const name = newName.trim()
-    if (!validName(name)) return { ok: false, error: 'Nom invalide.' }
+    if (!validName(name)) return { ok: false, error: t('Nom invalide.') }
     const target = path.join(path.dirname(src), name)
     if (target === src) return { ok: true, path: src }
-    if (await exists(target)) return { ok: false, error: 'Un élément porte déjà ce nom.' }
+    if (await exists(target)) return { ok: false, error: t('Un élément porte déjà ce nom.') }
     await fs.rename(src, target)
     return { ok: true, path: target }
   } catch (e) {
@@ -169,7 +170,7 @@ async function eachInto(
     try {
       const src = assertAbsolute(raw)
       if (isInside(destDir, src)) {
-        res.errors.push(`« ${path.basename(src)} » ne peut pas être placé dans lui-même.`)
+        res.errors.push(t('« {name} » ne peut pas être placé dans lui-même.', { name: path.basename(src) }))
         continue
       }
       if (sameDirIsNoop && path.dirname(src) === destDir) {
@@ -205,7 +206,8 @@ export async function renameMany(
       res.ops?.push({ from: normalize(from), to: r.path })
       res.ok++
     } else if (!r.ok) {
-      res.errors.push(`${path.basename(from)} : ${r.error ?? 'échec'}`)
+      const echec = t('échec')
+      res.errors.push(`${path.basename(from)} : ${r.error ?? echec}`)
       break
     }
   }
@@ -281,7 +283,7 @@ export async function copy(
       continue
     }
     if (isInside(destDir, src)) {
-      res.errors.push(`« ${path.basename(src)} » ne peut pas être placé dans lui-même.`)
+      res.errors.push(t('« {name} » ne peut pas être placé dans lui-même.', { name: path.basename(src) }))
       continue
     }
     const target = await uniqueTarget(destDir, path.basename(src))

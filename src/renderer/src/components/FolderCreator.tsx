@@ -3,6 +3,7 @@ import { FolderPlus, X, AlertTriangle } from 'lucide-react'
 import { useUiStore } from '../state/useUiStore'
 import { useNavStore, activePane } from '../state/useNavStore'
 import { baseName } from '../lib/format'
+import { t } from '../i18n'
 
 /** Nettoie un segment de nom de dossier (caractères interdits Windows retirés). */
 function cleanSeg(s: string): string {
@@ -95,7 +96,13 @@ export default function FolderCreator(): JSX.Element | null {
     const r = await window.api.fs.makeDirs(baseDir, rels)
     setBusy(false)
     if (r.errors.length) {
-      setResult(`${r.created} créé(s), ${r.errors.length} erreur(s) : ${r.errors[0]}`)
+      setResult(
+        t('{created} créé(s), {errCount} erreur(s) : {first}', {
+          created: r.created,
+          errCount: r.errors.length,
+          first: r.errors[0]
+        })
+      )
     } else {
       useNavStore.getState().refreshAll()
       close()
@@ -112,7 +119,7 @@ export default function FolderCreator(): JSX.Element | null {
         <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-3">
           <FolderPlus size={15} className="text-accent" />
           <span className="text-[13px] font-medium text-fg">
-            Créer des dossiers dans {baseName(baseDir) || baseDir}
+            {t('Créer des dossiers dans {dir}', { dir: baseName(baseDir) || baseDir })}
           </span>
           <button
             onClick={close}
@@ -125,29 +132,34 @@ export default function FolderCreator(): JSX.Element | null {
         <div className="flex min-h-0 flex-1">
           {/* Réglages */}
           <div className="w-1/2 shrink-0 space-y-3 overflow-auto border-r border-border p-4 text-[12px]">
-            <Field label="Motif du nom">
-              <Input value={template} onChange={setTemplate} placeholder="ex. Projet-{n} ou {date}_{name}" />
+            <Field label={t('Motif du nom')}>
+              <Input
+                value={template}
+                onChange={setTemplate}
+                placeholder={t('ex. Projet-{n} ou {date}_{name}')}
+              />
               <p className="mt-1 text-[11px] text-fg-muted">
-                Jetons : <code>{'{n}'}</code> numéro · <code>{'{name}'}</code> liste ·{' '}
-                <code>{'{date}'}</code> · <code>{'{i}'}</code> index
+                {t('Jetons :')} <code>{'{n}'}</code> {t('numéro')} · <code>{'{name}'}</code>{' '}
+                {t('liste')} ·{' '}
+                <code>{'{date}'}</code> · <code>{'{i}'}</code> {t('index')}
               </p>
             </Field>
 
             <div className="flex flex-wrap items-end gap-3">
               <label className="flex flex-col gap-1 text-fg-muted">
-                Nombre
+                {t('Nombre')}
                 <NumInput value={count} onChange={setCount} disabled={names.trim().length > 0} />
               </label>
               <label className="flex flex-col gap-1 text-fg-muted">
-                Début {'{n}'}
+                {t('Début')} {'{n}'}
                 <NumInput value={start} onChange={setStart} />
               </label>
               <label className="flex flex-col gap-1 text-fg-muted">
-                Chiffres
+                {t('Chiffres')}
                 <NumInput value={pad} onChange={setPad} />
               </label>
               <label className="flex flex-col gap-1 text-fg-muted">
-                Date
+                {t('Date')}
                 <select
                   value={dateFmt}
                   onChange={(e) => setDateFmt(e.target.value)}
@@ -160,7 +172,7 @@ export default function FolderCreator(): JSX.Element | null {
               </label>
             </div>
 
-            <Field label="Liste de noms (un par ligne) → remplit {name}, fixe le nombre">
+            <Field label={t('Liste de noms (un par ligne) → remplit {name}, fixe le nombre')}>
               <textarea
                 value={names}
                 onChange={(e) => setNames(e.target.value)}
@@ -171,7 +183,7 @@ export default function FolderCreator(): JSX.Element | null {
               />
             </Field>
 
-            <Field label="Sous-dossiers, répliqués dans chaque dossier (un par ligne)">
+            <Field label={t('Sous-dossiers, répliqués dans chaque dossier (un par ligne)')}>
               <textarea
                 value={subs}
                 onChange={(e) => setSubs(e.target.value)}
@@ -186,11 +198,11 @@ export default function FolderCreator(): JSX.Element | null {
           {/* Aperçu */}
           <div className="flex min-w-0 flex-1 flex-col">
             <div className="shrink-0 border-b border-border px-3 py-1.5 text-[11px] uppercase tracking-wider text-fg-muted">
-              Aperçu — {topCount} dossier(s), {rels.length} chemin(s)
+              {t('Aperçu — {top} dossier(s), {total} chemin(s)', { top: topCount, total: rels.length })}
             </div>
             <div className="min-h-0 flex-1 overflow-auto p-2 font-mono text-[12px]">
               {rels.length === 0 ? (
-                <p className="px-1 py-3 text-fg-muted">Rien à créer.</p>
+                <p className="px-1 py-3 text-fg-muted">{t('Rien à créer.')}</p>
               ) : (
                 rels.slice(0, 500).map((r) => (
                   <div key={r} className="truncate text-fg-secondary" title={r}>
@@ -198,7 +210,9 @@ export default function FolderCreator(): JSX.Element | null {
                   </div>
                 ))
               )}
-              {rels.length > 500 && <div className="px-1 text-fg-muted">… +{rels.length - 500}</div>}
+              {rels.length > 500 && (
+                <div className="px-1 text-fg-muted">{t('… +{count}', { count: rels.length - 500 })}</div>
+              )}
             </div>
           </div>
         </div>
@@ -213,14 +227,14 @@ export default function FolderCreator(): JSX.Element | null {
             onClick={close}
             className="ml-auto rounded-app px-3 py-1.5 text-[12px] text-fg-secondary hover:bg-bg-hover"
           >
-            Annuler
+            {t('Annuler')}
           </button>
           <button
             onClick={() => void create()}
             disabled={busy || rels.length === 0}
             className="rounded-app bg-accent px-3 py-1.5 text-[12px] font-medium text-white hover:opacity-90 disabled:opacity-40"
           >
-            Créer ({topCount})
+            {t('Créer ({count})', { count: topCount })}
           </button>
         </div>
       </div>

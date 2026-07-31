@@ -1,5 +1,6 @@
 import { promises as fs } from 'node:fs'
 import { shell } from 'electron'
+import { t } from '../i18n'
 import type { UndoInfo, UndoResult } from '@shared/types'
 
 /**
@@ -63,7 +64,7 @@ async function revertPairs(pairs: { from: string; to: string }[]): Promise<void>
 /** Annule la dernière opération empilée. */
 export async function undoLast(): Promise<UndoResult> {
   const op = stack.pop()
-  if (!op) return { ok: false, error: 'Rien à annuler.' }
+  if (!op) return { ok: false, error: t('Rien à annuler.') }
   try {
     if (op.kind === 'rename' || op.kind === 'move') {
       await revertPairs(op.pairs)

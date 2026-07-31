@@ -17,6 +17,7 @@ import { baseName } from '../lib/format'
 import { commandForFile, joinWin } from '../lib/runfile'
 import FilePickerDialog from './FilePickerDialog'
 import type { GitProject } from '@shared/types'
+import { t, tn } from '../i18n'
 
 /**
  * Lanceur : définir des lancements (commande + dossier, avec projet/catégorie)
@@ -111,14 +112,14 @@ export default function LauncherPanel(): JSX.Element {
     <div className="flex h-full flex-col bg-bg">
       <div className="flex shrink-0 items-center gap-2 border-b border-border px-3 py-2.5">
         <Rocket size={15} className="text-accent" />
-        <span className="text-[13px] font-medium text-fg">Lanceur</span>
+        <span className="text-[13px] font-medium text-fg">{t('Lanceur')}</span>
       </div>
 
       <div className="flex-1 overflow-auto p-3 text-[13px]">
         {/* Profils */}
         {profiles.length > 0 && (
           <section className="mb-5">
-            <GroupTitle icon={<Layers size={12} />}>Profils</GroupTitle>
+            <GroupTitle icon={<Layers size={12} />}>{t('Profils')}</GroupTitle>
             <div className="flex flex-col gap-1.5">
               {profiles.map((p) => {
                 const any = p.taskIds.some((t) => running[t])
@@ -135,10 +136,10 @@ export default function LauncherPanel(): JSX.Element {
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-fg">{p.name}</div>
                       <div className="truncate text-[11px] text-fg-muted">
-                        {p.taskIds.length} lancement{p.taskIds.length > 1 ? 's' : ''}
+                        {tn(p.taskIds.length, '{n} lancement', '{n} lancements')}
                       </div>
                     </div>
-                    <IconBtn title="Supprimer le profil" onClick={() => removeProfile(p.id)} danger>
+                    <IconBtn title={t('Supprimer le profil')} onClick={() => removeProfile(p.id)} danger>
                       <Trash2 size={14} />
                     </IconBtn>
                   </div>
@@ -150,32 +151,37 @@ export default function LauncherPanel(): JSX.Element {
 
         {/* Lancements */}
         <section className="mb-5">
-          <GroupTitle icon={<Rocket size={12} />}>Lancements</GroupTitle>
+          <GroupTitle icon={<Rocket size={12} />}>{t('Lancements')}</GroupTitle>
           {tasks.length === 0 ? (
-            <p className="px-1 py-1.5 text-fg-muted">Aucun lancement. Ajoutez-en un ci-dessous.</p>
+            <p className="px-1 py-1.5 text-fg-muted">{t('Aucun lancement. Ajoutez-en un ci-dessous.')}</p>
           ) : (
             <div className="flex flex-col gap-1.5">
-              {tasks.map((t) => (
+              {tasks.map((task) => (
                 <div
-                  key={t.id}
+                  key={task.id}
                   className="flex items-center gap-2 rounded-app border border-border bg-bg-secondary px-2.5 py-2"
                 >
                   <RunBtn
-                    running={!!running[t.id]}
-                    onRun={() => void runTask(t.id)}
-                    onStop={() => stopTask(t.id)}
+                    running={!!running[task.id]}
+                    onRun={() => void runTask(task.id)}
+                    onStop={() => stopTask(task.id)}
                   />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                      <span className="truncate text-fg">{t.name}</span>
-                      {t.project && <Badge icon={<FolderGit2 size={9} />}>{baseName(t.project)}</Badge>}
-                      {t.category && <Badge icon={<Tag size={9} />}>{t.category}</Badge>}
+                      <span className="truncate text-fg">{task.name}</span>
+                      {task.project && (
+                        <Badge icon={<FolderGit2 size={9} />}>{baseName(task.project)}</Badge>
+                      )}
+                      {task.category && <Badge icon={<Tag size={9} />}>{task.category}</Badge>}
                     </div>
-                    <div className="truncate font-mono text-[11px] text-fg-muted" title={`${t.command} — ${t.cwd}`}>
-                      {t.command} · {baseName(t.cwd)}
+                    <div
+                      className="truncate font-mono text-[11px] text-fg-muted"
+                      title={`${task.command} — ${task.cwd}`}
+                    >
+                      {task.command} · {baseName(task.cwd)}
                     </div>
                   </div>
-                  <IconBtn title="Supprimer le lancement" onClick={() => removeTask(t.id)} danger>
+                  <IconBtn title={t('Supprimer le lancement')} onClick={() => removeTask(task.id)} danger>
                     <Trash2 size={14} />
                   </IconBtn>
                 </div>
@@ -186,25 +192,25 @@ export default function LauncherPanel(): JSX.Element {
 
         {/* Nouveau lancement */}
         <section className="mb-5 rounded-app border border-border p-2.5">
-          <div className="mb-2 text-[12px] font-medium text-fg-secondary">Nouveau lancement</div>
+          <div className="mb-2 text-[12px] font-medium text-fg-secondary">{t('Nouveau lancement')}</div>
           <div className="flex flex-col gap-1.5">
-            <Input value={name} onChange={setName} placeholder="Nom (ex. Front dev)" />
-            <Input value={cwd} onChange={setCwd} placeholder="Dossier (cwd)" mono />
+            <Input value={name} onChange={setName} placeholder={t('Nom (ex. Front dev)')} />
+            <Input value={cwd} onChange={setCwd} placeholder={t('Dossier (cwd)')} mono />
             <div className="flex gap-1.5">
               <div className="min-w-0 flex-1">
-                <Input value={command} onChange={setCommand} placeholder="Commande (ex. npm run dev)" mono />
+                <Input value={command} onChange={setCommand} placeholder={t('Commande (ex. npm run dev)')} mono />
               </div>
               <button
                 onClick={() => setPicking(true)}
-                title="Choisir un fichier à lancer (.bat, .ps1, .exe…)"
+                title={t('Choisir un fichier à lancer (.bat, .ps1, .exe…)')}
                 className="flex shrink-0 items-center gap-1 rounded-app border border-border px-2 text-[12px] text-fg-secondary hover:bg-bg-hover"
               >
-                <FolderOpen size={13} /> Fichier…
+                <FolderOpen size={13} /> {t('Fichier…')}
               </button>
             </div>
             {files.length > 0 && (
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[11px] text-fg-muted">Fichiers :</span>
+                <span className="text-[11px] text-fg-muted">{t('Fichiers :')}</span>
                 {files.map((f) => (
                   <button
                     key={f}
@@ -230,18 +236,18 @@ export default function LauncherPanel(): JSX.Element {
                 }}
                 className="min-w-0 flex-1 rounded-app border border-border bg-bg px-2 py-1.5 text-[12px] text-fg outline-none focus:border-accent"
               >
-                <option value="">Projet (aucun)</option>
+                <option value="">{t('Projet (aucun)')}</option>
                 {projects.map((p) => (
                   <option key={p.root} value={p.root}>
                     {p.name}
                   </option>
                 ))}
               </select>
-              <Input value={category} onChange={setCategory} placeholder="Catégorie" />
+              <Input value={category} onChange={setCategory} placeholder={t('Catégorie')} />
             </div>
             {scripts.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
-                <span className="text-[11px] text-fg-muted">Scripts détectés :</span>
+                <span className="text-[11px] text-fg-muted">{t('Scripts détectés :')}</span>
                 {scripts.map((s) => (
                   <button
                     key={s}
@@ -261,7 +267,7 @@ export default function LauncherPanel(): JSX.Element {
               disabled={!name.trim() || !command.trim() || !cwd.trim()}
               className="flex items-center justify-center gap-1.5 rounded-app bg-accent px-2 py-1.5 text-[12px] font-medium text-white hover:opacity-90 disabled:opacity-40"
             >
-              <Plus size={14} /> Ajouter le lancement
+              <Plus size={14} /> {t('Ajouter le lancement')}
             </button>
           </div>
         </section>
@@ -269,9 +275,13 @@ export default function LauncherPanel(): JSX.Element {
         {/* Nouveau profil */}
         {tasks.length > 0 && (
           <section className="rounded-app border border-border p-2.5">
-            <div className="mb-2 text-[12px] font-medium text-fg-secondary">Nouveau profil</div>
+            <div className="mb-2 text-[12px] font-medium text-fg-secondary">{t('Nouveau profil')}</div>
             <div className="flex flex-col gap-1.5">
-              <Input value={profileName} onChange={setProfileName} placeholder="Nom (ex. Projet X — dev)" />
+              <Input
+                value={profileName}
+                onChange={setProfileName}
+                placeholder={t('Nom (ex. Projet X — dev)')}
+              />
               <div className="flex flex-col gap-1">
                 {tasks.map((t) => (
                   <label key={t.id} className="flex items-center gap-2 text-[12px] text-fg-secondary">
@@ -290,7 +300,7 @@ export default function LauncherPanel(): JSX.Element {
                 disabled={!profileName.trim() || picked.size === 0}
                 className="flex items-center justify-center gap-1.5 rounded-app bg-accent px-2 py-1.5 text-[12px] font-medium text-white hover:opacity-90 disabled:opacity-40"
               >
-                <Layers size={14} /> Créer le profil
+                <Layers size={14} /> {t('Créer le profil')}
               </button>
             </div>
           </section>
@@ -326,7 +336,7 @@ function RunBtn(props: { running: boolean; onRun: () => void; onStop: () => void
   return props.running ? (
     <button
       onClick={props.onStop}
-      title="Arrêter"
+      title={t('Arrêter')}
       className="grid h-7 w-7 shrink-0 place-items-center rounded-app bg-danger-bg text-danger-fg hover:opacity-90"
     >
       <Square size={13} />
@@ -334,7 +344,7 @@ function RunBtn(props: { running: boolean; onRun: () => void; onStop: () => void
   ) : (
     <button
       onClick={props.onRun}
-      title="Lancer"
+      title={t('Lancer')}
       className="grid h-7 w-7 shrink-0 place-items-center rounded-app bg-success-bg text-success-fg hover:opacity-90"
     >
       <Play size={14} />

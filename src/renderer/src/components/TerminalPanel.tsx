@@ -31,6 +31,7 @@ import {
   focusTerminal
 } from '../lib/terminalRegistry'
 import Terminal from './Terminal'
+import { t } from '../i18n'
 
 /**
  * Panneau terminal : barre d'onglets + instances xterm (node-pty).
@@ -132,30 +133,30 @@ export default function TerminalPanel(): JSX.Element {
           if ((e.target as HTMLElement).closest('button')) return
           toggleMax()
         }}
-        title="Double-clic : agrandir / restaurer le terminal"
+        title={t('Double-clic : agrandir / restaurer le terminal')}
         className="flex h-9 shrink-0 items-center justify-between border-b border-border pl-2 pr-2"
       >
         <div className="flex min-w-0 items-center gap-1">
           <TerminalSquare size={14} className="mr-1 shrink-0 text-fg-muted" />
           <div className="flex min-w-0 items-center gap-1 overflow-x-auto">
-            {visibleTabs.map((t) => (
+            {visibleTabs.map((tab) => (
               <button
-                key={t.id}
-                onClick={() => setActive(t.id)}
+                key={tab.id}
+                onClick={() => setActive(tab.id)}
                 className={`group flex shrink-0 items-center gap-1.5 rounded-app px-2.5 py-1 text-[12px] ${
-                  t.id === activeId
+                  tab.id === activeId
                     ? 'bg-bg-secondary text-fg'
                     : 'text-fg-muted hover:bg-bg-hover hover:text-fg-secondary'
                 }`}
               >
-                <span className={t.exited ? 'opacity-60' : ''}>{t.title}</span>
+                <span className={tab.exited ? 'opacity-60' : ''}>{tab.title}</span>
                 <span
                   onClick={(e) => {
                     e.stopPropagation()
-                    closeTab(t.id)
+                    closeTab(tab.id)
                   }}
                   className="grid h-4 w-4 place-items-center rounded opacity-0 hover:bg-bg-hover group-hover:opacity-100"
-                  title="Fermer l'onglet"
+                  title={t("Fermer l'onglet")}
                 >
                   <X size={11} />
                 </span>
@@ -169,7 +170,7 @@ export default function TerminalPanel(): JSX.Element {
             <button
               onClick={() => setMenuOpen((o) => !o)}
               onBlur={() => setTimeout(() => setMenuOpen(false), 120)}
-              title="Nouveau terminal"
+              title={t('Nouveau terminal')}
               className="flex items-center rounded-app px-1.5 py-1 text-fg-muted hover:bg-bg-hover hover:text-fg"
             >
               <Plus size={15} />
@@ -178,7 +179,7 @@ export default function TerminalPanel(): JSX.Element {
             {menuOpen && (
               <div className="absolute left-0 top-full z-30 mt-1 w-52 overflow-hidden rounded-app border border-border bg-bg-secondary py-1 shadow-lg">
                 <div className="px-3 py-1 text-[10px] uppercase tracking-wider text-fg-muted">
-                  ★ = shell par défaut
+                  {t('★ = shell par défaut')}
                 </div>
                 {shells.map((s) => (
                   <div key={s.id} className="group flex items-center pr-1 hover:bg-bg-hover">
@@ -199,8 +200,8 @@ export default function TerminalPanel(): JSX.Element {
                       }}
                       title={
                         s.id === defaultShellId
-                          ? 'Shell par défaut (cliquer pour retirer)'
-                          : 'Définir comme shell par défaut'
+                          ? t('Shell par défaut (cliquer pour retirer)')
+                          : t('Définir comme shell par défaut')
                       }
                       className="grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted hover:text-accent"
                     >
@@ -235,23 +236,23 @@ export default function TerminalPanel(): JSX.Element {
                   if (e.key === 'Enter') runSearch(query, e.shiftKey ? 'prev' : 'next')
                   else if (e.key === 'Escape') closeSearch()
                 }}
-                placeholder="Rechercher…"
+                placeholder={t('Rechercher…')}
                 spellCheck={false}
                 className="w-36 bg-transparent py-0.5 text-[12px] text-fg outline-none placeholder:text-fg-muted"
               />
-              <HeaderBtn label="Précédent (Maj+Entrée)" onClick={() => runSearch(query, 'prev')}>
+              <HeaderBtn label={t('Précédent (Maj+Entrée)')} onClick={() => runSearch(query, 'prev')}>
                 <ArrowUp size={12} />
               </HeaderBtn>
-              <HeaderBtn label="Suivant (Entrée)" onClick={() => runSearch(query, 'next')}>
+              <HeaderBtn label={t('Suivant (Entrée)')} onClick={() => runSearch(query, 'next')}>
                 <ArrowDown size={12} />
               </HeaderBtn>
-              <HeaderBtn label="Fermer la recherche (Échap)" onClick={closeSearch}>
+              <HeaderBtn label={t('Fermer la recherche (Échap)')} onClick={closeSearch}>
                 <X size={12} />
               </HeaderBtn>
             </div>
           ) : (
             <HeaderBtn
-              label="Rechercher dans le terminal (Ctrl+F)"
+              label={t('Rechercher dans le terminal (Ctrl+F)')}
               onClick={() => {
                 setSearchOpen(true)
                 setTimeout(() => searchRef.current?.focus(), 0)
@@ -262,17 +263,17 @@ export default function TerminalPanel(): JSX.Element {
             </HeaderBtn>
           )}
           <HeaderBtn
-            label="Copier le contenu du terminal"
+            label={t('Copier le contenu du terminal')}
             onClick={() => void copyActive()}
             disabled={!activeId}
           >
             {copied ? <Check size={14} className="text-accent" /> : <Copy size={14} />}
           </HeaderBtn>
-          <HeaderBtn label="Effacer le terminal" onClick={clearActive} disabled={!activeId}>
+          <HeaderBtn label={t('Effacer le terminal')} onClick={clearActive} disabled={!activeId}>
             <Eraser size={14} />
           </HeaderBtn>
           <HeaderBtn
-            label={split ? 'Affichage en onglets' : 'Afficher côte à côte'}
+            label={split ? t('Affichage en onglets') : t('Afficher côte à côte')}
             onClick={toggleSplit}
             disabled={tabs.length === 0}
             active={split}
@@ -282,8 +283,8 @@ export default function TerminalPanel(): JSX.Element {
           <HeaderBtn
             label={
               linked
-                ? "Terminaux liés à l'onglet de dossier (cliquer pour tout afficher)"
-                : "Lier les terminaux à l'onglet de dossier actif"
+                ? t("Terminaux liés à l'onglet de dossier (cliquer pour tout afficher)")
+                : t("Lier les terminaux à l'onglet de dossier actif")
             }
             onClick={toggleLinked}
             active={linked}
@@ -292,16 +293,16 @@ export default function TerminalPanel(): JSX.Element {
           </HeaderBtn>
           <div className="mx-0.5 my-1 w-px bg-border" />
           <HeaderBtn
-            label={maximized ? 'Restaurer la taille du terminal' : 'Agrandir (plein espace)'}
+            label={maximized ? t('Restaurer la taille du terminal') : t('Agrandir (plein espace)')}
             onClick={toggleMax}
             active={maximized}
           >
             {maximized ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
           </HeaderBtn>
-          <HeaderBtn label="Réduire le terminal" onClick={toggleTerminal}>
+          <HeaderBtn label={t('Réduire le terminal')} onClick={toggleTerminal}>
             <Minus size={14} />
           </HeaderBtn>
-          <HeaderBtn label="Fermer le terminal" onClick={() => setTerminalOpen(false)}>
+          <HeaderBtn label={t('Fermer le terminal')} onClick={() => setTerminalOpen(false)}>
             <X size={14} />
           </HeaderBtn>
         </div>
@@ -317,7 +318,7 @@ export default function TerminalPanel(): JSX.Element {
               onClick={() => void openTab()}
               className="rounded-app border border-border px-3 py-1.5 text-[12px] text-fg-secondary hover:bg-bg-hover"
             >
-              Réessayer
+              {t('Réessayer')}
             </button>
           </div>
         )}
@@ -325,20 +326,20 @@ export default function TerminalPanel(): JSX.Element {
           <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center">
             <Link2 size={22} className="text-fg-muted" />
             <p className="text-[13px] text-fg-secondary">
-              Aucun terminal pour cet onglet de dossier.
+              {t('Aucun terminal pour cet onglet de dossier.')}
             </p>
             <p className="text-[12px] text-fg-muted">
-              « + » pour en ouvrir un ici, ou {`« `}
+              {t('« + » pour en ouvrir un ici, ou')} {t('«')}{' '}
               <Link2 size={11} className="inline" />
-              {` »`} pour afficher tous les terminaux.
+              {' '}{t('»')} {t('pour afficher tous les terminaux.')}
             </p>
           </div>
         )}
         {split ? (
           // Côte à côte : chaque terminal (visible) dans sa colonne redimensionnable.
           <PanelGroup key={`tsplit-${visibleTabs.length}-${linked}`} direction="horizontal" className="p-1.5">
-            {visibleTabs.map((t, i) => (
-              <Fragment key={t.id}>
+            {visibleTabs.map((tab, i) => (
+              <Fragment key={tab.id}>
                 {i > 0 && (
                   <PanelResizeHandle className="group relative w-1.5 shrink-0">
                     <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-border transition-colors group-hover:bg-accent group-data-[resize-handle-active]:bg-accent" />
@@ -346,32 +347,32 @@ export default function TerminalPanel(): JSX.Element {
                 )}
                 <Panel minSize={12}>
                   <div
-                    onMouseDown={() => setActive(t.id)}
+                    onMouseDown={() => setActive(tab.id)}
                     className={`flex h-full flex-col overflow-hidden rounded-app border ${
-                      t.id === activeId ? 'border-accent' : 'border-border'
+                      tab.id === activeId ? 'border-accent' : 'border-border'
                     }`}
                   >
                     <div className="flex shrink-0 items-center justify-between gap-1 border-b border-border bg-bg-secondary px-2 py-0.5">
                       <span
                         className={`truncate text-[11px] ${
-                          t.exited ? 'text-fg-muted opacity-60' : t.id === activeId ? 'text-fg' : 'text-fg-muted'
+                          tab.exited ? 'text-fg-muted opacity-60' : tab.id === activeId ? 'text-fg' : 'text-fg-muted'
                         }`}
                       >
-                        {t.title}
+                        {tab.title}
                       </span>
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
-                          closeTab(t.id)
+                          closeTab(tab.id)
                         }}
-                        title="Fermer"
+                        title={t('Fermer')}
                         className="grid h-4 w-4 shrink-0 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg"
                       >
                         <X size={11} />
                       </button>
                     </div>
                     <div className="relative min-h-0 flex-1">
-                      <Terminal ptyId={t.ptyId} active={t.id === activeId} shellId={t.shell.id} cwd={t.cwd} />
+                      <Terminal ptyId={tab.ptyId} active={tab.id === activeId} shellId={tab.shell.id} cwd={tab.cwd} />
                     </div>
                   </div>
                 </Panel>

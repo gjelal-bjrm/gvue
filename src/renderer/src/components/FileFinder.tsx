@@ -3,6 +3,7 @@ import { Search, Folder, File, Loader2 } from 'lucide-react'
 import { useUiStore } from '../state/useUiStore'
 import { useNavStore, activePane } from '../state/useNavStore'
 import { baseName } from '../lib/format'
+import { t } from '../i18n'
 import type { TreeEntry } from '@shared/types'
 
 /** Score flou : sous-chaîne (meilleur, bonus si début) puis sous-séquence, sinon -1. */
@@ -121,7 +122,7 @@ export default function FileFinder(): JSX.Element | null {
               setSelected(0)
             }}
             onKeyDown={onKeyDown}
-            placeholder={`Aller à un fichier dans ${baseName(path) || path}…`}
+            placeholder={t('Aller à un fichier dans {dir}…', { dir: baseName(path) || path })}
             spellCheck={false}
             className="w-full bg-transparent py-3 text-[14px] text-fg outline-none placeholder:text-fg-muted"
           />
@@ -131,7 +132,7 @@ export default function FileFinder(): JSX.Element | null {
         <div ref={listRef} className="min-h-0 flex-1 overflow-auto py-1">
           {filtered.length === 0 ? (
             <div className="px-3 py-6 text-center text-[13px] text-fg-muted">
-              {loading ? 'Indexation…' : 'Aucun fichier'}
+              {loading ? t('Indexation…') : t('Aucun fichier')}
             </div>
           ) : (
             filtered.map((en, i) => {

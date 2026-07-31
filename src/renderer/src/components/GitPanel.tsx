@@ -20,6 +20,7 @@ import { useNavStore, activePane } from '../state/useNavStore'
 import { pathKey } from '../lib/format'
 import ContextMenu, { type MenuEntry } from './ContextMenu'
 import type { GitActionResult, GitFileChange } from '@shared/types'
+import { t, tn } from '../i18n'
 import DiffView from './git/DiffView'
 import GitHistory from './git/GitHistory'
 import BranchBar from './git/BranchBar'
@@ -237,31 +238,34 @@ export default function GitPanel(): JSX.Element {
     const entries: MenuEntry[] = []
     if (targets.some((f) => !f.staged))
       entries.push({
-        label: `Indexer${suffix}`,
+        label: t('Indexer{suffix}', { suffix }),
         icon: <Plus size={14} />,
         onClick: () => toggleStaged(targets, true)
       })
     if (targets.some((f) => f.staged))
       entries.push({
-        label: `Désindexer${suffix}`,
+        label: t('Désindexer{suffix}', { suffix }),
         icon: <Minus size={14} />,
         onClick: () => toggleStaged(targets, false)
       })
     entries.push({
-      label: `Annuler les modifications${suffix}…`,
+      label: t('Annuler les modifications{suffix}…', { suffix }),
       icon: <Undo2 size={14} />,
       danger: true,
       onClick: () => discardTargets(targets)
     })
     entries.push({ type: 'sep' })
     entries.push({
-      label: n > 1 ? `Ignorer ces ${n} fichiers (.gitignore)` : 'Ignorer ce fichier (.gitignore)',
+      label: tn(n, 'Ignorer ce fichier (.gitignore)', 'Ignorer ces {n} fichiers (.gitignore)'),
       icon: <Ban size={14} />,
       onClick: () => void act(() => window.api.git.ignore(root, rels))
     })
     if (folders.length)
       entries.push({
-        label: folders.length > 1 ? 'Ignorer ces dossiers (.gitignore)' : 'Ignorer ce dossier (.gitignore)',
+        label:
+          folders.length > 1
+            ? t('Ignorer ces dossiers (.gitignore)')
+            : t('Ignorer ce dossier (.gitignore)'),
         icon: <Ban size={14} />,
         onClick: () => void act(() => window.api.git.ignore(root, folders))
       })
@@ -269,36 +273,36 @@ export default function GitPanel(): JSX.Element {
       entries.push({
         label:
           exts.length === 1
-            ? `Ignorer tous les ${exts[0]} (.gitignore)`
-            : `Ignorer ${exts.map((e) => '*' + e).join(', ')}`,
+            ? t('Ignorer tous les {ext} (.gitignore)', { ext: exts[0] })
+            : t('Ignorer {list}', { list: exts.map((e) => '*' + e).join(', ') }),
         icon: <Ban size={14} />,
         onClick: () => void act(() => window.api.git.ignore(root, exts.map((e) => '*' + e)))
       })
     entries.push({ type: 'sep' })
     entries.push({
-      label: 'Copier le chemin',
+      label: t('Copier le chemin'),
       icon: <Copy size={14} />,
       onClick: () => void navigator.clipboard?.writeText(paths.join('\n'))
     })
     entries.push({
-      label: 'Copier le chemin relatif',
+      label: t('Copier le chemin relatif'),
       icon: <Copy size={14} />,
       onClick: () => void navigator.clipboard?.writeText(rels.join('\n'))
     })
     entries.push({ type: 'sep' })
     entries.push({
-      label: "Révéler dans l'explorateur",
+      label: t("Révéler dans l'explorateur"),
       icon: <ExternalLink size={14} />,
       onClick: () => void window.api.fs.reveal(paths[0])
     })
     if (apps.vscode)
       entries.push({
-        label: 'Ouvrir avec VS Code',
+        label: t('Ouvrir avec VS Code'),
         icon: <Code2 size={14} />,
         onClick: () => window.api.apps.openWith('vscode', paths)
       })
     entries.push({
-      label: 'Ouvrir (programme par défaut)',
+      label: t('Ouvrir (programme par défaut)'),
       icon: <ExternalLink size={14} />,
       onClick: () => {
         for (const p of paths) void window.api.fs.open(p)
@@ -311,12 +315,12 @@ export default function GitPanel(): JSX.Element {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 bg-bg p-6 text-center">
         <GitBranch size={28} className="text-fg-muted" />
-        <p className="text-[13px] text-fg-secondary">Ce dossier n'est pas un dépôt Git.</p>
+        <p className="text-[13px] text-fg-secondary">{t("Ce dossier n'est pas un dépôt Git.")}</p>
         <button
           onClick={() => setGitView(false)}
           className="rounded-app border border-border px-3 py-1.5 text-[12px] text-fg-secondary hover:bg-bg-hover"
         >
-          Fermer la vue Git
+          {t('Fermer la vue Git')}
         </button>
       </div>
     )
@@ -347,7 +351,7 @@ export default function GitPanel(): JSX.Element {
               : 'border-transparent text-fg-muted hover:text-fg-secondary'
           }`}
         >
-          <GitCommit size={14} /> Modifications
+          <GitCommit size={14} /> {t('Modifications')}
           {files.length > 0 && <span className="text-fg-muted">({files.length})</span>}
         </button>
         <button
@@ -358,7 +362,7 @@ export default function GitPanel(): JSX.Element {
               : 'border-transparent text-fg-muted hover:text-fg-secondary'
           }`}
         >
-          <History size={14} /> Historique
+          <History size={14} /> {t('Historique')}
         </button>
       </div>
 
@@ -381,25 +385,27 @@ export default function GitPanel(): JSX.Element {
                   className="accent-[var(--accent)]"
                 />
                 <span>
-                  {files.length} fichier{files.length > 1 ? 's' : ''} modifié
-                  {files.length > 1 ? 's' : ''}
-                  <span className="text-fg-muted"> · {staged.length} indexé{staged.length > 1 ? 's' : ''}</span>
+                  {tn(files.length, '{n} fichier modifié', '{n} fichiers modifiés')}
+                  <span className="text-fg-muted">
+                    {' '}
+                    · {tn(staged.length, '{n} indexé', '{n} indexés')}
+                  </span>
                 </span>
               </label>
             )}
             {selectedFiles.length > 1 ? (
               <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-border bg-accent-soft px-2.5 py-1 text-[11px]">
                 <span className="font-medium text-fg">
-                  {selectedFiles.length} sélectionnés
+                  {tn(selectedFiles.length, '{n} sélectionné', '{n} sélectionnés')}
                 </span>
-                <SelBtn onClick={() => toggleStaged(selectedFiles, true)}>Indexer</SelBtn>
-                <SelBtn onClick={() => toggleStaged(selectedFiles, false)}>Désindexer</SelBtn>
+                <SelBtn onClick={() => toggleStaged(selectedFiles, true)}>{t('Indexer')}</SelBtn>
+                <SelBtn onClick={() => toggleStaged(selectedFiles, false)}>{t('Désindexer')}</SelBtn>
                 <SelBtn danger onClick={() => discardTargets(selectedFiles)}>
-                  Annuler…
+                  {t('Annuler…')}
                 </SelBtn>
                 <button
                   onClick={() => setSel(new Set())}
-                  title="Vider la sélection (Échap)"
+                  title={t('Vider la sélection (Échap)')}
                   className="ml-auto rounded px-1 text-fg-muted hover:bg-bg-hover hover:text-fg"
                 >
                   ✕
@@ -408,13 +414,13 @@ export default function GitPanel(): JSX.Element {
             ) : (
               files.length > 1 && (
                 <div className="shrink-0 border-b border-border px-2.5 py-1 text-[11px] text-fg-muted">
-                  Astuce : Ctrl+clic pour choisir plusieurs fichiers, Maj+clic pour une plage.
+                  {t('Astuce : Ctrl+clic pour choisir plusieurs fichiers, Maj+clic pour une plage.')}
                 </div>
               )
             )}
             <div className="min-h-0 flex-1 overflow-auto p-1.5">
               {files.length === 0 ? (
-                <p className="px-1 py-3 text-center text-[12px] text-fg-muted">Aucun changement.</p>
+                <p className="px-1 py-3 text-center text-[12px] text-fg-muted">{t('Aucun changement.')}</p>
               ) : (
                 order.map((f) => (
                   <ChangedFileRow
@@ -453,12 +459,12 @@ export default function GitPanel(): JSX.Element {
           <div className="flex h-full flex-col">
             {busy && (
               <div className="flex items-center gap-1.5 border-b border-border px-3 py-1 text-[11px] text-fg-muted">
-                <Loader2 size={12} className="animate-spin" /> En cours…
+                <Loader2 size={12} className="animate-spin" /> {t('En cours…')}
               </div>
             )}
             {!selected ? (
               <div className="flex h-full items-center justify-center text-[12px] text-fg-muted">
-                Sélectionnez un fichier pour voir le diff.
+                {t('Sélectionnez un fichier pour voir le diff.')}
               </div>
             ) : (
               <div className="min-h-0 flex-1 overflow-auto p-2">
@@ -469,7 +475,7 @@ export default function GitPanel(): JSX.Element {
                   <DiffView diff={diff} />
                 ) : (
                   <p className="px-1 text-[12px] text-fg-muted">
-                    Pas de diff textuel (fichier binaire, vide, ou identique à l'index).
+                    {t("Pas de diff textuel (fichier binaire, vide, ou identique à l'index).")}
                   </p>
                 )}
               </div>
