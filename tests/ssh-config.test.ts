@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { parseSshConfig, splitSshTokens } from '../src/main/services/ssh-config'
-import { sshCommandFor, sshSubtitle, sshCdCommandFor } from '@renderer/lib/ssh'
+import { sshCommandFor, sshSubtitle, sshCdCommandFor, sshOptions } from '@renderer/lib/ssh'
 import type { SshHost } from '@shared/types'
 
 const SAMPLE = `# Serveurs perso
@@ -110,6 +110,28 @@ describe('sshCommandFor / sshSubtitle', () => {
     )
     // Jamais de $ (PowerShell/Git Bash locaux interpoleraient).
     expect(sshCdCommandFor({ name: 'vps', source: 'config' }, '/srv')).not.toContain('$')
+  })
+
+  it('sshOptions traduit les panneaux PuTTY en options OpenSSH', () => {
+    const host: SshHost = {
+      name: 'prod',
+      source: 'manual',
+      hostName: 'prod.exemple.com',
+      keyFile: 'C:\\Users\\g\\.ssh\\id_ed25519',
+      proxyJump: 'user@bastion:2222',
+      keepAlive: true,
+      x11: true,
+      compression: true
+    }
+    expect(sshOptions(host)).toBe(
+      '-i "C:\\Users\\g\\.ssh\\id_ed25519" -J user@bastion:2222 -o ServerAliveInterval=30 -X -C '
+    )
+    // Injectées dans la commande complète, avant la cible.
+    expect(sshCommandFor(host)).toBe(
+      'ssh -i "C:\\Users\\g\\.ssh\\id_ed25519" -J user@bastion:2222 -o ServerAliveInterval=30 -X -C prod.exemple.com'
+    )
+    // Sans option : chaîne vide, commandes inchangées.
+    expect(sshOptions({ name: 'x', source: 'manual', hostName: 'x.ch' })).toBe('')
   })
 
   it('le sous-titre montre la cible réelle, port seulement si non standard', () => {

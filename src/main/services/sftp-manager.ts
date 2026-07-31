@@ -186,7 +186,28 @@ async function connectOnce(
     })
 
     void (async () => {
-      const keys = await defaultKeys()
+      // Clé privée dédiée à l'hôte, sinon les clés par défaut de ~/.ssh.
+      let keys: Buffer[]
+      if (host.keyFile) {
+        if (/\.ppk$/i.test(host.keyFile)) {
+          return done({
+            status: 'error',
+            message:
+              `« ${host.keyFile} » est une clé au format PuTTY (.ppk), illisible par OpenSSH/GVue. ` +
+              `Convertissez-la : PuTTYgen → Conversions → Export OpenSSH key.`
+          })
+        }
+        try {
+          keys = [await fsp.readFile(host.keyFile)]
+        } catch {
+          return done({
+            status: 'error',
+            message: `Clé privée introuvable : ${host.keyFile}`
+          })
+        }
+      } else {
+        keys = await defaultKeys()
+      }
       logInfo(
         'sftp',
         `Connexion à ${key} (agent: ${agentPath() ? 'oui' : 'non'}, clés: ${keys.length}, ` +
@@ -203,6 +224,8 @@ async function connectOnce(
           privateKey: keys[0],
           tryKeyboard: false,
           readyTimeout: 15_000,
+          // Keep-alive : évite les coupures des sessions inactives (pare-feu).
+          keepaliveInterval: host.keepAlive ? 30_000 : undefined,
           // Trace du handshake dans le journal en dev (diagnostic des timeouts).
           debug: app.isPackaged ? undefined : (m: string) => logInfo('ssh2', m),
           hostVerifier: (keyBuf: Buffer): boolean => {

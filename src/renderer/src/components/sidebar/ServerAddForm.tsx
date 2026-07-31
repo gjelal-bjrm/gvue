@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Server, X, Check, Info } from 'lucide-react'
+import { Server, X, Check, Info, ChevronRight, ChevronDown } from 'lucide-react'
 import type { SshHost } from '@shared/types'
 import { hostKeyOf, parseForwards, describeForward, forwardsToText } from '../../lib/ssh'
 
@@ -23,6 +23,15 @@ export default function ServerAddForm(props: {
   const [tunnels, setTunnels] = useState(forwardsToText(e?.forwards))
   const [canSave, setCanSave] = useState(false)
   const parsedForwards = parseForwards(tunnels)
+  // Options avancées (les panneaux importants de PuTTY : Auth, Proxy, Connection…).
+  const [advancedOpen, setAdvancedOpen] = useState(
+    Boolean(e?.keyFile || e?.proxyJump || e?.keepAlive || e?.x11 || e?.compression)
+  )
+  const [keyFile, setKeyFile] = useState(e?.keyFile ?? '')
+  const [proxyJump, setProxyJump] = useState(e?.proxyJump ?? '')
+  const [keepAlive, setKeepAlive] = useState(e?.keepAlive ?? true)
+  const [x11, setX11] = useState(e?.x11 ?? false)
+  const [compression, setCompression] = useState(e?.compression ?? false)
 
   useEffect(() => {
     void window.api.sftp
@@ -55,7 +64,12 @@ export default function ServerAddForm(props: {
       hostName: finalHost,
       user: finalUser,
       port: Number.isInteger(p) && p > 0 && p < 65536 && p !== 22 ? p : undefined,
-      forwards: parsedForwards.length ? parsedForwards : undefined
+      forwards: parsedForwards.length ? parsedForwards : undefined,
+      keyFile: keyFile.trim() || undefined,
+      proxyJump: proxyJump.trim() || undefined,
+      keepAlive: keepAlive || undefined,
+      x11: x11 || undefined,
+      compression: compression || undefined
     }
     if (password) {
       void window.api.sftp.savePassword(hostKeyOf(host), password)
@@ -203,6 +217,77 @@ export default function ServerAddForm(props: {
                 <li key={i}>✓ {describeForward(f)}</li>
               ))}
             </ul>
+          )}
+
+          {/* Options avancées : clé, relais, keep-alive, X11, compression. */}
+          <button
+            onClick={() => setAdvancedOpen((o) => !o)}
+            className="flex items-center gap-1 text-left text-[12px] text-fg-secondary hover:text-fg"
+          >
+            {advancedOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+            Options avancées
+            {!advancedOpen && (keyFile || proxyJump || x11 || compression) && (
+              <span className="text-[10px] text-accent">●</span>
+            )}
+          </button>
+          {advancedOpen && (
+            <div className="flex flex-col gap-3 rounded-app border border-border bg-bg p-2.5">
+              <Field
+                label="Clé privée"
+                hint="Chemin d'une clé OpenSSH (ex. C:\Users\vous\.ssh\id_ed25519). Les .ppk PuTTY doivent être convertis (PuTTYgen → Export OpenSSH key)."
+              >
+                <input
+                  value={keyFile}
+                  onChange={(ev) => setKeyFile(ev.target.value)}
+                  onKeyDown={onKey}
+                  placeholder="C:\Users\vous\.ssh\id_ed25519"
+                  spellCheck={false}
+                  className={`${field} font-mono`}
+                />
+              </Field>
+              <Field
+                label="Relais / bastion (ProxyJump)"
+                hint="« user@relais » ou « user@relais:port » — la connexion transite par cette machine. Terminal SSH uniquement pour l'instant."
+              >
+                <input
+                  value={proxyJump}
+                  onChange={(ev) => setProxyJump(ev.target.value)}
+                  onKeyDown={onKey}
+                  placeholder="user@bastion.exemple.com"
+                  spellCheck={false}
+                  className={field}
+                />
+              </Field>
+              <div className="flex flex-col gap-1.5 text-[12px] text-fg-secondary">
+                <label className="flex items-center gap-1.5">
+                  <input
+                    type="checkbox"
+                    checked={keepAlive}
+                    onChange={(ev) => setKeepAlive(ev.target.checked)}
+                    className="accent-[var(--accent)]"
+                  />
+                  Keep-alive (recommandé — évite les déconnexions des sessions inactives)
+                </label>
+                <label className="flex items-center gap-1.5">
+                  <input
+                    type="checkbox"
+                    checked={x11}
+                    onChange={(ev) => setX11(ev.target.checked)}
+                    className="accent-[var(--accent)]"
+                  />
+                  Transfert X11 (applications graphiques distantes)
+                </label>
+                <label className="flex items-center gap-1.5">
+                  <input
+                    type="checkbox"
+                    checked={compression}
+                    onChange={(ev) => setCompression(ev.target.checked)}
+                    className="accent-[var(--accent)]"
+                  />
+                  Compression (liaisons lentes)
+                </label>
+              </div>
+            </div>
           )}
 
           <p className="flex items-start gap-1.5 rounded-app border border-border bg-bg px-2 py-1.5 text-[11px] text-fg-muted">

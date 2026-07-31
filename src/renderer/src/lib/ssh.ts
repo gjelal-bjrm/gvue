@@ -18,6 +18,21 @@ function forwardsOf(host: SshHost): string {
 }
 
 /**
+ * Options SSH avancées d'un hôte (pur, testable) : clé privée, relais (-J),
+ * keep-alive, X11, compression — les panneaux importants de PuTTY, en options
+ * OpenSSH. Se termine par une espace si non vide (insertion directe).
+ */
+export function sshOptions(host: SshHost): string {
+  const parts: string[] = []
+  if (host.keyFile) parts.push(`-i "${host.keyFile}"`)
+  if (host.proxyJump) parts.push(`-J ${host.proxyJump}`)
+  if (host.keepAlive) parts.push('-o ServerAliveInterval=30')
+  if (host.x11) parts.push('-X')
+  if (host.compression) parts.push('-C')
+  return parts.length ? `${parts.join(' ')} ` : ''
+}
+
+/**
  * Lit des tunnels saisis à la main (pur, testable). Une par ligne (ou séparées
  * par des virgules), syntaxe volontairement proche de PuTTY et d'OpenSSH :
  *   3001:localhost:3001      → local (le cas courant : accéder au site distant)
@@ -131,13 +146,13 @@ export function hostKeyOf(host: SshHost): string {
  * - Hôte manuel (config GVue) : `ssh [-p port] [user@]hôte`.
  */
 export function sshCommandFor(host: SshHost): string {
-  const fwd = forwardsOf(host)
-  if (host.source === 'config') return `ssh ${fwd}${host.name}`
+  const opts = `${sshOptions(host)}${forwardsOf(host)}`
+  if (host.source === 'config') return `ssh ${opts}${host.name}`
   const target = host.user
     ? `${host.user}@${host.hostName ?? host.name}`
     : host.hostName ?? host.name
   const port = host.port ? `-p ${host.port} ` : ''
-  return `ssh ${fwd}${port}${target}`
+  return `ssh ${opts}${port}${target}`
 }
 
 /**
@@ -150,13 +165,13 @@ export function sshCommandFor(host: SshHost): string {
 export function sshCdCommandFor(host: SshHost, remoteDir: string): string {
   const quoted = `'${remoteDir.replace(/'/g, `'\\''`)}'`
   const remote = `cd ${quoted} && exec bash -l || exec sh -l`
-  const fwd = forwardsOf(host)
-  if (host.source === 'config') return `ssh -t ${fwd}${host.name} "${remote}"`
+  const opts = `${sshOptions(host)}${forwardsOf(host)}`
+  if (host.source === 'config') return `ssh -t ${opts}${host.name} "${remote}"`
   const target = host.user
     ? `${host.user}@${host.hostName ?? host.name}`
     : host.hostName ?? host.name
   const port = host.port ? `-p ${host.port} ` : ''
-  return `ssh -t ${fwd}${port}${target} "${remote}"`
+  return `ssh -t ${opts}${port}${target} "${remote}"`
 }
 
 /**

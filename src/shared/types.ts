@@ -33,6 +33,16 @@ export interface SshHost {
   port?: number
   /** Tunnels montés à la connexion (importés de PuTTY ou définis ici). */
   forwards?: SshForward[]
+  /** Clé privée dédiée (format OpenSSH — les .ppk PuTTY doivent être convertis). */
+  keyFile?: string
+  /** Relais/bastion « user@hôte[:port] » (-J) — terminal uniquement pour l'instant. */
+  proxyJump?: string
+  /** Keep-alive (évite les coupures des connexions inactives). */
+  keepAlive?: boolean
+  /** Transfert X11 (-X). */
+  x11?: boolean
+  /** Compression (-C) — utile sur liaisons lentes. */
+  compression?: boolean
 }
 
 /** Une entrée d'un dossier distant (explorateur SFTP). */
