@@ -16,6 +16,10 @@ import { registerMcpHandlers } from './ipc/mcp'
 import { registerClipboardHandlers } from './ipc/clipboard'
 import { registerBinHandlers } from './ipc/bin'
 import { registerSshHandlers } from './ipc/ssh'
+import { registerIntegrationHandlers } from './ipc/integration'
+import { IPC } from '@shared/ipc'
+import { dirFromArgv } from './services/shell-integration'
+import { sendToWindow } from './tray'
 import { registerSftpHandlers } from './ipc/sftp'
 import { disconnectAll } from './services/sftp-manager'
 import { startMcpServer, stopMcpServer } from './services/mcp-server'
@@ -66,6 +70,7 @@ function registerIpc(): void {
   registerBinHandlers()
   registerSshHandlers()
   registerSftpHandlers()
+  registerIntegrationHandlers()
 }
 
 // Protocole gvue-file:// — sert les fichiers locaux au renderer (aperçu
@@ -99,9 +104,14 @@ const gotLock = app.requestSingleInstanceLock()
 if (!gotLock) {
   app.quit()
 } else {
-  // Relancer l'exécutable ouvre une nouvelle fenêtre GVue.
-  app.on('second-instance', () => {
-    createWindow()
+  // Relance de l'exécutable : « Ouvrir dans GVue » (Explorateur) passe le
+  // dossier en argument → on y navigue dans la fenêtre existante ; sans
+  // argument, on ouvre une nouvelle fenêtre (comportement historique).
+  app.on('second-instance', (_e, argv) => {
+    void dirFromArgv(argv, app.isPackaged).then((dir) => {
+      if (dir) sendToWindow(IPC.trayOpenPath, dir)
+      else createWindow()
+    })
   })
 
   app.whenReady().then(() => {
@@ -109,7 +119,12 @@ if (!gotLock) {
     registerIpc()
     registerFileProtocol()
     createTray()
-    createWindow()
+    const win = createWindow()
+    // Lancé avec un dossier en argument (« Ouvrir dans GVue » alors que GVue
+    // était fermé) : on y navigue dès que la fenêtre est prête.
+    void dirFromArgv(process.argv, app.isPackaged).then((dir) => {
+      if (dir) win.webContents.once('did-finish-load', () => win.webContents.send(IPC.trayOpenPath, dir))
+    })
     initAutoUpdate()
 
     // Serveur MCP (agents IA) : opt-in, relancé si activé lors d'une session précédente.

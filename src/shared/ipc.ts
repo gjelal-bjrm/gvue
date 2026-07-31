@@ -18,6 +18,10 @@ export const IPC = {
   fsPreview: 'fs:preview',
   fsJustRecipes: 'fs:justRecipes',
 
+  // Intégration à l'Explorateur Windows (« Ouvrir dans GVue »)
+  integrationGet: 'integration:get',
+  integrationSet: 'integration:set',
+
   // SSH (section Serveurs)
   sshConfigHosts: 'ssh:configHosts',
   sshAvailable: 'ssh:available',

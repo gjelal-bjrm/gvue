@@ -161,6 +161,13 @@ const api = {
     extract: (path: string, destDir?: string): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke(IPC.archiveExtract, path, destDir)
   },
+  integration: {
+    /** Intégration Explorateur : { supported, enabled } (« Ouvrir dans GVue »). */
+    get: (): Promise<{ supported: boolean; enabled: boolean }> =>
+      ipcRenderer.invoke(IPC.integrationGet),
+    /** Enregistre / retire l'entrée du menu contextuel de l'Explorateur. */
+    set: (enabled: boolean): Promise<boolean> => ipcRenderer.invoke(IPC.integrationSet, enabled)
+  },
   ssh: {
     /** Hôtes lus dans ~/.ssh/config (lecture seule, jamais modifié par GVue). */
     configHosts: (): Promise<SshHost[]> => ipcRenderer.invoke(IPC.sshConfigHosts),

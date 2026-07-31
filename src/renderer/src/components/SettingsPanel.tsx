@@ -706,6 +706,9 @@ function GeneralSection(): JSX.Element {
   const toggleLinked = useTerminalStore((s) => s.toggleLinked)
   const shelfEnabled = useShelfStore((s) => s.enabled)
   const [restore, setRestore] = useState<boolean | null>(null)
+  const [integration, setIntegration] = useState<{ supported: boolean; enabled: boolean } | null>(
+    null
+  )
   const [mcp, setMcp] = useState<{ enabled: boolean; bridgePath: string } | null>(null)
   const [copiedCmd, setCopiedCmd] = useState(false)
 
@@ -718,7 +721,15 @@ function GeneralSection(): JSX.Element {
       .then((v) => useTerminalStore.setState({ linked: !!v }))
       .catch(() => undefined)
     void window.api.mcp.status().then(setMcp)
+    void window.api.integration?.get().then(setIntegration).catch(() => setIntegration(null))
   }, [])
+
+  const toggleIntegration = (enabled: boolean): void => {
+    void window.api.integration.set(enabled).then((ok) => {
+      if (ok) setIntegration((s) => (s ? { ...s, enabled } : s))
+      else useUiStore.getState().showToast("Échec de la modification du menu de l'Explorateur.")
+    })
+  }
 
   const toggleMcp = (enabled: boolean): void => {
     void window.api.mcp.toggle(enabled).then(setMcp)
@@ -823,6 +834,23 @@ function GeneralSection(): JSX.Element {
           Le panneau terminal n'affiche que les terminaux de l'onglet de dossier actif.
         </p>
       </Field>
+
+      {integration?.supported && (
+        <Field label="Menu de l'Explorateur Windows">
+          <Segmented<'on' | 'off'>
+            value={integration.enabled ? 'on' : 'off'}
+            options={[
+              { value: 'on', label: 'Activé' },
+              { value: 'off', label: 'Désactivé' }
+            ]}
+            onChange={(v) => toggleIntegration(v === 'on')}
+          />
+          <p className="mt-1.5 text-[11px] text-fg-muted">
+            Ajoute « Ouvrir dans GVue » au clic droit sur les dossiers et lecteurs dans
+            l'Explorateur. Par-utilisateur, aucun droit administrateur, réversible ici.
+          </p>
+        </Field>
+      )}
 
       <Field label="Étagère (panier de fichiers)">
         <Segmented<'on' | 'off'>
