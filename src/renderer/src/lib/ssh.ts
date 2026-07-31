@@ -1,4 +1,86 @@
-import type { SshHost } from '@shared/types'
+import type { SshHost, SshForward } from '@shared/types'
+
+/**
+ * Options OpenSSH d'une redirection de port (pur, testable).
+ * -L / -R : « [bind:]écoute:dest:portDest » · -D : « [bind:]écoute ».
+ */
+export function forwardArgs(f: SshForward): string {
+  const bind = f.listenHost ? `${f.listenHost}:` : ''
+  if (f.type === 'dynamic') return `-D ${bind}${f.listenPort}`
+  const flag = f.type === 'local' ? '-L' : '-R'
+  return `${flag} ${bind}${f.listenPort}:${f.destHost}:${f.destPort}`
+}
+
+/** Toutes les options de tunnel d'un hôte, prêtes à insérer dans la commande. */
+function forwardsOf(host: SshHost): string {
+  const list = (host.forwards ?? []).map(forwardArgs).join(' ')
+  return list ? `${list} ` : ''
+}
+
+/**
+ * Lit des tunnels saisis à la main (pur, testable). Une par ligne (ou séparées
+ * par des virgules), syntaxe volontairement proche de PuTTY et d'OpenSSH :
+ *   3001:localhost:3001      → local (le cas courant : accéder au site distant)
+ *   L 8080:srv:80            → local, explicite
+ *   R 9000:localhost:9000    → distant
+ *   D 1080                   → proxy SOCKS
+ */
+export function parseForwards(text: string): SshForward[] {
+  const out: SshForward[] = []
+  for (const raw of (text ?? '').split(/[\n,]/)) {
+    const line = raw.trim()
+    if (!line) continue
+    const m = /^(?:([LRD])\s*)?(.+)$/i.exec(line)
+    if (!m) continue
+    const letter = (m[1] ?? 'L').toUpperCase()
+    const parts = m[2].split(':').map((p) => p.trim())
+    const type = letter === 'L' ? 'local' : letter === 'R' ? 'remote' : 'dynamic'
+
+    if (type === 'dynamic') {
+      const port = Number(parts[parts.length - 1])
+      if (Number.isInteger(port) && port > 0 && port < 65536) {
+        out.push({
+          type,
+          listenPort: port,
+          listenHost: parts.length > 1 ? parts[0] : undefined
+        })
+      }
+      continue
+    }
+    // « écoute:dest:port » ou « bind:écoute:dest:port »
+    const seq = parts.length === 4 ? parts.slice(1) : parts
+    const listenHost = parts.length === 4 ? parts[0] : undefined
+    if (seq.length !== 3) continue
+    const listenPort = Number(seq[0])
+    const destPort = Number(seq[2])
+    if (!Number.isInteger(listenPort) || listenPort <= 0 || listenPort > 65535) continue
+    if (!Number.isInteger(destPort) || destPort <= 0 || destPort > 65535) continue
+    if (!seq[1]) continue
+    out.push({ type, listenPort, listenHost, destHost: seq[1], destPort })
+  }
+  return out
+}
+
+/** Sérialise des tunnels vers la syntaxe de saisie (une par ligne). */
+export function forwardsToText(forwards: SshForward[] | undefined): string {
+  return (forwards ?? [])
+    .map((f) => {
+      const bind = f.listenHost ? `${f.listenHost}:` : ''
+      if (f.type === 'dynamic') return `D ${bind}${f.listenPort}`
+      const prefix = f.type === 'local' ? '' : 'R '
+      return `${prefix}${bind}${f.listenPort}:${f.destHost}:${f.destPort}`
+    })
+    .join('\n')
+}
+
+/** Résumé lisible d'un tunnel (infobulles, formulaire). */
+export function describeForward(f: SshForward): string {
+  const bind = f.listenHost ? `${f.listenHost}:` : 'localhost:'
+  if (f.type === 'dynamic') return `SOCKS ${bind}${f.listenPort}`
+  return f.type === 'local'
+    ? `${bind}${f.listenPort} → ${f.destHost}:${f.destPort}`
+    : `serveur:${f.listenPort} → ${f.destHost}:${f.destPort} (distant)`
+}
 
 /**
  * Clé de session d'un hôte — DOIT rester identique à `hostKeyOf` du
@@ -16,11 +98,13 @@ export function hostKeyOf(host: SshHost): string {
  * - Hôte manuel (config GVue) : `ssh [-p port] [user@]hôte`.
  */
 export function sshCommandFor(host: SshHost): string {
-  if (host.source === 'config') return `ssh ${host.name}`
+  const fwd = forwardsOf(host)
+  if (host.source === 'config') return `ssh ${fwd}${host.name}`
   const target = host.user
     ? `${host.user}@${host.hostName ?? host.name}`
     : host.hostName ?? host.name
-  return host.port ? `ssh -p ${host.port} ${target}` : `ssh ${target}`
+  const port = host.port ? `-p ${host.port} ` : ''
+  return `ssh ${fwd}${port}${target}`
 }
 
 /**
@@ -33,12 +117,13 @@ export function sshCommandFor(host: SshHost): string {
 export function sshCdCommandFor(host: SshHost, remoteDir: string): string {
   const quoted = `'${remoteDir.replace(/'/g, `'\\''`)}'`
   const remote = `cd ${quoted} && exec bash -l || exec sh -l`
-  if (host.source === 'config') return `ssh -t ${host.name} "${remote}"`
+  const fwd = forwardsOf(host)
+  if (host.source === 'config') return `ssh -t ${fwd}${host.name} "${remote}"`
   const target = host.user
     ? `${host.user}@${host.hostName ?? host.name}`
     : host.hostName ?? host.name
   const port = host.port ? `-p ${host.port} ` : ''
-  return `ssh -t ${port}${target} "${remote}"`
+  return `ssh -t ${fwd}${port}${target} "${remote}"`
 }
 
 /**

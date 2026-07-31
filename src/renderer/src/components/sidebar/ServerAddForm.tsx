@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Server, X, Check, Info } from 'lucide-react'
 import type { SshHost } from '@shared/types'
-import { hostKeyOf } from '../../lib/ssh'
+import { hostKeyOf, parseForwards, describeForward } from '../../lib/ssh'
 
 /**
  * Dialogue d'ajout d'un serveur SSH/SFTP : un champ = un libellé + une aide,
@@ -17,7 +17,9 @@ export default function ServerAddForm(props: {
   const [port, setPort] = useState('')
   const [label, setLabel] = useState('')
   const [password, setPassword] = useState('')
+  const [tunnels, setTunnels] = useState('')
   const [canSave, setCanSave] = useState(false)
+  const parsedForwards = parseForwards(tunnels)
 
   useEffect(() => {
     void window.api.sftp
@@ -49,7 +51,8 @@ export default function ServerAddForm(props: {
       source: 'manual',
       hostName: finalHost,
       user: finalUser,
-      port: Number.isInteger(p) && p > 0 && p < 65536 && p !== 22 ? p : undefined
+      port: Number.isInteger(p) && p > 0 && p < 65536 && p !== 22 ? p : undefined,
+      forwards: parsedForwards.length ? parsedForwards : undefined
     }
     if (password) {
       void window.api.sftp.savePassword(hostKeyOf(host), password)
@@ -173,6 +176,27 @@ export default function ServerAddForm(props: {
               className={`${field} disabled:opacity-50`}
             />
           </Field>
+
+          <Field
+            label="Tunnels (redirections de port)"
+            hint="Une par ligne. « 3001:localhost:3001 » rend le service distant accessible sur http://localhost:3001. Préfixez par R (distant) ou D (proxy SOCKS)."
+          >
+            <textarea
+              value={tunnels}
+              onChange={(e) => setTunnels(e.target.value)}
+              placeholder={'3001:localhost:3001\n8080:localhost:80'}
+              spellCheck={false}
+              rows={2}
+              className={`${field} resize-y font-mono`}
+            />
+          </Field>
+          {parsedForwards.length > 0 && (
+            <ul className="-mt-1 flex flex-col gap-0.5 text-[11px] text-accent">
+              {parsedForwards.map((f, i) => (
+                <li key={i}>✓ {describeForward(f)}</li>
+              ))}
+            </ul>
+          )}
 
           <p className="flex items-start gap-1.5 rounded-app border border-border bg-bg px-2 py-1.5 text-[11px] text-fg-muted">
             <Info size={13} className="mt-px shrink-0" />

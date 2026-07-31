@@ -2,9 +2,10 @@ import { describe, it, expect } from 'vitest'
 import {
   parseRegSessions,
   parseWinScpIni,
-  decodeSessionName
+  decodeSessionName,
+  parsePortForwardings
 } from '../src/main/services/ssh-import'
-import { mergeHosts } from '@renderer/lib/ssh'
+import { mergeHosts, forwardArgs, parseForwards, forwardsToText } from '@renderer/lib/ssh'
 import type { SshHost } from '@shared/types'
 
 // Format calqué sur la sortie réelle de `reg query … /s` observée sur la
@@ -82,6 +83,54 @@ HostName=www.exemple.ch
 
   it('Default Settings du .ini est aussi écarté', () => {
     expect(hosts.some((h) => h.name === 'Default Settings')).toBe(false)
+  })
+})
+
+describe('tunnels SSH', () => {
+  it('décode les PortForwardings de PuTTY (le cas « site distant sur localhost »)', () => {
+    const f = parsePortForwardings('L3001=localhost:3001')
+    expect(f).toEqual([
+      { type: 'local', listenPort: 3001, listenHost: undefined, destHost: 'localhost', destPort: 3001 }
+    ])
+    expect(forwardArgs(f[0])).toBe('-L 3001:localhost:3001')
+  })
+
+  it('gère plusieurs tunnels, distants, SOCKS, bind et préfixes 4/6', () => {
+    const f = parsePortForwardings('L3001=localhost:3001,R9000=localhost:9000,D1080=,4L127.0.0.1:8080=srv:80')
+    expect(f.map((x) => x.type)).toEqual(['local', 'remote', 'dynamic', 'local'])
+    expect(forwardArgs(f[1])).toBe('-R 9000:localhost:9000')
+    expect(forwardArgs(f[2])).toBe('-D 1080')
+    expect(forwardArgs(f[3])).toBe('-L 127.0.0.1:8080:srv:80')
+  })
+
+  it('ignore les entrées vides ou mal formées', () => {
+    expect(parsePortForwardings('')).toEqual([])
+    expect(parsePortForwardings('n’importe quoi')).toEqual([])
+    expect(parsePortForwardings('L99999=localhost:80')).toEqual([])
+    expect(parsePortForwardings('L3001=sans-port')).toEqual([])
+  })
+
+  it('les sessions importées portent leurs tunnels', () => {
+    const hosts = parseRegSessions(`
+HKEY_CURRENT_USER\\Software\\SimonTatham\\PuTTY\\Sessions\\client-prod
+    HostName    REG_SZ    client.exemple.ch
+    PortForwardings    REG_SZ    L3001=localhost:3001,L5432=localhost:5432
+`)
+    expect(hosts[0].forwards).toHaveLength(2)
+    expect(hosts[0].forwards?.[0].listenPort).toBe(3001)
+  })
+
+  it('saisie manuelle : forme courte, R/D explicites, aller-retour texte', () => {
+    expect(parseForwards('3001:localhost:3001')).toEqual([
+      { type: 'local', listenPort: 3001, listenHost: undefined, destHost: 'localhost', destPort: 3001 }
+    ])
+    expect(parseForwards('R 9000:localhost:9000')[0].type).toBe('remote')
+    expect(parseForwards('D 1080')[0]).toMatchObject({ type: 'dynamic', listenPort: 1080 })
+    // Plusieurs lignes + ligne invalide ignorée.
+    expect(parseForwards('3001:localhost:3001\nn’importe quoi\n8080:srv:80')).toHaveLength(2)
+    // forwardsToText ∘ parseForwards = identité sur la forme canonique.
+    const text = '3001:localhost:3001\nR 9000:localhost:9000\nD 1080'
+    expect(forwardsToText(parseForwards(text))).toBe(text)
   })
 })
 

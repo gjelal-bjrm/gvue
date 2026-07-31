@@ -4,6 +4,24 @@
 export type DirEntryKind = 'file' | 'directory'
 
 /** Instantané du contexte GVue poussé au serveur MCP (renderer → main). */
+/**
+ * Une redirection de port SSH (« tunnel ») : accéder depuis le PC local à un
+ * service qui n'écoute que sur le serveur (site, base de données…).
+ * - local   : localhost:<listen> → <destHost>:<destPort> vu du serveur (-L) ;
+ * - remote  : <listen> sur le serveur → <destHost>:<destPort> vu d'ici (-R) ;
+ * - dynamic : proxy SOCKS sur localhost:<listen> (-D).
+ */
+export interface SshForward {
+  type: 'local' | 'remote' | 'dynamic'
+  /** Port d'écoute (côté local pour local/dynamic, côté serveur pour remote). */
+  listenPort: number
+  /** Adresse d'écoute optionnelle (défaut : localhost). */
+  listenHost?: string
+  /** Destination (inutile pour « dynamic »). */
+  destHost?: string
+  destPort?: number
+}
+
 /** Un serveur SSH (section « Serveurs » de la sidebar). */
 export interface SshHost {
   /** Alias (ssh_config) ou libellé (hôte manuel). */
@@ -13,6 +31,8 @@ export interface SshHost {
   hostName?: string
   user?: string
   port?: number
+  /** Tunnels montés à la connexion (importés de PuTTY ou définis ici). */
+  forwards?: SshForward[]
 }
 
 /** Une entrée d'un dossier distant (explorateur SFTP). */

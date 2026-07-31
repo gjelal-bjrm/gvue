@@ -1,6 +1,6 @@
-import { Server, TerminalSquare, FolderOpen, X } from 'lucide-react'
+import { Server, TerminalSquare, FolderOpen, Network, X } from 'lucide-react'
 import type { SshHost } from '@shared/types'
-import { sshSubtitle } from '../../lib/ssh'
+import { sshSubtitle, describeForward } from '../../lib/ssh'
 
 /**
  * Serveur SSH de la sidebar. Clic sur le nom OU sur l'icône terminal →
@@ -31,6 +31,14 @@ export default function ServerItem(props: {
       >
         <Server size={16} className="shrink-0" />
         <span className="min-w-0 flex-1 truncate">{host.name}</span>
+        {host.forwards && host.forwards.length > 0 && (
+          <span
+            title={`Tunnels : ${host.forwards.map(describeForward).join(' · ')}`}
+            className="shrink-0 text-fg-muted"
+          >
+            <Network size={12} />
+          </span>
+        )}
         {subtitle && subtitle !== host.name && (
           <span className="max-w-[45%] shrink-0 truncate text-[11px] text-fg-muted">{subtitle}</span>
         )}

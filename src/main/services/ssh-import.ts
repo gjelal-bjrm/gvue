@@ -2,7 +2,7 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { promises as fsp } from 'node:fs'
 import { join } from 'node:path'
-import type { SshHost } from '@shared/types'
+import type { SshHost, SshForward } from '@shared/types'
 
 /**
  * Import des sessions PuTTY et WinSCP existantes — l'utilisateur qui a déjà
@@ -28,6 +28,47 @@ export function decodeSessionName(s: string): string {
     // Séquences invalides : décodage octet par octet, au mieux.
     return s.replace(/%([0-9A-Fa-f]{2})/g, (_m, h: string) => String.fromCharCode(parseInt(h, 16)))
   }
+}
+
+/**
+ * Décode la valeur `PortForwardings` de PuTTY (pur, testable) — c'est là que
+ * vivent les tunnels d'une session, et c'est ce qui manquait à l'import :
+ * sans eux, la connexion s'établit mais aucun port n'est redirigé.
+ *
+ * Format : entrées séparées par des virgules, « <sens><écoute>=<dest> » où
+ * le sens est L (local), R (distant) ou D (dynamique/SOCKS), éventuellement
+ * précédé de 4/6 (famille d'adresses), et l'écoute peut porter une adresse
+ * de bind. Exemples : « L3001=localhost:3001 », « 4L127.0.0.1:8080=srv:80 »,
+ * « D1080= ».
+ */
+export function parsePortForwardings(raw: string): SshForward[] {
+  const out: SshForward[] = []
+  for (const part of (raw ?? '').split(',')) {
+    const entry = part.trim()
+    if (!entry) continue
+    const m = /^[46]?([LRD])([^=]*)=(.*)$/i.exec(entry)
+    if (!m) continue
+    const type = m[1].toUpperCase() === 'L' ? 'local' : m[1].toUpperCase() === 'R' ? 'remote' : 'dynamic'
+
+    // Écoute : « port » ou « adresse:port ».
+    const listen = m[2].trim()
+    const lastColon = listen.lastIndexOf(':')
+    const listenHost = lastColon > 0 ? listen.slice(0, lastColon) : undefined
+    const listenPort = Number(lastColon > 0 ? listen.slice(lastColon + 1) : listen)
+    if (!Number.isInteger(listenPort) || listenPort <= 0 || listenPort > 65535) continue
+
+    if (type === 'dynamic') {
+      out.push({ type, listenPort, listenHost })
+      continue
+    }
+    const dest = m[3].trim()
+    const dc = dest.lastIndexOf(':')
+    if (dc <= 0) continue
+    const destPort = Number(dest.slice(dc + 1))
+    if (!Number.isInteger(destPort) || destPort <= 0 || destPort > 65535) continue
+    out.push({ type, listenPort, listenHost, destHost: dest.slice(0, dc), destPort })
+  }
+  return out
 }
 
 /**
@@ -68,6 +109,9 @@ export function parseRegSessions(raw: string): SshHost[] {
     else if (key === 'portnumber' && value) {
       const p = value.startsWith('0x') ? parseInt(value, 16) : Number(value)
       if (Number.isInteger(p) && p > 0 && p < 65536 && p !== 22) current.port = p
+    } else if (key === 'portforwardings' && value) {
+      const forwards = parsePortForwardings(value)
+      if (forwards.length) current.forwards = forwards
     }
   }
   push()
@@ -108,6 +152,9 @@ export function parseWinScpIni(text: string): SshHost[] {
     else if (key === 'portnumber' && value) {
       const p = Number(value)
       if (Number.isInteger(p) && p > 0 && p < 65536 && p !== 22) current.port = p
+    } else if (key === 'portforwardings' && value) {
+      const forwards = parsePortForwardings(value)
+      if (forwards.length) current.forwards = forwards
     }
   }
   push()

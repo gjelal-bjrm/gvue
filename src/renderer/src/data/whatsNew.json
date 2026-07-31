@@ -1,5 +1,11 @@
 [
   {
+    "version": "0.2.2",
+    "notes": [
+      "Fix « Nouveau dossier distant » (prompt inexistant) + mot de passe fourni au terminal SSH"
+    ]
+  },
+  {
     "version": "0.2.1",
     "notes": [
       "SFTP — mémoire de session façon WinSCP + noms de dossiers tronqués à tort"
