@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Server, X, Check, Info } from 'lucide-react'
 import type { SshHost } from '@shared/types'
-import { hostKeyOf, parseForwards, describeForward } from '../../lib/ssh'
+import { hostKeyOf, parseForwards, describeForward, forwardsToText } from '../../lib/ssh'
 
 /**
  * Dialogue d'ajout d'un serveur SSH/SFTP : un champ = un libellé + une aide,
@@ -9,15 +9,18 @@ import { hostKeyOf, parseForwards, describeForward } from '../../lib/ssh'
  * fourni, stocké CHIFFRÉ par l'OS (jamais dans le fichier de config en clair).
  */
 export default function ServerAddForm(props: {
-  onAdd: (host: SshHost) => void
+  /** Hôte à modifier (le formulaire arrive pré-rempli) ; absent = ajout. */
+  editing?: SshHost | null
+  onAdd: (host: SshHost, originalName?: string) => void
   onClose: () => void
 }): JSX.Element {
-  const [hostName, setHostName] = useState('')
-  const [user, setUser] = useState('')
-  const [port, setPort] = useState('')
-  const [label, setLabel] = useState('')
+  const e = props.editing
+  const [hostName, setHostName] = useState(e?.hostName ?? '')
+  const [user, setUser] = useState(e?.user ?? '')
+  const [port, setPort] = useState(e?.port ? String(e.port) : '')
+  const [label, setLabel] = useState(e?.name ?? '')
   const [password, setPassword] = useState('')
-  const [tunnels, setTunnels] = useState('')
+  const [tunnels, setTunnels] = useState(forwardsToText(e?.forwards))
   const [canSave, setCanSave] = useState(false)
   const parsedForwards = parseForwards(tunnels)
 
@@ -57,7 +60,7 @@ export default function ServerAddForm(props: {
     if (password) {
       void window.api.sftp.savePassword(hostKeyOf(host), password)
     }
-    props.onAdd(host)
+    props.onAdd(host, e?.name)
     props.onClose()
   }
 
@@ -93,7 +96,9 @@ export default function ServerAddForm(props: {
       >
         <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-3">
           <Server size={15} className="text-accent" />
-          <span className="text-[13px] font-medium text-fg">Ajouter un serveur</span>
+          <span className="text-[13px] font-medium text-fg">
+            {e ? `Modifier « ${e.name} »` : 'Ajouter un serveur'}
+          </span>
           <button
             onClick={props.onClose}
             title="Fermer (Échap)"
@@ -162,8 +167,10 @@ export default function ServerAddForm(props: {
             label="Mot de passe (facultatif)"
             hint={
               canSave
-                ? "Laissez vide pour qu'il soit demandé à la connexion. S'il est saisi, il est chiffré par Windows — les clés SSH restent plus sûres."
-                : "Chiffrement indisponible sur cette machine : le mot de passe sera demandé à chaque connexion."
+                ? e
+                  ? "Laissez vide pour conserver l'existant. S'il est saisi, il est chiffré par Windows."
+                  : "Laissez vide pour qu'il soit demandé à la connexion. S'il est saisi, il est chiffré par Windows — les clés SSH restent plus sûres."
+                : 'Chiffrement indisponible sur cette machine : le mot de passe sera demandé à chaque connexion.'
             }
           >
             <input
@@ -214,7 +221,7 @@ export default function ServerAddForm(props: {
             disabled={!valid}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-app bg-accent px-2 py-1.5 text-[12px] font-medium text-white hover:opacity-90 disabled:opacity-40"
           >
-            <Check size={13} /> Ajouter
+            <Check size={13} /> {e ? 'Enregistrer' : 'Ajouter'}
           </button>
           <button
             onClick={props.onClose}

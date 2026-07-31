@@ -317,6 +317,9 @@ export default function RemoteExplorer(): JSX.Element | null {
 
   const disconnect = (): void => {
     if (hostKey) void window.api.sftp.disconnect(hostKey)
+    // Fermeture EXPLICITE : on ne rouvrira pas ce volet au prochain démarrage
+    // (seule une app quittée volet ouvert le restaure).
+    void window.api.config.set('sftpLastHost', null)
     close()
   }
 

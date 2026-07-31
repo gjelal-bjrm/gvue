@@ -8,6 +8,12 @@ import { getConfig } from './services/config-store'
 import { createWindow } from './window'
 import { appIconPath } from './icon'
 import { checkForUpdates } from './services/updater'
+import { readSshConfigHosts } from './services/ssh-config'
+import type { SshHost } from '@shared/types'
+
+// Hôtes du ~/.ssh/config, rafraîchis à chaque ouverture du menu (lecture
+// asynchrone → cache utilisé par le buildMenu synchrone).
+let sshConfigHosts: SshHost[] = []
 
 let runSeq = 0
 /**
@@ -116,11 +122,23 @@ function buildMenu(): Menu {
     }
   }
 
+  // Un serveur SSH : terminal ou explorateur de fichiers (SFTP) dans GVue.
+  const serverItem = (h: SshHost): Electron.MenuItemConstructorOptions => ({
+    label: h.name,
+    toolTip: h.hostName ?? h.name,
+    submenu: [
+      { label: 'Terminal SSH', click: () => sendToWindow(IPC.trayOpenSsh, h) },
+      { label: 'Fichiers (SFTP)', click: () => sendToWindow(IPC.trayBrowseSsh, h) }
+    ]
+  })
+  const servers = [...sshConfigHosts, ...getConfig('sshHosts')]
+
   return Menu.buildFromTemplate([
     { label: 'Ouvrir GVue', click: () => showWindow() },
     { type: 'separator' },
     { label: 'Accès rapide', submenu: orEmpty(topFolders.map(folderItem)) },
     { label: 'Projets', submenu: orEmpty(projectRoots.map(projectItem)) },
+    { label: 'Serveurs', submenu: orEmpty(servers.map(serverItem)) },
     {
       label: 'Lancements',
       submenu: orEmpty([
@@ -164,8 +182,16 @@ export function createTray(): void {
 
   tray = new Tray(image)
   tray.setToolTip('GVue')
-  // Menu reconstruit à chaque clic droit (données fraîches depuis la config).
-  tray.on('right-click', () => tray?.popUpContextMenu(buildMenu()))
+  // Menu reconstruit à chaque clic droit (données fraîches depuis la config ;
+  // les hôtes du ~/.ssh/config sont relus juste avant l'affichage).
+  tray.on('right-click', () => {
+    void readSshConfigHosts()
+      .then((h) => {
+        sshConfigHosts = h
+      })
+      .catch(() => undefined)
+      .then(() => tray?.popUpContextMenu(buildMenu()))
+  })
   // Repli Windows : clic gauche (et double-clic) ouvre/affiche la fenêtre.
   tray.on('click', () => showWindow())
   tray.on('double-click', () => showWindow())

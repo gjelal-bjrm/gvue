@@ -139,6 +139,8 @@ export const IPC = {
   // Plateau système (tray) → actions rapides
   trayOpenPath: 'tray:openPath',
   trayRunTask: 'tray:runTask',
+  trayOpenSsh: 'tray:openSsh',
+  trayBrowseSsh: 'tray:browseSsh',
   trayRunProject: 'tray:runProject',
   trayLoadWorkspace: 'tray:loadWorkspace',
 

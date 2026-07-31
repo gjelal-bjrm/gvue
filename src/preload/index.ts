@@ -378,6 +378,18 @@ const api = {
       ipcRenderer.on(IPC.trayRunTask, listener)
       return () => ipcRenderer.removeListener(IPC.trayRunTask, listener)
     },
+    /** Tray → terminal SSH vers un serveur. */
+    onOpenSsh: (cb: (host: SshHost) => void): (() => void) => {
+      const listener = (_e: unknown, host: SshHost): void => cb(host)
+      ipcRenderer.on(IPC.trayOpenSsh, listener)
+      return () => ipcRenderer.removeListener(IPC.trayOpenSsh, listener)
+    },
+    /** Tray → explorateur SFTP d'un serveur. */
+    onBrowseSsh: (cb: (host: SshHost) => void): (() => void) => {
+      const listener = (_e: unknown, host: SshHost): void => cb(host)
+      ipcRenderer.on(IPC.trayBrowseSsh, listener)
+      return () => ipcRenderer.removeListener(IPC.trayBrowseSsh, listener)
+    },
     onRunProject: (cb: (root: string) => void): (() => void) => {
       const listener = (_e: unknown, root: string): void => cb(root)
       ipcRenderer.on(IPC.trayRunProject, listener)

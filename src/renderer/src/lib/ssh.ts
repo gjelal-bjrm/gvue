@@ -140,7 +140,12 @@ export function mergeHosts(existing: SshHost[], incoming: SshHost[]): SshHost[] 
 
   for (const host of incoming) {
     const dup = out.find((h) => h.name === host.name)
-    if (dup && sameTarget(dup, host)) continue
+    if (dup && sameTarget(dup, host)) {
+      // Même serveur ré-importé : on rafraîchit ses tunnels (un import
+      // antérieur au support des forwards les avait laissés de côté).
+      if (host.forwards?.length) dup.forwards = host.forwards
+      continue
+    }
     let name = host.name
     for (let n = 2; out.some((h) => h.name === name); n++) name = `${host.name} (${n})`
     out.push({ ...host, name })

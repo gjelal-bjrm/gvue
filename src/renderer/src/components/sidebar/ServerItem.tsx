@@ -1,4 +1,4 @@
-import { Server, TerminalSquare, FolderOpen, Network, X } from 'lucide-react'
+import { Server, TerminalSquare, FolderOpen, Network, Pencil, X } from 'lucide-react'
 import type { SshHost } from '@shared/types'
 import { sshSubtitle, describeForward } from '../../lib/ssh'
 
@@ -13,7 +13,8 @@ export default function ServerItem(props: {
   host: SshHost
   onConnect: () => void
   onBrowse: () => void
-  /** Présent seulement pour les hôtes manuels (ceux du ssh_config sont en lecture seule). */
+  /** Présents seulement pour les hôtes manuels (ceux du ssh_config sont en lecture seule). */
+  onEdit?: (e: React.MouseEvent) => void
   onRemove?: (e: React.MouseEvent) => void
 }): JSX.Element {
   const { host } = props
@@ -63,6 +64,15 @@ export default function ServerItem(props: {
       >
         <FolderOpen size={13} />
       </button>
+      {props.onEdit && (
+        <button
+          onClick={props.onEdit}
+          title="Modifier (hôte, tunnels, mot de passe…)"
+          className="grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted opacity-0 hover:bg-bg-hover hover:text-fg group-hover:opacity-100"
+        >
+          <Pencil size={12} />
+        </button>
+      )}
       {props.onRemove && (
         <button
           onClick={props.onRemove}

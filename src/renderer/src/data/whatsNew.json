@@ -1,5 +1,11 @@
 [
   {
+    "version": "0.2.3",
+    "notes": [
+      "Tunnels SSH — les redirections de port de PuTTY enfin importées et appliquées"
+    ]
+  },
+  {
     "version": "0.2.2",
     "notes": [
       "Fix « Nouveau dossier distant » (prompt inexistant) + mot de passe fourni au terminal SSH"

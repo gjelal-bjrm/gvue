@@ -77,6 +77,7 @@ export default function Sidebar(): JSX.Element {
   const [manualHosts, setManualHosts] = useState<SshHost[]>([])
   const [sshOk, setSshOk] = useState(true)
   const [addServerOpen, setAddServerOpen] = useState(false)
+  const [editServer, setEditServer] = useState<SshHost | null>(null)
   const [importOpen, setImportOpen] = useState(false)
   const [launchOpen, setLaunchOpen] = useState(false)
   const [groupAxis, setGroupAxis] = useState<'project' | 'category'>('project')
@@ -112,8 +113,12 @@ export default function Sidebar(): JSX.Element {
     })
   }
 
-  const addServer = (host: SshHost): void => {
-    const next = [...manualHosts.filter((h) => h.name !== host.name), host]
+  // Ajout, ou remplacement de l'hôte d'origine en mode édition.
+  const addServer = (host: SshHost, originalName?: string): void => {
+    const next = [
+      ...manualHosts.filter((h) => h.name !== host.name && h.name !== originalName),
+      host
+    ]
     setManualHosts(next)
     void window.api.config.set('sshHosts', next)
   }
@@ -333,14 +338,25 @@ export default function Sidebar(): JSX.Element {
               host={h}
               onConnect={() => connectSsh(h)}
               onBrowse={() => useUiStore.getState().setRemoteHost(h)}
+              onEdit={(e) => {
+                e.stopPropagation()
+                setEditServer(h)
+              }}
               onRemove={(e) => {
                 e.stopPropagation()
                 removeServer(h.name)
               }}
             />
           ))}
-          {addServerOpen ? (
-            <ServerAddForm onAdd={addServer} onClose={() => setAddServerOpen(false)} />
+          {addServerOpen || editServer ? (
+            <ServerAddForm
+              editing={editServer}
+              onAdd={addServer}
+              onClose={() => {
+                setAddServerOpen(false)
+                setEditServer(null)
+              }}
+            />
           ) : (
             <>
               <button

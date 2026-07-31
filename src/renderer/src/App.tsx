@@ -45,6 +45,7 @@ import { useCustomCommandsStore } from './state/useCustomCommandsStore'
 import PaneTabs from './components/PaneTabs'
 import Shelf from './components/Shelf'
 import { useShelfStore } from './state/useShelfStore'
+import { sshCommandFor, hostKeyOf } from './lib/ssh'
 import { pathKey, baseName } from './lib/format'
 import { clipFiles, pasteInto, undoLastOp } from './lib/fileActions'
 
@@ -293,11 +294,26 @@ export default function App(): JSX.Element {
       }
       void w.load(name)
     })
+    // Serveurs SSH du tray : terminal connecté, ou explorateur SFTP.
+    const offSsh = tray.onOpenSsh?.((host) => {
+      useUiStore.getState().setTerminalOpen(true)
+      void useTerminalStore.getState().openTaskTab({
+        cwd: activePane(useNavStore.getState()).path || '.',
+        title: host.name,
+        command: sshCommandFor(host),
+        sshHostKey: hostKeyOf(host)
+      })
+    })
+    const offBrowse = tray.onBrowseSsh?.((host) => {
+      useUiStore.getState().setRemoteHost(host)
+    })
     return () => {
       offOpen()
       offRun()
       offRunProj()
       offWs()
+      offSsh?.()
+      offBrowse?.()
     }
   }, [])
 
