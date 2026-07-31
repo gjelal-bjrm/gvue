@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.0",
+    "notes": [
+      "« Ouvrir dans GVue » dans le menu contextuel de l'Explorateur Windows",
+      "La section « Serveurs » devient « SSH / SFTP »"
+    ]
+  },
+  {
     "version": "0.2.4",
     "notes": [
       "Édition de serveur + serveurs dans le tray + fix mémoire SFTP"

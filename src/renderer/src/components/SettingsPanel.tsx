@@ -848,6 +848,8 @@ function GeneralSection(): JSX.Element {
           <p className="mt-1.5 text-[11px] text-fg-muted">
             Ajoute « Ouvrir dans GVue » au clic droit sur les dossiers et lecteurs dans
             l'Explorateur. Par-utilisateur, aucun droit administrateur, réversible ici.
+            Sous Windows 11, l'entrée apparaît dans « Afficher plus d'options » (Maj+F10) —
+            le nouveau menu réserve son premier niveau aux applications empaquetées MSIX.
           </p>
         </Field>
       )}
