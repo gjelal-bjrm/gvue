@@ -22,7 +22,7 @@ export interface SshForward {
   destPort?: number
 }
 
-/** Un serveur SSH (section « Serveurs » de la sidebar). */
+/** Un serveur SSH (section « SSH / SFTP » de la sidebar). */
 export interface SshHost {
   /** Alias (ssh_config) ou libellé (hôte manuel). */
   name: string

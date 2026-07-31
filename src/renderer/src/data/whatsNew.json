@@ -1,5 +1,11 @@
 [
   {
+    "version": "0.2.4",
+    "notes": [
+      "Édition de serveur + serveurs dans le tray + fix mémoire SFTP"
+    ]
+  },
+  {
     "version": "0.2.3",
     "notes": [
       "Tunnels SSH — les redirections de port de PuTTY enfin importées et appliquées"

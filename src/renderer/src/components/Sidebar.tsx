@@ -310,7 +310,10 @@ export default function Sidebar(): JSX.Element {
       )
     },
     servers: {
-      title: 'Serveurs',
+      // Le libellé nomme les protocoles (sans ambiguïté avec un « serveur » de
+      // projet ou un lecteur réseau) ; la clé de section reste « servers »,
+      // car elle est persistée dans l'ordre de la sidebar.
+      title: 'SSH / SFTP',
       body: (
         <>
           {!sshOk && (

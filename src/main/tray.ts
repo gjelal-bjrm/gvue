@@ -138,7 +138,7 @@ function buildMenu(): Menu {
     { type: 'separator' },
     { label: 'Accès rapide', submenu: orEmpty(topFolders.map(folderItem)) },
     { label: 'Projets', submenu: orEmpty(projectRoots.map(projectItem)) },
-    { label: 'Serveurs', submenu: orEmpty(servers.map(serverItem)) },
+    { label: 'SSH / SFTP', submenu: orEmpty(servers.map(serverItem)) },
     {
       label: 'Lancements',
       submenu: orEmpty([
