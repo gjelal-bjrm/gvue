@@ -5,7 +5,13 @@ import {
   decodeSessionName,
   parsePortForwardings
 } from '../src/main/services/ssh-import'
-import { mergeHosts, forwardArgs, parseForwards, forwardsToText } from '@renderer/lib/ssh'
+import {
+  mergeHosts,
+  forwardArgs,
+  parseForwards,
+  forwardsToText,
+  toSshConfigText
+} from '@renderer/lib/ssh'
 import type { SshHost } from '@shared/types'
 
 // Format calqué sur la sortie réelle de `reg query … /s` observée sur la
@@ -143,6 +149,40 @@ describe('decodeSessionName', () => {
 
   it('survit à une séquence invalide', () => {
     expect(decodeSessionName('abc%ZZdef%20x')).toBe('abc%ZZdef x')
+  })
+})
+
+describe('toSshConfigText', () => {
+  it('émet un ssh_config standard : noms à espaces quotés, port 22 omis, tunnels', () => {
+    const text = toSshConfigText([
+      {
+        name: 'CQFD Tools',
+        source: 'manual',
+        hostName: 'cqfd.dev',
+        user: 'user',
+        port: 2245,
+        forwards: [
+          { type: 'local', listenPort: 3001, destHost: 'localhost', destPort: 3001 },
+          { type: 'dynamic', listenPort: 1080 }
+        ]
+      },
+      { name: 'simple', source: 'manual', hostName: 'srv.lan' }
+    ])
+    expect(text).toContain('Host "CQFD Tools"')
+    expect(text).toContain('  HostName cqfd.dev')
+    expect(text).toContain('  User user')
+    expect(text).toContain('  Port 2245')
+    expect(text).toContain('  LocalForward 3001 localhost:3001')
+    expect(text).toContain('  DynamicForward 1080')
+    expect(text).toContain('Host simple')
+    // srv.lan écoute sur 22 : pas de ligne Port.
+    expect(text.split('Host simple')[1]).not.toContain('Port')
+  })
+
+  it('un alias sans cible connue devient un commentaire (défini dans ~/.ssh/config)', () => {
+    const text = toSshConfigText([{ name: 'vps', source: 'config' }])
+    expect(text).toContain('# vps : déjà défini')
+    expect(text).not.toContain('Host vps')
   })
 })
 

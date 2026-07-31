@@ -33,7 +33,7 @@ import ServerItem from './sidebar/ServerItem'
 import ServerAddForm from './sidebar/ServerAddForm'
 import ServerImportDialog from './sidebar/ServerImportDialog'
 import { useTerminalStore } from '../state/useTerminalStore'
-import { sshCommandFor, mergeHosts, hostKeyOf } from '../lib/ssh'
+import { sshCommandFor, mergeHosts, hostKeyOf, toSshConfigText } from '../lib/ssh'
 
 /**
  * Sidebar : lanceur, accès rapide, lecteurs, favoris et projets — orchestration
@@ -138,6 +138,26 @@ export default function Sidebar(): JSX.Element {
     const next = manualHosts.filter((h) => h.name !== name)
     setManualHosts(next)
     void window.api.config.set('sshHosts', next)
+  }
+
+  // « Tout effacer pour tout ré-importer » (demande utilisateur).
+  const removeAllServers = (): void => {
+    const n = manualHosts.length
+    if (!window.confirm(`Retirer les ${n} serveurs de la liste ? (ré-importables ensuite)`)) return
+    setManualHosts([])
+    void window.api.config.set('sshHosts', [])
+  }
+
+  // Export au format ssh_config standard (compatible VS Code Remote-SSH).
+  const exportServers = (): void => {
+    const all = [...manualHosts, ...shownConfigHosts]
+    const blob = new Blob([toSshConfigText(all)], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'gvue-ssh-config'
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   // Recharge la liste des dépôts à chaque navigation (un dépôt fraîchement
@@ -389,11 +409,29 @@ export default function Sidebar(): JSX.Element {
               </button>
               <button
                 onClick={() => setImportOpen(true)}
-                title="Récupérer les sessions déjà configurées dans PuTTY ou WinSCP"
+                title="Récupérer les sessions PuTTY, WinSCP ou ~/.ssh/config"
                 className="w-full rounded-app px-2 py-1 text-left text-[11px] text-fg-muted hover:bg-bg-hover hover:text-fg"
               >
-                ⇪ Importer depuis PuTTY / WinSCP…
+                ⇪ Importer (PuTTY / WinSCP / ssh_config)…
               </button>
+              {(manualHosts.length > 0 || shownConfigHosts.length > 0) && (
+                <button
+                  onClick={exportServers}
+                  title="Exporter la liste au format ssh_config standard (OpenSSH, VS Code Remote-SSH…)"
+                  className="w-full rounded-app px-2 py-1 text-left text-[11px] text-fg-muted hover:bg-bg-hover hover:text-fg"
+                >
+                  ⤓ Exporter (format ssh_config)
+                </button>
+              )}
+              {manualHosts.length > 1 && (
+                <button
+                  onClick={removeAllServers}
+                  title="Retirer tous les serveurs de la liste (ré-importables ensuite)"
+                  className="w-full rounded-app px-2 py-1 text-left text-[11px] text-fg-muted hover:bg-bg-hover hover:text-danger-fg"
+                >
+                  ✕ Tout retirer…
+                </button>
+              )}
             </>
           )}
           {importOpen && (

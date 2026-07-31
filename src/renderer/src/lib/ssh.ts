@@ -73,6 +73,39 @@ export function forwardsToText(forwards: SshForward[] | undefined): string {
     .join('\n')
 }
 
+/**
+ * Exporte des hôtes au format ssh_config STANDARD (pur, testable) — le format
+ * qu'utilisent OpenSSH, VS Code Remote-SSH, git… Les noms contenant des
+ * espaces sont quotés ; les tunnels deviennent LocalForward/RemoteForward/
+ * DynamicForward ; un alias du ~/.ssh/config sans cible connue est émis en
+ * commentaire (sa définition complète vit déjà dans le fichier).
+ */
+export function toSshConfigText(hosts: SshHost[]): string {
+  const quote = (s: string): string => (/\s/.test(s) ? `"${s}"` : s)
+  const blocks: string[] = [
+    '# Généré par GVue — collez dans ~/.ssh/config (ou incluez ce fichier).',
+    '# Compatible OpenSSH, VS Code Remote-SSH, git.'
+  ]
+  for (const h of hosts) {
+    if (!h.hostName) {
+      blocks.push(`\n# ${h.name} : déjà défini dans votre ~/.ssh/config (alias).`)
+      continue
+    }
+    const lines = [`\nHost ${quote(h.name)}`, `  HostName ${h.hostName}`]
+    if (h.user) lines.push(`  User ${h.user}`)
+    if (h.port && h.port !== 22) lines.push(`  Port ${h.port}`)
+    for (const f of h.forwards ?? []) {
+      const bind = f.listenHost ? `${f.listenHost}:` : ''
+      if (f.type === 'dynamic') lines.push(`  DynamicForward ${bind}${f.listenPort}`)
+      else if (f.type === 'local')
+        lines.push(`  LocalForward ${bind}${f.listenPort} ${f.destHost}:${f.destPort}`)
+      else lines.push(`  RemoteForward ${bind}${f.listenPort} ${f.destHost}:${f.destPort}`)
+    }
+    blocks.push(lines.join('\n'))
+  }
+  return blocks.join('\n') + '\n'
+}
+
 /** Résumé lisible d'un tunnel (infobulles, formulaire). */
 export function describeForward(f: SshForward): string {
   const bind = f.listenHost ? `${f.listenHost}:` : 'localhost:'

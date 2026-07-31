@@ -144,6 +144,24 @@ export default function ServerImportDialog(props: {
         </div>
 
         <div className="shrink-0 border-t border-border px-4 py-2.5">
+          {total > 0 && sources && (
+            <button
+              onClick={() => {
+                if (checked.size > 0) {
+                  setChecked(new Set())
+                } else {
+                  const all = new Set<string>()
+                  for (const h of sources.putty) all.add(keyOf('putty', h))
+                  for (const h of sources.winscp) all.add(keyOf('winscp', h))
+                  for (const h of sources.sshConfig) all.add(keyOf('sshConfig', h))
+                  setChecked(all)
+                }
+              }}
+              className="mb-2 text-[11px] text-fg-muted hover:text-fg"
+            >
+              {checked.size > 0 ? 'Tout décocher' : 'Tout cocher'}
+            </button>
+          )}
           <p className="mb-2 text-[11px] text-fg-muted">
             Nom, hôte, utilisateur et port uniquement — les mots de passe ne sont jamais
             importés : GVue utilise vos clés SSH ou le demande à la connexion.
