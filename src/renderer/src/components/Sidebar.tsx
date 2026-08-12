@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   Home,
   Monitor,
-  Download,
   FileText,
   Star,
   FolderGit2,
@@ -31,6 +30,7 @@ import ProjectItem from './sidebar/ProjectItem'
 import LaunchConfigDialog from './sidebar/LaunchConfigDialog'
 import ServerItem from './sidebar/ServerItem'
 import ServerManager from './sidebar/ServerManager'
+import DownloadsItem from './sidebar/DownloadsItem'
 import ServerImportDialog from './sidebar/ServerImportDialog'
 import { useTerminalStore } from '../state/useTerminalStore'
 import { sshCommandFor, mergeHosts, hostKeyOf, toSshConfigText } from '../lib/ssh'
@@ -240,9 +240,7 @@ export default function Sidebar(): JSX.Element {
             />
           )}
           {locations?.downloads && (
-            <Item
-              icon={Download}
-              label={t('Téléchargements')}
+            <DownloadsItem
               active={isActive(locations.downloads)}
               onClick={() => navigate(locations.downloads)}
               onContextMenu={(e) => openCtx(e, locations.downloads)}

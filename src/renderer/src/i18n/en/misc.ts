@@ -167,5 +167,10 @@ export const misc: Record<string, string> = {
   'Activer': 'Enable',
   'Désactiver': 'Disable',
   'Règles…': 'Rules…',
-  'Modifier les règles de rangement': 'Edit tidy rules'
+  'Modifier les règles de rangement': 'Edit tidy rules',
+  // DownloadsItem (sidebar)
+  'Rangement auto actif': 'Auto-tidy active',
+  'Activer le rangement auto': 'Enable auto-tidy',
+  'Désactiver le rangement auto': 'Disable auto-tidy',
+  'Règles de rangement…': 'Tidy rules…'
 }
