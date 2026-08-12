@@ -85,6 +85,10 @@ interface UiState {
   openTerminalLarge: () => void
   toggleAppearance: () => void
   setAppearanceOpen: (v: boolean) => void
+  /** Section demandée à l'ouverture des Paramètres (bandeaux, raccourcis…). */
+  settingsSection: 'appearance' | 'general' | 'about'
+  /** Ouvre les Paramètres directement sur une section. */
+  openSettings: (section: 'appearance' | 'general' | 'about') => void
   togglePalette: () => void
   setPaletteOpen: (v: boolean) => void
   toggleFileFinder: () => void
@@ -100,6 +104,8 @@ interface UiState {
 export const useUiStore = create<UiState>((set) => ({
   terminalOpen: false,
   appearanceOpen: false,
+  settingsSection: 'appearance',
+  openSettings: (section) => set({ appearanceOpen: true, settingsSection: section }),
   previewOpen: false,
   terminalSize: TERMINAL_DEFAULT,
   terminalGrow: 0,

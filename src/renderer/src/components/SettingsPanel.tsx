@@ -72,7 +72,10 @@ type Section = 'appearance' | 'general' | 'about'
  */
 export default function SettingsPanel(): JSX.Element {
   const closePanel = useUiStore((s) => s.toggleAppearance)
-  const [section, setSection] = useState<Section>('appearance')
+  // Suit la section demandée par openSettings() (bandeau Rangement auto…).
+  const wanted = useUiStore((s) => s.settingsSection)
+  const [section, setSection] = useState<Section>(wanted)
+  useEffect(() => setSection(wanted), [wanted])
 
   return (
     <aside className="flex h-full w-full flex-col gap-4 overflow-y-auto border-l border-border bg-bg-secondary p-3.5 text-[13px]">

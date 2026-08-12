@@ -3,6 +3,7 @@ import { useNavStore } from '../state/useNavStore'
 import { baseName } from '../lib/format'
 import { t } from '../i18n'
 import FileList from './FileList'
+import TidyBanner from './TidyBanner'
 import QuickAccessPanel from './QuickAccessPanel'
 import LauncherPanel from './LauncherPanel'
 
@@ -56,13 +57,19 @@ export default function Pane({ paneId }: { paneId: string }): JSX.Element | null
           </button>
         </div>
       )}
-      <div className="min-h-0 flex-1">
+      <div className="flex min-h-0 flex-1 flex-col">
         {pane.launcher ? (
           <LauncherPanel />
         ) : pane.quickAccess ? (
           <QuickAccessPanel />
         ) : (
-          <FileList paneId={paneId} />
+          <>
+            {/* Pilotage du rangement auto LÀ où il agit (dossier surveillé). */}
+            <TidyBanner dir={pane.path} />
+            <div className="min-h-0 flex-1">
+              <FileList paneId={paneId} />
+            </div>
+          </>
         )}
       </div>
     </div>

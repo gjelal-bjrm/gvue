@@ -157,5 +157,15 @@ export const misc: Record<string, string> = {
   'Sous-dossier (facultatif) — gabarits {date}, {ext}': 'Subfolder (optional) — templates {date}, {ext}',
   'Ajouter une règle': 'Add a rule',
   'Première règle qui correspond gagne (de haut en bas). Exemple : extensions « pdf », destination D:\\Docs, sous-dossier {date} → D:\\Docs\\2026-08\\facture.pdf.':
-    'The first matching rule wins (top to bottom). Example: extensions "pdf", destination D:\\Docs, subfolder {date} → D:\\Docs\\2026-08\\invoice.pdf.'
+    'The first matching rule wins (top to bottom). Example: extensions "pdf", destination D:\\Docs, subfolder {date} → D:\\Docs\\2026-08\\invoice.pdf.',
+  // TidyBanner
+  'Rangement auto': 'Auto-tidy',
+  'actif · {n} règle': 'active · {n} rule',
+  'actif · {n} règles': 'active · {n} rules',
+  'actif — aucune règle': 'active — no rules',
+  'désactivé': 'disabled',
+  'Activer': 'Enable',
+  'Désactiver': 'Disable',
+  'Règles…': 'Rules…',
+  'Modifier les règles de rangement': 'Edit tidy rules'
 }
