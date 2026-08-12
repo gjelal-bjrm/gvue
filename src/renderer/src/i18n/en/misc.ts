@@ -203,5 +203,11 @@ export const misc: Record<string, string> = {
   'GVue attend qu’un téléchargement soit terminé avant de ranger le fichier, et Ctrl+Z annule le dernier rangement.':
     'GVue waits until a download has finished before tidying the file, and Ctrl+Z undoes the last move.',
   'Naviguez jusqu’au dossier voulu, puis validez.': 'Navigate to the folder you want, then confirm.',
-  'Choisir ce dossier': 'Choose this folder'
+  'Choisir ce dossier': 'Choose this folder',
+  '⚠ Cette règle ne fait rien encore : choisissez le dossier de destination (étape 2, bouton « Parcourir… »).':
+    '⚠ This rule does nothing yet: choose the destination folder (step 2, "Browse…" button).',
+  'actif — règle incomplète, cliquez ici': 'active — incomplete rule, click here',
+  'actif — aucune règle, cliquez ici': 'active — no rules, click here',
+  'Rangement auto activé mais sans règle complète — ouvrez les règles':
+    'Auto-tidy enabled but no complete rule — open the rules'
 }

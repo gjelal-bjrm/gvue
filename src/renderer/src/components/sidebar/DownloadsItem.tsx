@@ -48,9 +48,17 @@ export default function DownloadsItem(props: {
       <span className="relative shrink-0">
         <Download size={16} />
         {tidy?.enabled && (
+          // Point vert = fonctionne vraiment ; AMBRE = activé mais aucune
+          // règle complète (destination manquante) : rien ne sera rangé.
           <span
-            title={t('Rangement auto actif')}
-            className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-accent"
+            title={
+              tidy.rules.some((r) => r.enabled && r.destDir.trim())
+                ? t('Rangement auto actif')
+                : t('Rangement auto activé mais sans règle complète — ouvrez les règles')
+            }
+            className={`absolute -right-1 -top-1 h-2 w-2 rounded-full ${
+              tidy.rules.some((r) => r.enabled && r.destDir.trim()) ? 'bg-accent' : 'bg-warning-fg'
+            }`}
           />
         )}
       </span>

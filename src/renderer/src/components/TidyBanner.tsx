@@ -41,22 +41,32 @@ export default function TidyBanner(props: { dir: string }): JSX.Element | null {
     void setTidyEnabled(!tidy.enabled).then(setTidy)
   }
   const activeRules = tidy.rules.filter((r) => r.enabled && r.destDir.trim()).length
+  // Activé mais aucune règle COMPLÈTE : le rangement ne fait rien — le dire
+  // en avertissement cliquable, pas en pastille rassurante.
+  const broken = tidy.enabled && activeRules === 0
 
   return (
     <div className="flex shrink-0 items-center gap-2 border-b border-border bg-bg-secondary px-3 py-1.5 text-[11px]">
-      <Sparkles size={13} className={tidy.enabled ? 'text-accent' : 'text-fg-muted'} />
+      <Sparkles size={13} className={tidy.enabled ? (broken ? 'text-warning-fg' : 'text-accent') : 'text-fg-muted'} />
       <span className="text-fg-secondary">{t('Rangement auto')}</span>
-      <span
+      <button
+        onClick={() => useUiStore.getState().setTidyRules(true)}
         className={`rounded-full px-1.5 leading-[16px] ${
-          tidy.enabled ? 'bg-accent-soft text-accent' : 'border border-border text-fg-muted'
+          broken
+            ? 'bg-warning-bg text-warning-fg'
+            : tidy.enabled
+              ? 'bg-accent-soft text-accent'
+              : 'border border-border text-fg-muted'
         }`}
       >
         {tidy.enabled
-          ? activeRules > 0
-            ? tn(activeRules, 'actif · {n} règle', 'actif · {n} règles')
-            : t('actif — aucune règle')
+          ? broken
+            ? tidy.rules.length > 0
+              ? t('actif — règle incomplète, cliquez ici')
+              : t('actif — aucune règle, cliquez ici')
+            : tn(activeRules, 'actif · {n} règle', 'actif · {n} règles')
           : t('désactivé')}
-      </span>
+      </button>
       <span className="ml-auto flex items-center gap-1">
         <button
           onClick={toggle}

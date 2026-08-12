@@ -111,8 +111,15 @@ export default function TidyRulesDialog(): JSX.Element | null {
           {tidy.rules.map((r, i) => {
             const sampleExt = r.extensions[0] || 'pdf'
             const knownSub = ['', '{date}', '{ext}', '{date}/{ext}'].includes(r.subfolder ?? '')
+            // Une règle sans destination ne rangera JAMAIS rien : le dire fort.
+            const incomplete = r.enabled && !r.destDir.trim()
             return (
-              <div key={r.id} className="flex flex-col gap-2 rounded-app border border-border bg-bg p-2.5">
+              <div
+                key={r.id}
+                className={`flex flex-col gap-2 rounded-app border bg-bg p-2.5 ${
+                  incomplete ? 'border-warning-fg' : 'border-border'
+                }`}
+              >
                 <div className="flex items-center gap-1.5">
                   <label
                     className="flex items-center gap-1.5 text-[11px] text-fg-secondary"
@@ -185,14 +192,18 @@ export default function TidyRulesDialog(): JSX.Element | null {
                   </select>
                 </label>
 
-                {r.destDir.trim() && (
+                {incomplete ? (
+                  <p className="rounded-app bg-warning-bg px-2 py-1.5 text-[11px] text-warning-fg">
+                    {t('⚠ Cette règle ne fait rien encore : choisissez le dossier de destination (étape 2, bouton « Parcourir… »).')}
+                  </p>
+                ) : r.destDir.trim() ? (
                   <p className="rounded-app bg-bg-tertiary px-2 py-1.5 text-[11px] text-fg-secondary">
                     {t('Aperçu : « exemple.{ext} » ira dans', { ext: sampleExt })}{' '}
                     <code className="break-all font-mono text-[10px] text-accent">
                       {previewDestination(r.destDir.trim(), r.subfolder ?? '', sampleExt)}
                     </code>
                   </p>
-                )}
+                ) : null}
               </div>
             )
           })}
