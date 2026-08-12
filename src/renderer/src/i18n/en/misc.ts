@@ -201,5 +201,7 @@ export const misc: Record<string, string> = {
   'Personnalisé : {tpl}': 'Custom: {tpl}',
   'Aperçu : « exemple.{ext} » ira dans': 'Preview: "example.{ext}" will go to',
   'GVue attend qu’un téléchargement soit terminé avant de ranger le fichier, et Ctrl+Z annule le dernier rangement.':
-    'GVue waits until a download has finished before tidying the file, and Ctrl+Z undoes the last move.'
+    'GVue waits until a download has finished before tidying the file, and Ctrl+Z undoes the last move.',
+  'Naviguez jusqu’au dossier voulu, puis validez.': 'Navigate to the folder you want, then confirm.',
+  'Choisir ce dossier': 'Choose this folder'
 }

@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Sparkles, X, Plus, FolderOpen } from 'lucide-react'
 import type { TidyConfig } from '@shared/types'
 import { useUiStore } from '../state/useUiStore'
+import { useNavStore } from '../state/useNavStore'
+import FilePickerDialog from './FilePickerDialog'
 import { parseExtensions, previewDestination, currentMonth } from '../lib/tidyText'
 import { t } from '../i18n'
 
@@ -14,7 +16,10 @@ import { t } from '../i18n'
 export default function TidyRulesDialog(): JSX.Element | null {
   const open = useUiStore((s) => s.tidyRulesOpen)
   const close = (): void => useUiStore.getState().setTidyRules(false)
+  const downloads = useNavStore((s) => s.locations?.downloads ?? '')
   const [tidy, setTidy] = useState<TidyConfig | null>(null)
+  // Index de la règle dont on choisit la destination (sélecteur GVue, pas natif).
+  const [pickingFor, setPickingFor] = useState<number | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -28,10 +33,15 @@ export default function TidyRulesDialog(): JSX.Element | null {
     }
   }, [open])
 
+  // Échap ferme le sélecteur de dossier s'il est ouvert, sinon ce dialogue.
+  const pickingRef = useRef<number | null>(null)
+  pickingRef.current = pickingFor
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape') close()
+      if (e.key !== 'Escape') return
+      if (pickingRef.current !== null) setPickingFor(null)
+      else close()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -150,11 +160,7 @@ export default function TidyRulesDialog(): JSX.Element | null {
                       className={`min-w-0 flex-1 ${field} font-mono text-[11px]`}
                     />
                     <button
-                      onClick={() => {
-                        void window.api.apps.pickFolder?.(t('Choisir le dossier de destination')).then((dir) => {
-                          if (dir) patchRule(i, { destDir: dir })
-                        })
-                      }}
+                      onClick={() => setPickingFor(i)}
                       className="flex shrink-0 items-center gap-1 rounded-app border border-border px-2 py-1.5 text-[11px] text-fg-secondary hover:bg-bg-hover hover:text-fg"
                     >
                       <FolderOpen size={12} /> {t('Parcourir…')}
@@ -210,6 +216,24 @@ export default function TidyRulesDialog(): JSX.Element | null {
           {t('GVue attend qu’un téléchargement soit terminé avant de ranger le fichier, et Ctrl+Z annule le dernier rangement.')}
         </p>
       </div>
+
+      {/* Choix de la destination avec l'explorateur de GVue — pas la boîte
+          native : c'est le but du programme (demande utilisateur). */}
+      {pickingFor !== null && tidy.rules[pickingFor] && (
+        // stopPropagation : un clic dans le sélecteur ne doit pas remonter au
+        // fond de CE dialogue (qui se fermerait avec).
+        <div onMouseDown={(e) => e.stopPropagation()}>
+          <FilePickerDialog
+            mode="folder"
+            initialDir={tidy.rules[pickingFor].destDir.trim() || downloads || tidy.watchDir || 'C:\\'}
+            onPick={(dir) => {
+              patchRule(pickingFor, { destDir: dir })
+              setPickingFor(null)
+            }}
+            onClose={() => setPickingFor(null)}
+          />
+        </div>
+      )}
     </div>
   )
 }
