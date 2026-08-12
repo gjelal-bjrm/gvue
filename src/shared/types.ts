@@ -474,8 +474,13 @@ export interface WorkspaceData {
   sidebarCollapsed?: Record<string, boolean>
   /** Terminaux affichés côte à côte (sinon onglets). */
   terminalSplit?: boolean
-  /** Shells des terminaux ouverts (un par onglet), pour les rouvrir. */
-  terminals?: string[]
+  /**
+   * Terminaux ouverts, pour les rouvrir à l'identique. Chaque entrée porte le
+   * shell ET son dossier de travail — sans le dossier, tous les terminaux
+   * repartaient du dossier actif et se retrouvaient en double.
+   * Les anciens espaces (tableau de chaînes) restent lisibles.
+   */
+  terminals?: (string | { shell: string; cwd: string })[]
   /** Préférences de vue (éléments masqués, ignorés, mode, taille de grille). */
   showHidden?: boolean
   hideGitIgnored?: boolean

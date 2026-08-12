@@ -59,7 +59,8 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
       sidebarOrder: sb.order,
       sidebarCollapsed: sb.collapsed,
       terminalSplit: ui.terminalSplit,
-      terminals: term.tabs.filter((t) => !t.exited).map((t) => t.shell.id),
+      // Shell ET dossier : rouvrir « le même terminal » suppose de savoir OÙ.
+      terminals: term.tabs.filter((t) => !t.exited).map((t) => ({ shell: t.shell.id, cwd: t.cwd })),
       showHidden: nav.showHidden,
       hideGitIgnored: nav.hideGitIgnored,
       viewMode: nav.viewMode,

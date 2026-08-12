@@ -1,5 +1,11 @@
 [
   {
+    "version": "1.0.5",
+    "notes": [
+      "Un terminal ouvert a la main prend le nom de son dossier"
+    ]
+  },
+  {
     "version": "1.0.4",
     "notes": [
       "Serveurs de la sidebar sur deux lignes — nom pleine largeur + infobulle nom complet"

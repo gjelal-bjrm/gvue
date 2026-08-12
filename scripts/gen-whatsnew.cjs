@@ -43,10 +43,14 @@ if (sinceArg >= 0 && process.argv[sinceArg + 1]) {
 
 const raw = git(`log ${range} --no-merges --pretty=format:%s`)
 const SKIP = /^(merge|chore|wip|bump|release|GVue v\d|version\b|docs: README|maj\b)/i
+// Travaux INTERNES : jamais dans des notes lues par l'utilisateur — le mode
+// démo n'existe qu'en développement, les outils MCP de pilotage ne servent
+// qu'aux captures et aux agents. (Signalé : « c'est inutile et faux ».)
+const INTERNAL = /mode d[ée]mo|outils mcp pour piloter|captures? d'écran du site/i
 const seen = new Set()
 const notes = []
 for (let s of raw.split('\n').map((x) => x.trim()).filter(Boolean)) {
-  if (SKIP.test(s)) continue
+  if (SKIP.test(s) || INTERNAL.test(s)) continue
   s = s.replace(/^(GVue|docs|feat|fix|build|refactor|chore|style)\s*:\s*/i, '').trim()
   if (!s) continue
   s = s.charAt(0).toUpperCase() + s.slice(1)

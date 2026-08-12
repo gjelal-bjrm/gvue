@@ -46,8 +46,12 @@ interface TerminalState {
     sshHostKey?: string
   }) => Promise<string | null>
   ensureTab: () => Promise<void>
-  /** Ferme tous les onglets puis rouvre un terminal par shell (espaces de travail). */
-  restore: (shellIds: string[]) => Promise<void>
+  /**
+   * Ferme tous les onglets puis rouvre les terminaux d'un espace de travail :
+   * chaque entrée porte le shell et son dossier (les anciens espaces ne
+   * stockaient que le shell — tous repartaient alors du dossier actif).
+   */
+  restore: (entries: (string | { shell: string; cwd: string })[]) => Promise<void>
   closeTab: (id: string) => void
   setActive: (id: string) => void
   /** Écrit dans le terminal actif (ex. depuis la barre de commande). */
@@ -209,10 +213,15 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
     }
   },
 
-  restore: async (shellIds) => {
+  restore: async (entries) => {
     if (get().shells.length === 0) await get().loadShells()
     for (const t of [...get().tabs]) get().closeTab(t.id)
-    for (const id of shellIds) await get().openTab(id)
+    for (const e of entries) {
+      // Ancien format (id de shell seul) : pas de dossier mémorisé, on
+      // retombe sur le dossier actif comme avant.
+      if (typeof e === 'string') await get().openTab(e)
+      else await get().openTab(e.shell, e.cwd)
+    }
   },
 
   closeTab: (id) => {
