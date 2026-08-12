@@ -185,5 +185,10 @@ export const ssh: Record<string, string> = {
   '{n} serveurs': '{n} servers',
   '« user@hôte » est accepté aussi.': '"user@host" is accepted too.',
   'root, ubuntu, deploy…': 'root, ubuntu, deploy…',
-  '⚙ Gérer les serveurs…': '⚙ Manage servers…'
+  '⚙ Gérer les serveurs…': '⚙ Manage servers…',
+  // Volet SFTP (polish 31/07)
+  'Session SFTP active': 'Active SFTP session',
+  'connecté': 'connected',
+  'Glisser-déposer pour téléverser · téléchargements → dossier local actif':
+    'Drag and drop to upload · downloads → active local folder'
 }

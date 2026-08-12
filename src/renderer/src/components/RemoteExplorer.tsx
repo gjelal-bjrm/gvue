@@ -406,6 +406,15 @@ export default function RemoteExplorer(): JSX.Element | null {
         <Server size={15} className="shrink-0 text-accent" />
         <span className="min-w-0 truncate text-[13px] font-medium text-fg">{host.name}</span>
         <span className="min-w-0 truncate text-[11px] text-fg-muted">{sshSubtitle(host)}</span>
+        {phase.step === 'ready' && (
+          <span
+            className="flex shrink-0 items-center gap-1 rounded-full border border-border px-1.5 text-[10px] leading-[16px] text-success-fg"
+            title={t('Session SFTP active')}
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-success-fg" />
+            {t('connecté')}
+          </span>
+        )}
         {phase.step === 'ready' && savedPwd && (
           <button
             onClick={() => {
@@ -680,6 +689,16 @@ export default function RemoteExplorer(): JSX.Element | null {
               </p>
             ) : (
               <table className="w-full text-[12px]">
+                {/* En-têtes de colonnes — mêmes codes que la liste locale. */}
+                <thead>
+                  <tr className="border-b border-border text-[10px] uppercase tracking-wider text-fg-muted">
+                    <th className="w-6 px-1.5 py-1.5" />
+                    <th className="px-0.5 py-1.5 text-left font-medium">{t('Nom')}</th>
+                    <th className="px-2 py-1.5 text-right font-medium">{t('Taille')}</th>
+                    <th className="px-2 py-1.5 text-right font-medium">{t('Modifié')}</th>
+                    <th className="w-6 px-1 py-1.5" />
+                  </tr>
+                </thead>
                 <tbody>
                   {creating && (
                     <tr className="border-b border-border/40 bg-accent-soft">
@@ -775,19 +794,25 @@ export default function RemoteExplorer(): JSX.Element | null {
           </div>
 
           {transfer && (
-            <div className="shrink-0 border-t border-border px-3 py-1.5">
+            <div className="shrink-0 border-t border-border bg-bg px-3 py-2">
               <div className="mb-1 flex items-center justify-between text-[11px] text-fg-secondary">
-                <span className="min-w-0 truncate">
-                  {transfer.file}
-                  {transfer.count > 1 && ` (${transfer.index}/${transfer.count})`}
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <Loader2 size={11} className="shrink-0 animate-spin text-accent" />
+                  <span className="min-w-0 truncate">{transfer.file}</span>
+                  {transfer.count > 1 && (
+                    <span className="shrink-0 tabular-nums text-fg-muted">
+                      ({transfer.index}/{transfer.count})
+                    </span>
+                  )}
                 </span>
                 <span className="shrink-0 pl-2 tabular-nums">
+                  {transfer.total > 0 ? Math.round((transfer.done / transfer.total) * 100) : 0} % ·{' '}
                   {formatSize(transfer.done, 'file')} / {formatSize(transfer.total, 'file')}
                 </span>
               </div>
-              <div className="h-1 overflow-hidden rounded-full bg-bg-tertiary">
+              <div className="h-1.5 overflow-hidden rounded-full bg-bg-tertiary">
                 <div
-                  className="h-full bg-accent transition-all"
+                  className="h-full rounded-full bg-accent transition-all"
                   style={{
                     width: `${transfer.total > 0 ? Math.round((transfer.done / transfer.total) * 100) : 0}%`
                   }}
@@ -796,8 +821,16 @@ export default function RemoteExplorer(): JSX.Element | null {
             </div>
           )}
 
-          <div className="shrink-0 border-t border-border px-3 py-1.5 text-[11px] text-fg-muted">
-            {t('Glissez du volet local vers ici pour téléverser · téléchargements → dossier local actif')}
+          {/* Barre d'état du volet : compteurs à gauche, geste-clé à droite. */}
+          <div className="flex shrink-0 items-center justify-between gap-2 border-t border-border px-3 py-1.5 text-[11px] text-fg-muted">
+            <span className="shrink-0 tabular-nums">
+              {tn(entries.length, '{n} élément', '{n} éléments')}
+              {selected.length > 0 &&
+                ` · ${tn(selected.length, '{n} sélectionné', '{n} sélectionnés')}`}
+            </span>
+            <span className="min-w-0 truncate text-right">
+              {t('Glisser-déposer pour téléverser · téléchargements → dossier local actif')}
+            </span>
           </div>
         </>
       )}
