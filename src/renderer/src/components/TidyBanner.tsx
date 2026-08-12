@@ -4,6 +4,7 @@ import type { TidyConfig } from '@shared/types'
 import { useNavStore } from '../state/useNavStore'
 import { useUiStore } from '../state/useUiStore'
 import { pathKey } from '../lib/format'
+import { setTidyEnabled } from '../lib/tidyConfig'
 import { t, tn } from '../i18n'
 
 /**
@@ -34,10 +35,10 @@ export default function TidyBanner(props: { dir: string }): JSX.Element | null {
   const watched = tidy.watchDir.trim() || downloads
   if (!watched || pathKey(props.dir) !== pathKey(watched)) return null
 
+  // Bascule sur l'état FRAIS du disque (voir lib/tidyConfig — jamais l'objet
+  // local, qui pourrait écraser des règles éditées ailleurs).
   const toggle = (): void => {
-    const next = { ...tidy, enabled: !tidy.enabled }
-    setTidy(next)
-    void window.api.config.set('tidy', next)
+    void setTidyEnabled(!tidy.enabled).then(setTidy)
   }
   const activeRules = tidy.rules.filter((r) => r.enabled && r.destDir.trim()).length
 
