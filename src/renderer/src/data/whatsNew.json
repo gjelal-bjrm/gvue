@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.6",
+    "notes": [
+      "Un espace de travail memorise vraiment son theme (et son panneau Git, son SFTP)",
+      "Les espaces de travail rouvrent chaque terminal dans SON dossier"
+    ]
+  },
+  {
     "version": "1.0.5",
     "notes": [
       "Un terminal ouvert a la main prend le nom de son dossier"

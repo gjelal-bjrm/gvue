@@ -90,5 +90,14 @@ export const EN: Record<string, string> = {
   // services/tidy.ts + tray
   'Rangement de « {name} »': 'Tidying of "{name}"',
   'Rangement auto des téléchargements': 'Auto-tidy downloads',
-  'Choisir un dossier': 'Choose a folder'
+  'Choisir un dossier': 'Choose a folder',
+  // services/updater-errors.ts
+  'Connexion au serveur de mise à jour impossible. Vérifiez votre accès à Internet, puis réessayez.':
+    'Could not reach the update server. Check your internet connection, then try again.',
+  'Droits insuffisants pour installer la mise à jour. Fermez GVue et relancez-le.':
+    'Insufficient rights to install the update. Close GVue and start it again.',
+  'Espace disque insuffisant pour télécharger la mise à jour.':
+    'Not enough disk space to download the update.',
+  'Le fichier téléchargé est incomplet ou corrompu. Réessayez.':
+    'The downloaded file is incomplete or corrupted. Please try again.'
 }
