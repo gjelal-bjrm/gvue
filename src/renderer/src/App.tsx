@@ -41,6 +41,7 @@ import ConflictDialog from './components/ConflictDialog'
 import CustomCommandsDialog from './components/CustomCommandsDialog'
 import TidyRulesDialog from './components/TidyRulesDialog'
 import { useTidyStore } from './state/useTidyStore'
+import { useDemoStore } from './state/useDemoStore'
 import { currentLang } from './i18n'
 import ArchiveViewer from './components/ArchiveViewer'
 import ShortcutsHelp from './components/ShortcutsHelp'
@@ -320,6 +321,9 @@ export default function App(): JSX.Element {
     // changement notifié par le main (tray compris) — toutes les surfaces
     // (sidebar, bandeau, dialogue, Paramètres) restent synchrones.
     void useTidyStore.getState().load()
+    // Mode démo (dev) : chargé une fois, lu par toutes les surfaces qui
+    // affichent des données nominatives (projets, serveurs, espaces…).
+    void useDemoStore.getState().load()
     const offTidyChanged = window.api.tidy?.onChanged?.(() => {
       void useTidyStore.getState().load()
     })

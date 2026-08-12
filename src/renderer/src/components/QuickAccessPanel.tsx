@@ -12,6 +12,7 @@ import {
   FileArchive
 } from 'lucide-react'
 import { useNavStore } from '../state/useNavStore'
+import { useDemoStore } from '../state/useDemoStore'
 import { useFavoritesStore } from '../state/useFavoritesStore'
 import { useAppsStore } from '../state/useAppsStore'
 import { useOpenWithStore } from '../state/useOpenWithStore'
@@ -31,12 +32,19 @@ export default function QuickAccessPanel(): JSX.Element {
   const [selected, setSelected] = useState<string | null>(null)
   const [menu, setMenu] = useState<{ x: number; y: number; entry: DirEntry } | null>(null)
 
+  // Mode démo : ni dossiers fréquents ni fichiers récents — ce sont des
+  // chemins réels (clients, documents personnels).
+  const demo = useDemoStore((s) => s.demo)
   const load = useCallback((): void => {
+    if (demo) {
+      setData({ frequent: [], recentFiles: [] })
+      return
+    }
     window.api.fs
       .quickAccess()
       .then(setData)
       .catch(() => setData({ frequent: [], recentFiles: [] }))
-  }, [])
+  }, [demo])
 
   useEffect(() => load(), [load])
 

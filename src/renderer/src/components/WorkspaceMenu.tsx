@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { LayoutGrid, Save, Trash2, SaveAll, Check } from 'lucide-react'
 import { useWorkspaceStore } from '../state/useWorkspaceStore'
+import { useDemoStore, DEMO_WORKSPACES } from '../state/useDemoStore'
 import { t } from '../i18n'
 
 /**
@@ -16,15 +17,19 @@ export default function WorkspaceMenu(): JSX.Element {
   const [name, setName] = useState('')
   const [saved, setSaved] = useState<string | null>(null)
 
-  const names = Object.keys(workspaces)
+  // Mode démo : noms fictifs, et aucune écriture (ni enregistrement, ni
+  // suppression) — le menu ne doit jamais exposer les vrais espaces.
+  const demo = useDemoStore((s) => s.demo)
+  const names = demo ? DEMO_WORKSPACES : Object.keys(workspaces)
   // Réenregistre la disposition actuelle dans un espace existant (écrase).
   const onOverwrite = (n: string): void => {
+    if (demo) return
     save(n)
     setSaved(n)
     setTimeout(() => setSaved((s) => (s === n ? null : s)), 1200)
   }
   const onSave = (): void => {
-    if (!name.trim()) return
+    if (demo || !name.trim()) return
     save(name)
     setName('')
   }

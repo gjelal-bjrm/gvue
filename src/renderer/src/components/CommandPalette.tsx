@@ -38,6 +38,7 @@ import { useUiStore } from '../state/useUiStore'
 import { useNavStore, activePane } from '../state/useNavStore'
 import { useWorkspaceStore } from '../state/useWorkspaceStore'
 import { useRunnerStore } from '../state/useRunnerStore'
+import { useDemoStore, EMPTY_TASKS } from '../state/useDemoStore'
 import { useUpdateStore } from '../state/useUpdateStore'
 import { useGitStore } from '../state/useGitStore'
 import { useSearchStore } from '../state/useSearchStore'
@@ -83,7 +84,9 @@ export default function CommandPalette(): JSX.Element | null {
   const parent = useNavStore((s) => activePane(s).parent)
   const paneCount = useNavStore((s) => s.panes.length)
   const workspaces = useWorkspaceStore((s) => s.workspaces)
-  const runnerTasks = useRunnerStore((s) => s.tasks)
+  // Mode démo : pas de commandes issues des vrais projets.
+  const demoOn = useDemoStore((s) => s.demo)
+  const runnerTasks = useRunnerStore((s) => (demoOn ? EMPTY_TASKS : s.tasks))
   const showHidden = useNavStore((s) => s.showHidden)
   const hideGitIgnored = useNavStore((s) => s.hideGitIgnored)
   const terminalOpen = useUiStore((s) => s.terminalOpen)

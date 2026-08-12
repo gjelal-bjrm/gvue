@@ -12,6 +12,7 @@ import {
   Tag
 } from 'lucide-react'
 import { useRunnerStore } from '../state/useRunnerStore'
+import { useDemoStore, EMPTY_TASKS } from '../state/useDemoStore'
 import { useNavStore, activePane } from '../state/useNavStore'
 import { baseName } from '../lib/format'
 import { commandForFile, joinWin } from '../lib/runfile'
@@ -25,7 +26,9 @@ import { t, tn } from '../i18n'
  * se fait dans le terminal intégré.
  */
 export default function LauncherPanel(): JSX.Element {
-  const tasks = useRunnerStore((s) => s.tasks)
+  // Mode démo : aucune tâche réelle (noms de projets/commandes privés).
+  const demo = useDemoStore((s) => s.demo)
+  const tasks = useRunnerStore((s) => (demo ? EMPTY_TASKS : s.tasks))
   const profiles = useRunnerStore((s) => s.profiles)
   const running = useRunnerStore((s) => s.running)
   const { addTask, removeTask, addProfile, removeProfile, runTask, stopTask, runProfile, stopProfile } =

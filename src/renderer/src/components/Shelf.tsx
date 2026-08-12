@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Layers, X, ClipboardPaste, FolderInput, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
 import { useShelfStore } from '../state/useShelfStore'
+import { useDemoStore, EMPTY_ITEMS } from '../state/useDemoStore'
 import { useNavStore, activePane } from '../state/useNavStore'
 import { useUiStore } from '../state/useUiStore'
 import { copyOrMove } from '../lib/fileActions'
@@ -15,7 +16,9 @@ import { t, tn } from '../i18n'
  */
 export default function Shelf(): JSX.Element | null {
   const enabled = useShelfStore((s) => s.enabled)
-  const items = useShelfStore((s) => s.items)
+  // Mode démo : l'étagère peut contenir de vrais fichiers.
+  const demo = useDemoStore((s) => s.demo)
+  const items = useShelfStore((s) => (demo ? EMPTY_ITEMS : s.items))
   const destDir = useNavStore((s) => activePane(s).path)
   const [collapsed, setCollapsed] = useState(false)
   const [dragging, setDragging] = useState(false)

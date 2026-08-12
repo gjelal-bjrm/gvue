@@ -35,6 +35,7 @@ import ServerImportDialog from './sidebar/ServerImportDialog'
 import { useTerminalStore } from '../state/useTerminalStore'
 import { sshCommandFor, mergeHosts, hostKeyOf, toSshConfigText } from '../lib/ssh'
 import { DEMO_PROJECTS, DEMO_SERVERS } from '../data/demoData'
+import { useDemoStore, EMPTY_TASKS, EMPTY_FAVORITES } from '../state/useDemoStore'
 import { t, tn } from '../i18n'
 
 /**
@@ -54,7 +55,8 @@ export default function Sidebar(): JSX.Element {
   const launcher = useNavStore((s) => activePane(s).launcher)
   const closeSearch = useSearchStore((s) => s.close)
   const recycleBinOpen = useUiStore((s) => s.recycleBinOpen)
-  const favorites = useFavoritesStore((s) => s.favorites)
+  const demoOn = useDemoStore((s) => s.demo)
+  const favorites = useFavoritesStore((s) => (demoOn ? EMPTY_FAVORITES : s.favorites))
   const removeFavorite = useFavoritesStore((s) => s.remove)
 
   const order = useSidebarStore((s) => s.order)
@@ -63,7 +65,8 @@ export default function Sidebar(): JSX.Element {
   const reorder = useSidebarStore((s) => s.reorder)
   const initSidebar = useSidebarStore((s) => s.init)
 
-  const tasks = useRunnerStore((s) => s.tasks)
+  // Mode démo : ni lancements ni favoris réels (noms de projets/chemins).
+  const tasks = useRunnerStore((s) => (demoOn ? EMPTY_TASKS : s.tasks))
   const running = useRunnerStore((s) => s.running)
   const projectLaunch = useRunnerStore((s) => s.projectLaunch)
   const runProject = useRunnerStore((s) => s.runProject)
