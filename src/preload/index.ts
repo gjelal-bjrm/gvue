@@ -469,6 +469,18 @@ const api = {
       const listener = (_e: unknown, message: string): void => cb(message)
       ipcRenderer.on(IPC.mcpNotify, listener)
       return () => ipcRenderer.removeListener(IPC.mcpNotify, listener)
+    },
+    /** Un agent ouvre/ferme un panneau ou un dialogue (captures, démos). */
+    onSetUi: (cb: (req: { panel: string; open: boolean }) => void): (() => void) => {
+      const listener = (_e: unknown, req: { panel: string; open: boolean }): void => cb(req)
+      ipcRenderer.on(IPC.mcpSetUi, listener)
+      return () => ipcRenderer.removeListener(IPC.mcpSetUi, listener)
+    },
+    /** Un agent applique un thème. */
+    onSetTheme: (cb: (theme: string) => void): (() => void) => {
+      const listener = (_e: unknown, theme: string): void => cb(theme)
+      ipcRenderer.on(IPC.mcpSetTheme, listener)
+      return () => ipcRenderer.removeListener(IPC.mcpSetTheme, listener)
     }
   },
   log: {

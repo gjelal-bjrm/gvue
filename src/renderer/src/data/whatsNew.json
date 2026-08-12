@@ -1,5 +1,11 @@
 [
   {
+    "version": "1.0.4",
+    "notes": [
+      "Serveurs de la sidebar sur deux lignes — nom pleine largeur + infobulle nom complet"
+    ]
+  },
+  {
     "version": "1.0.3",
     "notes": [
       "Manager SSH plus grand, redimensionnable, colonnes ajustables + notes 1.0.2 retablies"

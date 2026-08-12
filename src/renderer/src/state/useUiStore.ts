@@ -92,6 +92,9 @@ interface UiState {
   /** Dialogue des règles du rangement auto des téléchargements. */
   tidyRulesOpen: boolean
   setTidyRules: (v: boolean) => void
+  /** Manager SSH/SFTP (dialogue plein écran) — pilotable aussi via MCP. */
+  serverManagerOpen: boolean
+  setServerManager: (v: boolean) => void
   togglePalette: () => void
   setPaletteOpen: (v: boolean) => void
   toggleFileFinder: () => void
@@ -111,6 +114,8 @@ export const useUiStore = create<UiState>((set) => ({
   openSettings: (section) => set({ appearanceOpen: true, settingsSection: section }),
   tidyRulesOpen: false,
   setTidyRules: (v) => set({ tidyRulesOpen: v }),
+  serverManagerOpen: false,
+  setServerManager: (v) => set({ serverManagerOpen: v }),
   previewOpen: false,
   terminalSize: TERMINAL_DEFAULT,
   terminalGrow: 0,

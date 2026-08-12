@@ -143,6 +143,14 @@ export interface McpUiState {
   /** Thème effectif : 'auto' | 'light' | 'dark' | id de palette. */
   theme: string
   shelfCount: number
+  /** Langue effective de l'interface ('fr' | 'en'). */
+  language?: string
+  /** Rangement auto : actif ET au moins une règle exploitable ? */
+  tidyActive?: boolean
+  /** Serveur dont le volet SFTP est ouvert (nom), sinon null. */
+  remoteHost?: string | null
+  /** Mode démo (données fictives affichées) — utile pour les captures. */
+  demoMode?: boolean
 }
 
 export interface McpContext {
@@ -535,6 +543,12 @@ export interface AppConfig {
   language: 'auto' | 'fr' | 'en'
   /** Rangement automatique des téléchargements (opt-in). */
   tidy: TidyConfig
+  /**
+   * Mode démo : la sidebar affiche des projets et serveurs FICTIFS au lieu
+   * des vrais. Sert aux captures d'écran et aux démonstrations client sans
+   * exposer les noms réels. N'altère jamais les données stockées.
+   */
+  demoMode: boolean
   hideGitIgnored: boolean
   /** Rouvrir les dossiers de la dernière session au démarrage. */
   restoreSession: boolean

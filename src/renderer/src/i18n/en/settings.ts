@@ -175,5 +175,8 @@ export const settings: Record<string, string> = {
   Vérifier: 'Check',
   Diagnostic: 'Diagnostics',
   'Nouveautés de cette version…': "What's new in this version…",
-  'Ouvrir le journal de diagnostic': 'Open diagnostic log'
+  'Ouvrir le journal de diagnostic': 'Open diagnostic log',
+  'Mode démo (présentation)': 'Demo mode (presentation)',
+  'Affiche des projets et des serveurs FICTIFS à la place des vôtres — pour montrer GVue ou faire des captures sans exposer vos clients. Vos données ne sont ni modifiées ni supprimées. Développement uniquement.':
+    'Shows FICTIONAL projects and servers instead of yours — to demo GVue or take screenshots without exposing your clients. Your data is neither modified nor deleted. Development only.'
 }

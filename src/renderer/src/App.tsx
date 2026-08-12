@@ -41,6 +41,7 @@ import ConflictDialog from './components/ConflictDialog'
 import CustomCommandsDialog from './components/CustomCommandsDialog'
 import TidyRulesDialog from './components/TidyRulesDialog'
 import { useTidyStore } from './state/useTidyStore'
+import { currentLang } from './i18n'
 import ArchiveViewer from './components/ArchiveViewer'
 import ShortcutsHelp from './components/ShortcutsHelp'
 import { useCustomCommandsStore } from './state/useCustomCommandsStore'
@@ -378,7 +379,15 @@ export default function App(): JSX.Element {
             viewMode: nav.viewMode,
             gridSize: nav.gridSize,
             theme: ap.themeId || ap.theme,
-            shelfCount: useShelfStore.getState().items.length
+            shelfCount: useShelfStore.getState().items.length,
+            language: currentLang(),
+            // « Actif » = activé ET au moins une règle exploitable (une règle
+            // sans destination ne range rien — piège vécu).
+            tidyActive: Boolean(
+              useTidyStore.getState().tidy?.enabled &&
+                useTidyStore.getState().tidy?.rules.some((r) => r.enabled && r.destDir.trim())
+            ),
+            remoteHost: ui.remoteHost?.name ?? null
           }
         })
       }, 400)
@@ -443,10 +452,51 @@ export default function App(): JSX.Element {
     const offNotify = window.api.mcp.onNotify((m) =>
       useUiStore.getState().showToast(t('Agent : {message}', { message: m }))
     )
+    // Pilotage de l'UI par un agent (captures dirigées, démonstrations).
+    const offSetUi = window.api.mcp.onSetUi?.(({ panel, open }) => {
+      const ui = useUiStore.getState()
+      switch (panel) {
+        case 'git':
+          ui.setGitView ? ui.setGitView(open) : ui.toggleGitView()
+          break
+        case 'terminal':
+          ui.setTerminalOpen(open)
+          break
+        case 'preview':
+          ui.setPreviewOpen ? ui.setPreviewOpen(open) : ui.togglePreview()
+          break
+        case 'settings':
+          ui.setAppearanceOpen(open)
+          break
+        case 'recycleBin':
+          ui.setRecycleBin(open)
+          break
+        case 'servers':
+          ui.setServerManager(open)
+          break
+        case 'tidyRules':
+          ui.setTidyRules(open)
+          break
+        case 'shortcuts':
+          ui.setShortcuts(open)
+          break
+        case 'palette':
+          ui.setPaletteOpen(open)
+          break
+      }
+    })
+    const offSetTheme = window.api.mcp.onSetTheme?.((theme) => {
+      const isBase = theme === 'auto' || theme === 'light' || theme === 'dark'
+      void useAppearanceStore.getState().update(
+        isBase ? { theme, themeId: '' } : { themeId: theme }
+      )
+    })
     return () => {
       offTerm()
       offReveal()
       offNotify()
+      offSetUi?.()
+      offSetTheme?.()
     }
   }, [])
 

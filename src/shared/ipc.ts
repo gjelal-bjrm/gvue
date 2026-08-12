@@ -171,6 +171,10 @@ export const IPC = {
   mcpOpenTerminal: 'mcp:openTerminal',
   mcpReveal: 'mcp:reveal',
   mcpNotify: 'mcp:notify',
+  /** Ouvrir/fermer un panneau ou un dialogue (captures dirigées, démos). */
+  mcpSetUi: 'mcp:setUi',
+  /** Changer le thème appliqué. */
+  mcpSetTheme: 'mcp:setTheme',
 
   // Journalisation / diagnostic
   logReport: 'log:report',

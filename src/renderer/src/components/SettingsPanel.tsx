@@ -727,6 +727,7 @@ function GeneralSection(): JSX.Element {
   const [language, setLanguageState] = useState<'auto' | 'fr' | 'en'>('auto')
   // Store partagé du rangement auto (même état que sidebar/bandeau/dialogue).
   const tidy = useTidyStore((s) => s.tidy)
+  const [demoMode, setDemoMode] = useState(false)
 
   // Charge les réglages persistés (et synchronise le store des terminaux, qui
   // ne lit sa config qu'à l'ouverture du panneau terminal).
@@ -746,6 +747,10 @@ function GeneralSection(): JSX.Element {
       .get('language')
       .then((v) => setLanguageState(v === 'fr' || v === 'en' ? v : 'auto'))
       .catch(() => setLanguageState('auto'))
+    void window.api.config
+      .get('demoMode')
+      .then((v) => setDemoMode(Boolean(v)))
+      .catch(() => setDemoMode(false))
   }, [])
 
   // La langue est figée au démarrage du renderer : changer = enregistrer puis
@@ -952,6 +957,27 @@ function GeneralSection(): JSX.Element {
           <Sparkles size={14} /> {t('Ouvrir les règles de rangement…')}
         </button>
       </Field>
+
+      {/* Outil de développement : absent des versions packagées (le main
+          refuse d'ailleurs d'écrire ou de lire ce réglage en production). */}
+      {import.meta.env.DEV && (
+      <Field label={t('Mode démo (présentation)')}>
+        <Segmented<'on' | 'off'>
+          value={demoMode ? 'on' : 'off'}
+          options={[
+            { value: 'on', label: t('Activé') },
+            { value: 'off', label: t('Désactivé') }
+          ]}
+          onChange={(v) => {
+            setDemoMode(v === 'on')
+            void window.api.config.set('demoMode', v === 'on').then(() => window.location.reload())
+          }}
+        />
+        <p className="mt-1.5 text-[11px] text-fg-muted">
+          {t('Affiche des projets et des serveurs FICTIFS à la place des vôtres — pour montrer GVue ou faire des captures sans exposer vos clients. Vos données ne sont ni modifiées ni supprimées. Développement uniquement.')}
+        </p>
+      </Field>
+      )}
 
       <Field label={t('Commandes personnalisées')}>
         <button

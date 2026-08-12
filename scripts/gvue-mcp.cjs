@@ -193,6 +193,88 @@ const TOOLS = [
     }
   },
   {
+    name: 'set_ui',
+    description:
+      "Ouvre ou ferme un panneau/dialogue de GVue : git (panneau Git), terminal, preview " +
+      "(aperçu), settings (paramètres), recycleBin (corbeille), servers (manager SSH/SFTP), " +
+      'tidyRules (règles de rangement), shortcuts (raccourcis), palette. Utile pour montrer ' +
+      "quelque chose à l'utilisateur ou préparer une capture d'écran.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        panel: {
+          type: 'string',
+          enum: [
+            'git',
+            'terminal',
+            'preview',
+            'settings',
+            'recycleBin',
+            'servers',
+            'tidyRules',
+            'shortcuts',
+            'palette'
+          ]
+        },
+        open: { type: 'boolean', description: 'true = ouvrir (défaut), false = fermer' }
+      },
+      required: ['panel'],
+      additionalProperties: false
+    }
+  },
+  {
+    name: 'set_theme',
+    description:
+      "Applique un thème à GVue : 'auto', 'light', 'dark', ou l'id d'une palette " +
+      '(cyber, matrix, synthwave, tokyo, nord, oled, crt, paper).',
+    inputSchema: {
+      type: 'object',
+      properties: { theme: { type: 'string' } },
+      required: ['theme'],
+      additionalProperties: false
+    }
+  },
+  {
+    name: 'resize_window',
+    description:
+      'Redimensionne et recentre la fenêtre GVue (pixels) — pour des captures homogènes.',
+    inputSchema: {
+      type: 'object',
+      properties: { width: { type: 'number' }, height: { type: 'number' } },
+      required: ['width', 'height'],
+      additionalProperties: false
+    }
+  },
+  {
+    name: 'list_servers',
+    description:
+      'Liste les serveurs SSH/SFTP connus de GVue (ajouts manuels + alias du ~/.ssh/config) : ' +
+      'nom, cible user@hôte:port, origine, nombre de tunnels.',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false }
+  },
+  {
+    name: 'open_ssh',
+    description:
+      "Ouvre un terminal SSH connecté au serveur indiqué (nom exact — voir list_servers).",
+    inputSchema: {
+      type: 'object',
+      properties: { name: { type: 'string' } },
+      required: ['name'],
+      additionalProperties: false
+    }
+  },
+  {
+    name: 'open_sftp',
+    description:
+      "Ouvre l'explorateur de fichiers distant (SFTP) sur le serveur indiqué (voir list_servers).",
+    inputSchema: {
+      type: 'object',
+      properties: { name: { type: 'string' } },
+      required: ['name'],
+      additionalProperties: false
+    }
+  },
+  {
     name: 'get_ui_state',
     description:
       "État de l'interface GVue : panneaux ouverts (Git, aperçu, terminal, recherche, " +

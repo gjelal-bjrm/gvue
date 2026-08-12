@@ -34,6 +34,7 @@ import DownloadsItem from './sidebar/DownloadsItem'
 import ServerImportDialog from './sidebar/ServerImportDialog'
 import { useTerminalStore } from '../state/useTerminalStore'
 import { sshCommandFor, mergeHosts, hostKeyOf, toSshConfigText } from '../lib/ssh'
+import { DEMO_PROJECTS, DEMO_SERVERS } from '../data/demoData'
 import { t, tn } from '../i18n'
 
 /**
@@ -70,7 +71,10 @@ export default function Sidebar(): JSX.Element {
   const runTask = useRunnerStore((s) => s.runTask)
   const stopTask = useRunnerStore((s) => s.stopTask)
 
-  const [projects, setProjects] = useState<GitProject[]>([])
+  const [projects, setRealProjects] = useState<GitProject[]>([])
+  // Mode démo : projets et serveurs FICTIFS à l'écran (captures, démo client).
+  const [demo, setDemo] = useState(false)
+  const setProjects = setRealProjects
   // Nombre de projets mis de côté pendant cette session (lien « tout réafficher »).
   const [hiddenCount, setHiddenCount] = useState(0)
   // Serveurs SSH : ~/.ssh/config (lecture seule) + ajouts manuels (config GVue).
@@ -78,7 +82,9 @@ export default function Sidebar(): JSX.Element {
   const [manualHosts, setManualHosts] = useState<SshHost[]>([])
   const [sshOk, setSshOk] = useState(true)
   const [sshAutoList, setSshAutoList] = useState(true)
-  const [addServerOpen, setAddServerOpen] = useState(false)
+  // Ouverture du manager : dans le store UI (pilotable par MCP/agents).
+  const addServerOpen = useUiStore((s) => s.serverManagerOpen)
+  const setAddServerOpen = useUiStore((s) => s.setServerManager)
   const [editServer, setEditServer] = useState<SshHost | null>(null)
   const [importOpen, setImportOpen] = useState(false)
   const [launchOpen, setLaunchOpen] = useState(false)
@@ -106,13 +112,22 @@ export default function Sidebar(): JSX.Element {
       .get('sshConfigAutoList')
       .then((v) => setSshAutoList(v !== false))
       .catch(() => setSshAutoList(true))
+    void window.api.config
+      .get('demoMode')
+      .then((v) => setDemo(Boolean(v)))
+      .catch(() => setDemo(false))
   }, [])
 
   // Hôtes du ssh_config affichés : selon le réglage (liste automatique ou
   // import à la demande), et jamais en double d'un hôte déjà importé/stocké.
-  const shownConfigHosts = sshAutoList
-    ? configHosts.filter((h) => !manualHosts.some((m) => m.name === h.name))
-    : []
+  // En mode démo, tout est remplacé par des données fictives.
+  const shownConfigHosts = demo
+    ? []
+    : sshAutoList
+      ? configHosts.filter((h) => !manualHosts.some((m) => m.name === h.name))
+      : []
+  const shownManualHosts = demo ? DEMO_SERVERS : manualHosts
+  const shownProjects = demo ? DEMO_PROJECTS : projects
 
   // Clic sur un serveur : terminal intégré + connexion SSH dedans.
   const connectSsh = (host: SshHost): void => {
@@ -299,10 +314,10 @@ export default function Sidebar(): JSX.Element {
       title: t('Projets'),
       body: (
         <>
-          {projects.length === 0 ? (
+          {shownProjects.length === 0 ? (
             <p className="px-2 text-[12px] text-fg-muted">{t('Visitez un dépôt Git pour le voir ici.')}</p>
           ) : (
-            projects.map((p) => (
+            shownProjects.map((p) => (
               <ProjectItem
                 key={p.root}
                 project={p}
@@ -351,7 +366,7 @@ export default function Sidebar(): JSX.Element {
               {t('OpenSSH introuvable — activez « Client OpenSSH » dans les fonctionnalités facultatives de Windows.')}
             </p>
           )}
-          {shownConfigHosts.length === 0 && manualHosts.length === 0 && (
+          {shownConfigHosts.length === 0 && shownManualHosts.length === 0 && (
             <p className="px-2 text-[12px] text-fg-muted">
               {sshAutoList
                 ? t('Les hôtes de ~/.ssh/config apparaissent ici automatiquement.')
@@ -366,7 +381,7 @@ export default function Sidebar(): JSX.Element {
               onBrowse={() => useUiStore.getState().setRemoteHost(h)}
             />
           ))}
-          {manualHosts.map((h) => (
+          {shownManualHosts.map((h) => (
             <ServerItem
               key={`m-${h.name}`}
               host={h}

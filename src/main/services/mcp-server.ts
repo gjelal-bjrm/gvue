@@ -7,6 +7,7 @@ import { IPC } from '@shared/ipc'
 import type { McpContext } from '@shared/types'
 import { getPtyBuffer } from './pty-manager'
 import { getConfig } from './config-store'
+import { readSshConfigHosts } from './ssh-config'
 import { sendToWindow } from '../tray'
 import { logInfo, logError } from './logger'
 import { stripAnsi, tailLines } from './strip-ansi'
@@ -157,6 +158,79 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<To
       if (!message) throw new Error('Paramètre « message » requis.')
       sendToWindow(IPC.mcpNotify, message)
       return { ok: true }
+    }
+
+    case 'set_ui': {
+      // Ouvre/ferme un panneau ou un dialogue — sert aux captures dirigées
+      // et à un agent qui veut montrer quelque chose à l'utilisateur.
+      const panels = [
+        'git',
+        'terminal',
+        'preview',
+        'settings',
+        'recycleBin',
+        'servers',
+        'tidyRules',
+        'shortcuts',
+        'palette'
+      ]
+      const panel = typeof args.panel === 'string' ? args.panel : ''
+      if (!panels.includes(panel))
+        throw new Error(`Paramètre « panel » requis — au choix : ${panels.join(', ')}.`)
+      const open = args.open === undefined ? true : Boolean(args.open)
+      sendToWindow(IPC.mcpSetUi, { panel, open })
+      return { ok: true, panel, open }
+    }
+
+    case 'set_theme': {
+      // 'auto' | 'light' | 'dark' | id de palette (cyber, matrix, tokyo…).
+      const theme = typeof args.theme === 'string' ? args.theme.trim() : ''
+      if (!theme) throw new Error('Paramètre « theme » requis (auto, light, dark ou id de palette).')
+      sendToWindow(IPC.mcpSetTheme, theme)
+      return { ok: true, theme }
+    }
+
+    case 'resize_window': {
+      const width = Number(args.width)
+      const height = Number(args.height)
+      if (!Number.isFinite(width) || !Number.isFinite(height))
+        throw new Error('Paramètres « width » et « height » requis (pixels).')
+      const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0]
+      if (!win || win.isDestroyed()) throw new Error('Aucune fenêtre GVue ouverte.')
+      if (win.isMaximized()) win.unmaximize()
+      win.setSize(Math.max(640, Math.round(width)), Math.max(480, Math.round(height)))
+      win.center()
+      const [w, h] = win.getSize()
+      return { ok: true, width: w, height: h }
+    }
+
+    case 'list_servers': {
+      // Hôtes manuels (config GVue) + alias du ~/.ssh/config, sans doublon.
+      const manual = getConfig('sshHosts') ?? []
+      const fromConfig = (await readSshConfigHosts()).filter(
+        (h) => !manual.some((m) => m.name === h.name)
+      )
+      return {
+        servers: [...manual, ...fromConfig].map((h) => ({
+          name: h.name,
+          source: h.source,
+          target: `${h.user ? `${h.user}@` : ''}${h.hostName ?? h.name}${h.port ? `:${h.port}` : ''}`,
+          tunnels: h.forwards?.length ?? 0
+        }))
+      }
+    }
+
+    case 'open_ssh':
+    case 'open_sftp': {
+      const wanted = typeof args.name === 'string' ? args.name.trim().toLowerCase() : ''
+      if (!wanted) throw new Error('Paramètre « name » requis (voir list_servers).')
+      const manual = getConfig('sshHosts') ?? []
+      const host =
+        manual.find((h) => h.name.toLowerCase() === wanted) ??
+        (await readSshConfigHosts()).find((h) => h.name.toLowerCase() === wanted)
+      if (!host) throw new Error(`Serveur introuvable : ${args.name} (voir list_servers).`)
+      sendToWindow(name === 'open_ssh' ? IPC.trayOpenSsh : IPC.trayBrowseSsh, host)
+      return { ok: true, server: host.name, mode: name === 'open_ssh' ? 'terminal' : 'sftp' }
     }
 
     default:
