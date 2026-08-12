@@ -486,6 +486,10 @@ export interface WorkspaceData {
   hideGitIgnored?: boolean
   viewMode?: 'list' | 'grid'
   gridSize?: number
+  /** Panneau Git ouvert. */
+  gitViewOpen?: boolean
+  /** Serveur dont le volet SFTP était ouvert (rouvert avec l'espace). */
+  remoteHost?: SshHost | null
 }
 
 export interface AppConfig {

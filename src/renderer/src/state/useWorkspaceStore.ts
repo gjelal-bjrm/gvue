@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import type { WorkspaceData } from '@shared/types'
 import { useNavStore } from './useNavStore'
 import { useUiStore } from './useUiStore'
-import { useAppearanceStore } from './useAppearanceStore'
+import { useAppearanceStore, visualOnly } from './useAppearanceStore'
 import { useSidebarStore } from './useSidebarStore'
 import { useTerminalStore } from './useTerminalStore'
 
@@ -45,16 +45,11 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
       terminalOpen: ui.terminalOpen,
       previewOpen: ui.previewOpen,
       appearanceOpen: ui.appearanceOpen,
-      appearance: {
-        accent: ap.accent,
-        theme: ap.theme,
-        density: ap.density,
-        corners: ap.corners,
-        fontFamily: ap.fontFamily,
-        fontSize: ap.fontSize,
-        windowOpacity: ap.windowOpacity,
-        titleCursor: ap.titleCursor
-      },
+      // TOUS les réglages visuels via visualOnly() — la même liste que les
+      // presets et l'export de thème. En les recopiant à la main, on avait
+      // oublié themeId : la palette (Tokyo night, Matrix…) n'était donc pas
+      // mémorisée et tous les espaces gardaient le thème courant.
+      appearance: { ...visualOnly(ap), titleCursor: ap.titleCursor },
       treeExpand: sb.treeExpand,
       sidebarOrder: sb.order,
       sidebarCollapsed: sb.collapsed,
@@ -64,7 +59,11 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
       showHidden: nav.showHidden,
       hideGitIgnored: nav.hideGitIgnored,
       viewMode: nav.viewMode,
-      gridSize: nav.gridSize
+      gridSize: nav.gridSize,
+      // Panneau Git et serveur distant font partie du contexte de travail :
+      // « revue de code » veut son panneau Git, « client X » son SFTP.
+      gitViewOpen: ui.gitViewOpen,
+      remoteHost: ui.remoteHost
     }
     const workspaces = { ...get().workspaces, [key]: data }
     set({ workspaces })
@@ -79,6 +78,10 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
     ui.setPreviewOpen(data.previewOpen)
     ui.setAppearanceOpen(data.appearanceOpen)
     if (data.terminalSplit !== undefined) ui.setTerminalSplit(data.terminalSplit)
+    // Panneau Git et volet SFTP (undefined sur les anciens espaces : on ne
+    // touche à rien plutôt que de fermer ce que l'utilisateur avait ouvert).
+    if (data.gitViewOpen !== undefined) ui.setGitView(data.gitViewOpen)
+    if (data.remoteHost !== undefined) ui.setRemoteHost(data.remoteHost)
 
     // Thème / couleur d'accent propres à l'espace.
     if (data.appearance) useAppearanceStore.getState().update(data.appearance)
