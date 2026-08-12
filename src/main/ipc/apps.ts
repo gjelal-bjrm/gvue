@@ -3,6 +3,7 @@ import { IPC } from '@shared/ipc'
 import type { ExternalAppId } from '@shared/types'
 import * as apps from '../services/apps'
 import * as archive from '../services/archive'
+import { t } from '../i18n'
 
 /** Handlers IPC des intégrations d'applications externes. */
 export function registerAppsHandlers(): void {
@@ -24,6 +25,19 @@ export function registerAppsHandlers(): void {
       properties: ['openFile' as const],
       filters: [{ name: 'Programmes', extensions: ['exe'] }],
       defaultPath: process.env.ProgramFiles
+    }
+    const res = win
+      ? await dialog.showOpenDialog(win, options)
+      : await dialog.showOpenDialog(options)
+    return res.canceled || res.filePaths.length === 0 ? null : res.filePaths[0]
+  })
+
+  // Boîte de dialogue native pour choisir un DOSSIER (destinations diverses).
+  ipcMain.handle(IPC.appsPickFolder, async (e, title?: string): Promise<string | null> => {
+    const win = BrowserWindow.fromWebContents(e.sender)
+    const options = {
+      title: title || t('Choisir un dossier'),
+      properties: ['openDirectory' as const, 'createDirectory' as const]
     }
     const res = win
       ? await dialog.showOpenDialog(win, options)

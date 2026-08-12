@@ -181,5 +181,25 @@ export const misc: Record<string, string> = {
     'No rules — add one so tidying can act.',
   'Jamais un téléchargement en cours ; chaque déplacement est annulable (Ctrl+Z). Exemple : « pdf » → D:\\Docs, sous-dossier {date} → D:\\Docs\\2026-08\\facture.pdf.':
     'Never a download in progress; every move can be undone (Ctrl+Z). Example: "pdf" → D:\\Docs, subfolder {date} → D:\\Docs\\2026-08\\invoice.pdf.',
-  'Ouvrir les règles de rangement…': 'Open tidy rules…'
+  'Ouvrir les règles de rangement…': 'Open tidy rules…',
+  // TidyRulesDialog v2 (langage humain + selecteur de dossier)
+  'Décochez pour mettre cette règle en pause sans la supprimer':
+    'Untick to pause this rule without deleting it',
+  '1. Quels fichiers ranger ?': '1. Which files to tidy?',
+  'Tous les fichiers': 'All files',
+  'Tapez les types séparés par des virgules (ex. pdf, jpg, zip). Laissez vide pour ranger tous les fichiers.':
+    'Type the file types separated by commas (e.g. pdf, jpg, zip). Leave empty to tidy all files.',
+  '2. Dans quel dossier les mettre ?': '2. Which folder to put them in?',
+  'Choisissez un dossier avec « Parcourir »': 'Pick a folder with "Browse"',
+  'Choisir le dossier de destination': 'Choose the destination folder',
+  'Parcourir…': 'Browse…',
+  '3. Créer un sous-dossier dedans ?': '3. Create a subfolder inside?',
+  'Non — directement dans le dossier': 'No — straight into the folder',
+  'Oui — un dossier par mois (ex. {sample})': 'Yes — one folder per month (e.g. {sample})',
+  'Oui — un dossier par type de fichier (ex. {ext})': 'Yes — one folder per file type (e.g. {ext})',
+  'Oui — par mois, puis par type': 'Yes — by month, then by type',
+  'Personnalisé : {tpl}': 'Custom: {tpl}',
+  'Aperçu : « exemple.{ext} » ira dans': 'Preview: "example.{ext}" will go to',
+  'GVue attend qu’un téléchargement soit terminé avant de ranger le fichier, et Ctrl+Z annule le dernier rangement.':
+    'GVue waits until a download has finished before tidying the file, and Ctrl+Z undoes the last move.'
 }

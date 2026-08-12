@@ -79,6 +79,7 @@ export const IPC = {
   appsOpenWith: 'apps:openWith',
   appsOpenPathWith: 'apps:openPathWith',
   appsPickProgram: 'apps:pickProgram',
+  appsPickFolder: 'apps:pickFolder',
   appsArchive: 'apps:archive',
   appsExtract: 'apps:extract',
   appsOpenAsDialog: 'apps:openAsDialog',

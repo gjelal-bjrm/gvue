@@ -149,6 +149,9 @@ const api = {
     openPathWith: (exe: string, paths: string[]): void =>
       ipcRenderer.send(IPC.appsOpenPathWith, exe, paths),
     pickProgram: (): Promise<string | null> => ipcRenderer.invoke(IPC.appsPickProgram),
+    /** Sélecteur natif de dossier (destinations : rangement auto…). */
+    pickFolder: (title?: string): Promise<string | null> =>
+      ipcRenderer.invoke(IPC.appsPickFolder, title),
     archive: (paths: string[], destDir?: string): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke(IPC.appsArchive, paths, destDir),
     extract: (archivePath: string, destDir?: string): Promise<{ ok: boolean; error?: string }> =>

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Sparkles, X, Plus } from 'lucide-react'
+import { Sparkles, X, Plus, FolderOpen } from 'lucide-react'
 import type { TidyConfig } from '@shared/types'
 import { useUiStore } from '../state/useUiStore'
-import { parseExtensions } from '../lib/tidyText'
+import { parseExtensions, previewDestination, currentMonth } from '../lib/tidyText'
 import { t } from '../i18n'
 
 /**
@@ -98,47 +98,98 @@ export default function TidyRulesDialog(): JSX.Element | null {
               {t('Aucune règle — ajoutez-en une pour que le rangement agisse.')}
             </p>
           )}
-          {tidy.rules.map((r, i) => (
-            <div key={r.id} className="flex flex-col gap-1.5 rounded-app border border-border bg-bg p-2">
-              <div className="flex items-center gap-1.5">
-                <input
-                  type="checkbox"
-                  checked={r.enabled}
-                  title={t('Règle active')}
-                  onChange={(e) => patchRule(i, { enabled: e.target.checked })}
-                  className="accent-[var(--accent)]"
-                />
-                <input
-                  defaultValue={r.extensions.join(', ')}
-                  onBlur={(e) => patchRule(i, { extensions: parseExtensions(e.target.value) })}
-                  placeholder={t('pdf, zip — vide = tous')}
-                  spellCheck={false}
-                  className={`min-w-0 flex-1 ${field}`}
-                />
-                <button
-                  onClick={() => save({ ...tidy, rules: tidy.rules.filter((_, j) => j !== i) })}
-                  title={t('Supprimer cette règle')}
-                  className="grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-danger-fg"
-                >
-                  <X size={13} />
-                </button>
+          {tidy.rules.map((r, i) => {
+            const sampleExt = r.extensions[0] || 'pdf'
+            const knownSub = ['', '{date}', '{ext}', '{date}/{ext}'].includes(r.subfolder ?? '')
+            return (
+              <div key={r.id} className="flex flex-col gap-2 rounded-app border border-border bg-bg p-2.5">
+                <div className="flex items-center gap-1.5">
+                  <label
+                    className="flex items-center gap-1.5 text-[11px] text-fg-secondary"
+                    title={t('Décochez pour mettre cette règle en pause sans la supprimer')}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={r.enabled}
+                      onChange={(e) => patchRule(i, { enabled: e.target.checked })}
+                      className="accent-[var(--accent)]"
+                    />
+                    {t('Règle active')}
+                  </label>
+                  <button
+                    onClick={() => save({ ...tidy, rules: tidy.rules.filter((_, j) => j !== i) })}
+                    title={t('Supprimer cette règle')}
+                    className="ml-auto grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-danger-fg"
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+
+                <label className="flex flex-col gap-1">
+                  <span className="text-[11px] text-fg-secondary">{t('1. Quels fichiers ranger ?')}</span>
+                  <input
+                    defaultValue={r.extensions.join(', ')}
+                    onBlur={(e) => patchRule(i, { extensions: parseExtensions(e.target.value) })}
+                    placeholder={t('Tous les fichiers')}
+                    spellCheck={false}
+                    className={field}
+                  />
+                  <span className="text-[10px] text-fg-muted">
+                    {t('Tapez les types séparés par des virgules (ex. pdf, jpg, zip). Laissez vide pour ranger tous les fichiers.')}
+                  </span>
+                </label>
+
+                <label className="flex flex-col gap-1">
+                  <span className="text-[11px] text-fg-secondary">{t('2. Dans quel dossier les mettre ?')}</span>
+                  <span className="flex items-center gap-1.5">
+                    <input
+                      value={r.destDir}
+                      onChange={(e) => patchRule(i, { destDir: e.target.value })}
+                      placeholder={t('Choisissez un dossier avec « Parcourir »')}
+                      spellCheck={false}
+                      className={`min-w-0 flex-1 ${field} font-mono text-[11px]`}
+                    />
+                    <button
+                      onClick={() => {
+                        void window.api.apps.pickFolder?.(t('Choisir le dossier de destination')).then((dir) => {
+                          if (dir) patchRule(i, { destDir: dir })
+                        })
+                      }}
+                      className="flex shrink-0 items-center gap-1 rounded-app border border-border px-2 py-1.5 text-[11px] text-fg-secondary hover:bg-bg-hover hover:text-fg"
+                    >
+                      <FolderOpen size={12} /> {t('Parcourir…')}
+                    </button>
+                  </span>
+                </label>
+
+                <label className="flex flex-col gap-1">
+                  <span className="text-[11px] text-fg-secondary">{t('3. Créer un sous-dossier dedans ?')}</span>
+                  <select
+                    value={knownSub ? (r.subfolder ?? '') : 'custom'}
+                    onChange={(e) => {
+                      if (e.target.value !== 'custom') patchRule(i, { subfolder: e.target.value })
+                    }}
+                    className="w-full rounded-app border border-border bg-bg-tertiary px-2 py-1.5 text-[12px] text-fg outline-none focus:border-accent"
+                  >
+                    <option value="">{t('Non — directement dans le dossier')}</option>
+                    <option value="{date}">{t('Oui — un dossier par mois (ex. {sample})', { sample: currentMonth() })}</option>
+                    <option value="{ext}">{t('Oui — un dossier par type de fichier (ex. {ext})', { ext: sampleExt })}</option>
+                    <option value="{date}/{ext}">{t('Oui — par mois, puis par type')}</option>
+                    {!knownSub && <option value="custom">{t('Personnalisé : {tpl}', { tpl: r.subfolder ?? '' })}</option>}
+                  </select>
+                </label>
+
+                {r.destDir.trim() && (
+                  <p className="rounded-app bg-bg-tertiary px-2 py-1.5 text-[11px] text-fg-secondary">
+                    {t('Aperçu : « exemple.{ext} » ira dans', { ext: sampleExt })}{' '}
+                    <code className="break-all font-mono text-[10px] text-accent">
+                      {previewDestination(r.destDir.trim(), r.subfolder ?? '', sampleExt)}
+                    </code>
+                  </p>
+                )}
               </div>
-              <input
-                value={r.destDir}
-                onChange={(e) => patchRule(i, { destDir: e.target.value })}
-                placeholder={t('Destination — ex. D:\\Documents\\Factures')}
-                spellCheck={false}
-                className={`${field} font-mono text-[11px]`}
-              />
-              <input
-                value={r.subfolder ?? ''}
-                onChange={(e) => patchRule(i, { subfolder: e.target.value })}
-                placeholder={t('Sous-dossier (facultatif) — gabarits {date}, {ext}')}
-                spellCheck={false}
-                className={`${field} font-mono text-[11px]`}
-              />
-            </div>
-          ))}
+            )
+          })}
           <button
             onClick={() =>
               save({
@@ -156,7 +207,7 @@ export default function TidyRulesDialog(): JSX.Element | null {
         </div>
 
         <p className="shrink-0 border-t border-border px-4 py-2.5 text-[11px] text-fg-muted">
-          {t('Jamais un téléchargement en cours ; chaque déplacement est annulable (Ctrl+Z). Exemple : « pdf » → D:\\Docs, sous-dossier {date} → D:\\Docs\\2026-08\\facture.pdf.')}
+          {t('GVue attend qu’un téléchargement soit terminé avant de ranger le fichier, et Ctrl+Z annule le dernier rangement.')}
         </p>
       </div>
     </div>

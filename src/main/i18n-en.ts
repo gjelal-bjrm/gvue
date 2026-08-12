@@ -89,5 +89,6 @@ export const EN: Record<string, string> = {
   'Renommage de {n} élément(s)': 'Renaming {n} item(s)',
   // services/tidy.ts + tray
   'Rangement de « {name} »': 'Tidying of "{name}"',
-  'Rangement auto des téléchargements': 'Auto-tidy downloads'
+  'Rangement auto des téléchargements': 'Auto-tidy downloads',
+  'Choisir un dossier': 'Choose a folder'
 }
