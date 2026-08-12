@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { ShellInfo } from '@shared/types'
 import { useNavStore, activePane } from './useNavStore'
 import { disposeTerminal } from '../lib/terminalBridge'
+import { baseName } from '../lib/format'
 import { t } from '../i18n'
 
 export interface TermTab {
@@ -116,8 +117,10 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
       const disposeExit = window.api.terminal.onExit(ptyId, () => {
         set((s) => ({
           tabs: s.tabs.map((tab) =>
+            // Conserve le titre affiché (dossier) au lieu de retomber sur le
+            // nom du shell à la fermeture du processus.
             tab.id === ptyId
-              ? { ...tab, exited: true, title: t('{label} (terminé)', { label: tab.shell.label }) }
+              ? { ...tab, exited: true, title: t('{title} (terminé)', { title: tab.title }) }
               : tab
           )
         }))
@@ -127,7 +130,10 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
         id: ptyId,
         ptyId,
         shell,
-        title: shell.label,
+        // Titre = dossier de travail (comme les terminaux ouverts par une
+        // action) ; le nom du shell seul ne disait rien quand plusieurs
+        // terminaux sont ouverts côte à côte. Repli sur le nom du shell.
+        title: baseName(cwd) || shell.label,
         cwd,
         paneId: useNavStore.getState().activeId,
         exited: false,
