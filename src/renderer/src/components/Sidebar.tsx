@@ -407,14 +407,17 @@ export default function Sidebar(): JSX.Element {
               ajout, édition, import/export et « tout retirer » vivent dedans. */}
           {(addServerOpen || editServer) && (
             <ServerManager
-              manualHosts={manualHosts}
+              // Mode démo : le manager montre AUSSI les serveurs fictifs, et
+              // toute écriture est neutralisée — sans quoi il exposerait les
+              // vrais serveurs et « enregistrer » polluerait la vraie config.
+              manualHosts={shownManualHosts}
               configHosts={shownConfigHosts}
               initial={editServer ? editServer.name : 'new'}
-              onSave={addServer}
-              onRemove={removeServer}
-              onRemoveAll={removeAllServers}
-              onExport={exportServers}
-              onOpenImport={() => setImportOpen(true)}
+              onSave={demo ? () => undefined : addServer}
+              onRemove={demo ? () => undefined : removeServer}
+              onRemoveAll={demo ? () => undefined : removeAllServers}
+              onExport={demo ? () => undefined : exportServers}
+              onOpenImport={() => !demo && setImportOpen(true)}
               onConnect={connectSsh}
               onBrowse={(h) => useUiStore.getState().setRemoteHost(h)}
               onClose={() => {
@@ -429,7 +432,8 @@ export default function Sidebar(): JSX.Element {
           >
             {t('⚙ Gérer les serveurs…')}
           </button>
-          {importOpen && (
+          {/* Jamais en mode démo : le dialogue lirait le vrai ssh_config. */}
+          {importOpen && !demo && (
             <ServerImportDialog
               existing={[...configHosts, ...manualHosts]}
               onImport={(hosts) => {
