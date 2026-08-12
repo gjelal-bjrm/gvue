@@ -1,10 +1,8 @@
-import { useEffect, useState } from 'react'
 import { Sparkles, Settings2 } from 'lucide-react'
-import type { TidyConfig } from '@shared/types'
 import { useNavStore } from '../state/useNavStore'
 import { useUiStore } from '../state/useUiStore'
+import { useTidyStore } from '../state/useTidyStore'
 import { pathKey } from '../lib/format'
-import { setTidyEnabled } from '../lib/tidyConfig'
 import { t, tn } from '../i18n'
 
 /**
@@ -14,31 +12,16 @@ import { t, tn } from '../i18n'
  */
 export default function TidyBanner(props: { dir: string }): JSX.Element | null {
   const downloads = useNavStore((s) => s.locations?.downloads ?? '')
-  // Rechargé aussi à la fermeture du dialogue des règles (état à jour).
-  const rulesOpen = useUiStore((s) => s.tidyRulesOpen)
-  const [tidy, setTidy] = useState<TidyConfig | null>(null)
-
-  // Recharge à chaque retour dans le dossier (la config a pu changer via les
-  // Paramètres ou le tray — pas de canal réactif, la relecture suffit ici).
-  useEffect(() => {
-    let alive = true
-    void window.api.config
-      .get('tidy')
-      .then((v) => alive && setTidy(v ?? { enabled: false, watchDir: '', rules: [] }))
-      .catch(() => alive && setTidy(null))
-    return () => {
-      alive = false
-    }
-  }, [props.dir, rulesOpen])
+  // Store partagé : basculer depuis la sidebar, le tray ou les Paramètres
+  // met ce bandeau à jour instantanément (fini les copies désynchronisées).
+  const tidy = useTidyStore((s) => s.tidy)
 
   if (!tidy) return null
   const watched = tidy.watchDir.trim() || downloads
   if (!watched || pathKey(props.dir) !== pathKey(watched)) return null
 
-  // Bascule sur l'état FRAIS du disque (voir lib/tidyConfig — jamais l'objet
-  // local, qui pourrait écraser des règles éditées ailleurs).
   const toggle = (): void => {
-    void setTidyEnabled(!tidy.enabled).then(setTidy)
+    useTidyStore.getState().setEnabled(!tidy.enabled)
   }
   const activeRules = tidy.rules.filter((r) => r.enabled && r.destDir.trim()).length
   // Activé mais aucune règle COMPLÈTE : le rangement ne fait rien — le dire

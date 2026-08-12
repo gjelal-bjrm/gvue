@@ -34,6 +34,12 @@ function watchDir(): string {
 
 /** (Re)démarre ou arrête l'observateur selon la config — idempotent. */
 export function syncTidy(): void {
+  // Toute origine de changement (Paramètres, bandeau, sidebar, tray) passe
+  // ici : on notifie le renderer pour que TOUTES les surfaces se remettent
+  // à jour (store partagé côté renderer).
+  for (const w of BrowserWindow.getAllWindows()) {
+    w.webContents.send(IPC.tidyChanged)
+  }
   const cfg = getConfig('tidy')
   const dir = watchDir()
   const wanted = Boolean(cfg?.enabled && dir && cfg.rules.some((r) => r.enabled && r.destDir.trim()))

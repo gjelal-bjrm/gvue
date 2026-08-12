@@ -143,6 +143,8 @@ export const IPC = {
 
   // Rangement auto des téléchargements : un fichier vient d'être rangé.
   tidyMoved: 'tidy:moved',
+  // La config du rangement a changé (toute origine, tray compris) → recharger.
+  tidyChanged: 'tidy:changed',
 
   // Plateau système (tray) → actions rapides
   trayOpenPath: 'tray:openPath',

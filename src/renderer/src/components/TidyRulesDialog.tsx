@@ -3,6 +3,7 @@ import { Sparkles, X, Plus, FolderOpen } from 'lucide-react'
 import type { TidyConfig } from '@shared/types'
 import { useUiStore } from '../state/useUiStore'
 import { useNavStore } from '../state/useNavStore'
+import { useTidyStore } from '../state/useTidyStore'
 import FilePickerDialog from './FilePickerDialog'
 import { parseExtensions, previewDestination, currentMonth } from '../lib/tidyText'
 import { t } from '../i18n'
@@ -17,20 +18,13 @@ export default function TidyRulesDialog(): JSX.Element | null {
   const open = useUiStore((s) => s.tidyRulesOpen)
   const close = (): void => useUiStore.getState().setTidyRules(false)
   const downloads = useNavStore((s) => s.locations?.downloads ?? '')
-  const [tidy, setTidy] = useState<TidyConfig | null>(null)
+  // Store partagé : même état que la sidebar, le bandeau et les Paramètres.
+  const tidy = useTidyStore((s) => s.tidy)
   // Index de la règle dont on choisit la destination (sélecteur GVue, pas natif).
   const [pickingFor, setPickingFor] = useState<number | null>(null)
 
   useEffect(() => {
-    if (!open) return
-    let alive = true
-    void window.api.config
-      .get('tidy')
-      .then((v) => alive && setTidy(v ?? { enabled: false, watchDir: '', rules: [] }))
-      .catch(() => alive && setTidy({ enabled: false, watchDir: '', rules: [] }))
-    return () => {
-      alive = false
-    }
+    if (open) void useTidyStore.getState().load()
   }, [open])
 
   // Échap ferme le sélecteur de dossier s'il est ouvert, sinon ce dialogue.
@@ -49,10 +43,7 @@ export default function TidyRulesDialog(): JSX.Element | null {
 
   if (!open || !tidy) return null
 
-  const save = (next: TidyConfig): void => {
-    setTidy(next)
-    void window.api.config.set('tidy', next)
-  }
+  const save = (next: TidyConfig): void => useTidyStore.getState().save(next)
   const patchRule = (i: number, patch: Partial<TidyConfig['rules'][number]>): void =>
     save({ ...tidy, rules: tidy.rules.map((x, j) => (j === i ? { ...x, ...patch } : x)) })
 

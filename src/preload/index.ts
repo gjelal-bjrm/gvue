@@ -418,6 +418,12 @@ const api = {
       const listener = (_e: unknown, ev: TidyMovedEvent): void => cb(ev)
       ipcRenderer.on(IPC.tidyMoved, listener)
       return () => ipcRenderer.removeListener(IPC.tidyMoved, listener)
+    },
+    /** La config a changé (toute origine, tray compris) → recharger le store. */
+    onChanged: (cb: () => void): (() => void) => {
+      const listener = (): void => cb()
+      ipcRenderer.on(IPC.tidyChanged, listener)
+      return () => ipcRenderer.removeListener(IPC.tidyChanged, listener)
     }
   },
   update: {

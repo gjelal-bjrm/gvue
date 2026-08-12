@@ -24,8 +24,8 @@ import { ACCENT_SWATCHES, FONT_CHOICES } from '../theme/presets'
 import { THEMES, themeById, THEME_VAR_KEYS, hueShift } from '../theme/themes'
 import ThemeEditor from './ThemeEditor'
 import { t } from '../i18n'
-import { readTidy, setTidyEnabled } from '../lib/tidyConfig'
-import type { Appearance, CustomTheme, TidyConfig, UpdateStatus } from '@shared/types'
+import { useTidyStore } from '../state/useTidyStore'
+import type { Appearance, CustomTheme, UpdateStatus } from '@shared/types'
 
 /** Cartes des thèmes de base (le mode historique clair/sombre/auto). */
 const BASE_THEME_CARDS: {
@@ -725,7 +725,8 @@ function GeneralSection(): JSX.Element {
   const [mcp, setMcp] = useState<{ enabled: boolean; bridgePath: string } | null>(null)
   const [copiedCmd, setCopiedCmd] = useState(false)
   const [language, setLanguageState] = useState<'auto' | 'fr' | 'en'>('auto')
-  const [tidy, setTidy] = useState<TidyConfig | null>(null)
+  // Store partagé du rangement auto (même état que sidebar/bandeau/dialogue).
+  const tidy = useTidyStore((s) => s.tidy)
 
   // Charge les réglages persistés (et synchronise le store des terminaux, qui
   // ne lit sa config qu'à l'ouverture du panneau terminal).
@@ -745,7 +746,6 @@ function GeneralSection(): JSX.Element {
       .get('language')
       .then((v) => setLanguageState(v === 'fr' || v === 'en' ? v : 'auto'))
       .catch(() => setLanguageState('auto'))
-    void readTidy().then(setTidy)
   }, [])
 
   // La langue est figée au démarrage du renderer : changer = enregistrer puis
@@ -940,9 +940,7 @@ function GeneralSection(): JSX.Element {
             { value: 'on', label: t('Activé') },
             { value: 'off', label: t('Désactivé') }
           ]}
-          // Bascule sur l'état FRAIS du disque (lib/tidyConfig) — jamais
-          // l'objet local, qui écraserait des règles éditées ailleurs.
-          onChange={(v) => void setTidyEnabled(v === 'on').then(setTidy)}
+          onChange={(v) => useTidyStore.getState().setEnabled(v === 'on')}
         />
         <p className="mt-1.5 text-[11px] text-fg-muted">
           {t('Range automatiquement les fichiers téléchargés selon vos règles — jamais un téléchargement en cours, chaque déplacement est annulable (Ctrl+Z). Aussi activable depuis le menu de l’icône près de l’horloge.')}

@@ -40,6 +40,7 @@ import ComparePanes from './components/ComparePanes'
 import ConflictDialog from './components/ConflictDialog'
 import CustomCommandsDialog from './components/CustomCommandsDialog'
 import TidyRulesDialog from './components/TidyRulesDialog'
+import { useTidyStore } from './state/useTidyStore'
 import ArchiveViewer from './components/ArchiveViewer'
 import ShortcutsHelp from './components/ShortcutsHelp'
 import { useCustomCommandsStore } from './state/useCustomCommandsStore'
@@ -314,6 +315,13 @@ export default function App(): JSX.Element {
       useUiStore.getState().showToast(t('« {name} » rangé → {dir}', { name: ev.name, dir: ev.toDir }))
       useNavStore.getState().refreshAll()
     })
+    // Store partagé du rangement : chargé au démarrage, rechargé à chaque
+    // changement notifié par le main (tray compris) — toutes les surfaces
+    // (sidebar, bandeau, dialogue, Paramètres) restent synchrones.
+    void useTidyStore.getState().load()
+    const offTidyChanged = window.api.tidy?.onChanged?.(() => {
+      void useTidyStore.getState().load()
+    })
     return () => {
       offOpen()
       offRun()
@@ -322,6 +330,7 @@ export default function App(): JSX.Element {
       offSsh?.()
       offBrowse?.()
       offTidy?.()
+      offTidyChanged?.()
     }
   }, [])
 

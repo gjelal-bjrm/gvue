@@ -1,8 +1,6 @@
-import { useEffect, useState } from 'react'
 import { Download, Sparkles, Settings2 } from 'lucide-react'
-import type { TidyConfig } from '@shared/types'
 import { useUiStore } from '../../state/useUiStore'
-import { readTidy, setTidyEnabled } from '../../lib/tidyConfig'
+import { useTidyStore } from '../../state/useTidyStore'
 import { t } from '../../i18n'
 
 /**
@@ -16,24 +14,13 @@ export default function DownloadsItem(props: {
   onClick: () => void
   onContextMenu?: (e: React.MouseEvent) => void
 }): JSX.Element {
-  // Rechargé aussi à la fermeture du dialogue des règles (état à jour).
-  const rulesOpen = useUiStore((s) => s.tidyRulesOpen)
-  const [tidy, setTidy] = useState<TidyConfig | null>(null)
+  // Store partagé : même état que le bandeau, le dialogue et les Paramètres.
+  const tidy = useTidyStore((s) => s.tidy)
 
-  useEffect(() => {
-    let alive = true
-    void readTidy().then((v) => alive && setTidy(v))
-    return () => {
-      alive = false
-    }
-  }, [rulesOpen])
-
-  // Bascule sur l'état FRAIS (jamais l'objet local, qui peut être périmé et
-  // écraserait les règles éditées ailleurs — le watcher ne démarrait pas).
   const toggle = (e: React.MouseEvent): void => {
     e.stopPropagation()
     if (!tidy) return
-    void setTidyEnabled(!tidy.enabled).then(setTidy)
+    useTidyStore.getState().setEnabled(!tidy.enabled)
   }
 
   return (
