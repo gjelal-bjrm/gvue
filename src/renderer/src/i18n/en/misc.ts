@@ -172,5 +172,14 @@ export const misc: Record<string, string> = {
   'Rangement auto actif': 'Auto-tidy active',
   'Activer le rangement auto': 'Enable auto-tidy',
   'Désactiver le rangement auto': 'Disable auto-tidy',
-  'Règles de rangement…': 'Tidy rules…'
+  'Règles de rangement…': 'Tidy rules…',
+  // TidyRulesDialog
+  'Dossier surveillé': 'Watched folder',
+  'Vide = dossier Téléchargements': 'Empty = Downloads folder',
+  'Règles (la première qui correspond gagne)': 'Rules (the first match wins)',
+  'Aucune règle — ajoutez-en une pour que le rangement agisse.':
+    'No rules — add one so tidying can act.',
+  'Jamais un téléchargement en cours ; chaque déplacement est annulable (Ctrl+Z). Exemple : « pdf » → D:\\Docs, sous-dossier {date} → D:\\Docs\\2026-08\\facture.pdf.':
+    'Never a download in progress; every move can be undone (Ctrl+Z). Example: "pdf" → D:\\Docs, subfolder {date} → D:\\Docs\\2026-08\\invoice.pdf.',
+  'Ouvrir les règles de rangement…': 'Open tidy rules…'
 }

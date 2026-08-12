@@ -89,6 +89,9 @@ interface UiState {
   settingsSection: 'appearance' | 'general' | 'about'
   /** Ouvre les Paramètres directement sur une section. */
   openSettings: (section: 'appearance' | 'general' | 'about') => void
+  /** Dialogue des règles du rangement auto des téléchargements. */
+  tidyRulesOpen: boolean
+  setTidyRules: (v: boolean) => void
   togglePalette: () => void
   setPaletteOpen: (v: boolean) => void
   toggleFileFinder: () => void
@@ -106,6 +109,8 @@ export const useUiStore = create<UiState>((set) => ({
   appearanceOpen: false,
   settingsSection: 'appearance',
   openSettings: (section) => set({ appearanceOpen: true, settingsSection: section }),
+  tidyRulesOpen: false,
+  setTidyRules: (v) => set({ tidyRulesOpen: v }),
   previewOpen: false,
   terminalSize: TERMINAL_DEFAULT,
   terminalGrow: 0,

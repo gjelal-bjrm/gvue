@@ -24,7 +24,6 @@ import { ACCENT_SWATCHES, FONT_CHOICES } from '../theme/presets'
 import { THEMES, themeById, THEME_VAR_KEYS, hueShift } from '../theme/themes'
 import ThemeEditor from './ThemeEditor'
 import { t } from '../i18n'
-import { parseExtensions } from '../lib/tidyText'
 import type { Appearance, CustomTheme, TidyConfig, UpdateStatus } from '@shared/types'
 
 /** Cartes des thèmes de base (le mode historique clair/sombre/auto). */
@@ -955,100 +954,12 @@ function GeneralSection(): JSX.Element {
         <p className="mt-1.5 text-[11px] text-fg-muted">
           {t('Range automatiquement les fichiers téléchargés selon vos règles — jamais un téléchargement en cours, chaque déplacement est annulable (Ctrl+Z). Aussi activable depuis le menu de l’icône près de l’horloge.')}
         </p>
-        {tidy?.enabled && (
-          <div className="mt-2 flex flex-col gap-2">
-            <input
-              value={tidy.watchDir}
-              onChange={(e) => saveTidy({ ...tidy, watchDir: e.target.value })}
-              placeholder={t('Dossier surveillé — vide = Téléchargements')}
-              spellCheck={false}
-              className="w-full rounded-app border border-border bg-bg px-2 py-1.5 font-mono text-[11px] text-fg outline-none placeholder:text-fg-muted focus:border-accent"
-            />
-            {tidy.rules.map((r, i) => (
-              <div
-                key={r.id}
-                className="flex flex-col gap-1.5 rounded-app border border-border bg-bg p-2"
-              >
-                <div className="flex items-center gap-1.5">
-                  <input
-                    type="checkbox"
-                    checked={r.enabled}
-                    title={t('Règle active')}
-                    onChange={(e) =>
-                      saveTidy({
-                        ...tidy,
-                        rules: tidy.rules.map((x, j) => (j === i ? { ...x, enabled: e.target.checked } : x))
-                      })
-                    }
-                    className="accent-[var(--accent)]"
-                  />
-                  <input
-                    defaultValue={r.extensions.join(', ')}
-                    onBlur={(e) =>
-                      saveTidy({
-                        ...tidy,
-                        rules: tidy.rules.map((x, j) =>
-                          j === i ? { ...x, extensions: parseExtensions(e.target.value) } : x
-                        )
-                      })
-                    }
-                    placeholder={t('pdf, zip — vide = tous')}
-                    spellCheck={false}
-                    className="min-w-0 flex-1 rounded-app border border-border bg-bg-tertiary px-2 py-1 text-[11px] text-fg outline-none placeholder:text-fg-muted focus:border-accent"
-                  />
-                  <button
-                    onClick={() => saveTidy({ ...tidy, rules: tidy.rules.filter((_, j) => j !== i) })}
-                    title={t('Supprimer cette règle')}
-                    className="grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-danger-fg"
-                  >
-                    <X size={13} />
-                  </button>
-                </div>
-                <input
-                  value={r.destDir}
-                  onChange={(e) =>
-                    saveTidy({
-                      ...tidy,
-                      rules: tidy.rules.map((x, j) => (j === i ? { ...x, destDir: e.target.value } : x))
-                    })
-                  }
-                  placeholder={t('Destination — ex. D:\\Documents\\Factures')}
-                  spellCheck={false}
-                  className="w-full rounded-app border border-border bg-bg-tertiary px-2 py-1 font-mono text-[11px] text-fg outline-none placeholder:text-fg-muted focus:border-accent"
-                />
-                <input
-                  value={r.subfolder ?? ''}
-                  onChange={(e) =>
-                    saveTidy({
-                      ...tidy,
-                      rules: tidy.rules.map((x, j) => (j === i ? { ...x, subfolder: e.target.value } : x))
-                    })
-                  }
-                  placeholder={t('Sous-dossier (facultatif) — gabarits {date}, {ext}')}
-                  spellCheck={false}
-                  className="w-full rounded-app border border-border bg-bg-tertiary px-2 py-1 font-mono text-[11px] text-fg outline-none placeholder:text-fg-muted focus:border-accent"
-                />
-              </div>
-            ))}
-            <button
-              onClick={() =>
-                saveTidy({
-                  ...tidy,
-                  rules: [
-                    ...tidy.rules,
-                    { id: `rule-${Date.now()}`, enabled: true, extensions: [], destDir: '', subfolder: '' }
-                  ]
-                })
-              }
-              className="flex items-center gap-1.5 self-start rounded-app border border-border px-2.5 py-1 text-[11px] text-fg-secondary hover:bg-bg-hover hover:text-fg"
-            >
-              <Plus size={12} /> {t('Ajouter une règle')}
-            </button>
-            <p className="text-[11px] text-fg-muted">
-              {t('Première règle qui correspond gagne (de haut en bas). Exemple : extensions « pdf », destination D:\\Docs, sous-dossier {date} → D:\\Docs\\2026-08\\facture.pdf.')}
-            </p>
-          </div>
-        )}
+        <button
+          onClick={() => useUiStore.getState().setTidyRules(true)}
+          className="mt-2 flex items-center gap-1.5 rounded-app border border-border bg-bg px-2.5 py-1.5 text-[12px] text-fg-secondary hover:bg-bg-hover hover:text-fg"
+        >
+          <Sparkles size={14} /> {t('Ouvrir les règles de rangement…')}
+        </button>
       </Field>
 
       <Field label={t('Commandes personnalisées')}>

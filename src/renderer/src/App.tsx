@@ -39,6 +39,7 @@ import FileHistory from './components/git/FileHistory'
 import ComparePanes from './components/ComparePanes'
 import ConflictDialog from './components/ConflictDialog'
 import CustomCommandsDialog from './components/CustomCommandsDialog'
+import TidyRulesDialog from './components/TidyRulesDialog'
 import ArchiveViewer from './components/ArchiveViewer'
 import ShortcutsHelp from './components/ShortcutsHelp'
 import { useCustomCommandsStore } from './state/useCustomCommandsStore'
@@ -512,6 +513,7 @@ export default function App(): JSX.Element {
       <ComparePanes />
       <ConflictDialog />
       <CustomCommandsDialog />
+      <TidyRulesDialog />
       <ArchiveViewer />
       <ShortcutsHelp />
 

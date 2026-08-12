@@ -72,7 +72,7 @@ export default function DownloadsItem(props: {
             role="button"
             onClick={(e) => {
               e.stopPropagation()
-              useUiStore.getState().openSettings('general')
+              useUiStore.getState().setTidyRules(true)
             }}
             title={t('Règles de rangement…')}
             className="grid h-6 w-6 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg"

@@ -13,6 +13,8 @@ import { t, tn } from '../i18n'
  */
 export default function TidyBanner(props: { dir: string }): JSX.Element | null {
   const downloads = useNavStore((s) => s.locations?.downloads ?? '')
+  // Rechargé aussi à la fermeture du dialogue des règles (état à jour).
+  const rulesOpen = useUiStore((s) => s.tidyRulesOpen)
   const [tidy, setTidy] = useState<TidyConfig | null>(null)
 
   // Recharge à chaque retour dans le dossier (la config a pu changer via les
@@ -26,7 +28,7 @@ export default function TidyBanner(props: { dir: string }): JSX.Element | null {
     return () => {
       alive = false
     }
-  }, [props.dir])
+  }, [props.dir, rulesOpen])
 
   if (!tidy) return null
   const watched = tidy.watchDir.trim() || downloads
@@ -66,7 +68,7 @@ export default function TidyBanner(props: { dir: string }): JSX.Element | null {
           {tidy.enabled ? t('Désactiver') : t('Activer')}
         </button>
         <button
-          onClick={() => useUiStore.getState().openSettings('general')}
+          onClick={() => useUiStore.getState().setTidyRules(true)}
           title={t('Modifier les règles de rangement')}
           className="flex items-center gap-1 rounded-app border border-border px-2 py-0.5 text-fg-secondary hover:bg-bg-hover hover:text-fg"
         >
