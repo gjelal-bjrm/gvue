@@ -31,5 +31,6 @@ export const terminal: Record<string, string> = {
   Fermer: 'Close',
   'Aucun shell disponible.': 'No shell available.',
   '{label} (terminé)': '{label} (exited)',
-  '{title} (terminé)': '{title} (exited)'
+  '{title} (terminé)': '{title} (exited)',
+  'Session SSH distante — {key}': 'Remote SSH session — {key}'
 }

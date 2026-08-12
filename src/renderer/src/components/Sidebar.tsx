@@ -30,7 +30,7 @@ import FavoriteItem from './sidebar/FavoriteItem'
 import ProjectItem from './sidebar/ProjectItem'
 import LaunchConfigDialog from './sidebar/LaunchConfigDialog'
 import ServerItem from './sidebar/ServerItem'
-import ServerAddForm from './sidebar/ServerAddForm'
+import ServerManager from './sidebar/ServerManager'
 import ServerImportDialog from './sidebar/ServerImportDialog'
 import { useTerminalStore } from '../state/useTerminalStore'
 import { sshCommandFor, mergeHosts, hostKeyOf, toSshConfigText } from '../lib/ssh'
@@ -353,7 +353,7 @@ export default function Sidebar(): JSX.Element {
               {t('OpenSSH introuvable — activez « Client OpenSSH » dans les fonctionnalités facultatives de Windows.')}
             </p>
           )}
-          {shownConfigHosts.length === 0 && manualHosts.length === 0 && !addServerOpen && (
+          {shownConfigHosts.length === 0 && manualHosts.length === 0 && (
             <p className="px-2 text-[12px] text-fg-muted">
               {sshAutoList
                 ? t('Les hôtes de ~/.ssh/config apparaissent ici automatiquement.')
@@ -390,50 +390,32 @@ export default function Sidebar(): JSX.Element {
               }}
             />
           ))}
-          {addServerOpen || editServer ? (
-            <ServerAddForm
-              editing={editServer}
-              onAdd={addServer}
+          {/* Le manager plein écran remplace l'ancien formulaire à défilement :
+              ajout, édition, import/export et « tout retirer » vivent dedans. */}
+          {(addServerOpen || editServer) && (
+            <ServerManager
+              manualHosts={manualHosts}
+              configHosts={shownConfigHosts}
+              initial={editServer ? editServer.name : 'new'}
+              onSave={addServer}
+              onRemove={removeServer}
+              onRemoveAll={removeAllServers}
+              onExport={exportServers}
+              onOpenImport={() => setImportOpen(true)}
+              onConnect={connectSsh}
+              onBrowse={(h) => useUiStore.getState().setRemoteHost(h)}
               onClose={() => {
                 setAddServerOpen(false)
                 setEditServer(null)
               }}
             />
-          ) : (
-            <>
-              <button
-                onClick={() => setAddServerOpen(true)}
-                className="mt-0.5 w-full rounded-app px-2 py-1 text-left text-[11px] text-fg-muted hover:bg-bg-hover hover:text-fg"
-              >
-                {t('+ Ajouter un serveur…')}
-              </button>
-              <button
-                onClick={() => setImportOpen(true)}
-                title={t('Récupérer les sessions PuTTY, WinSCP ou ~/.ssh/config')}
-                className="w-full rounded-app px-2 py-1 text-left text-[11px] text-fg-muted hover:bg-bg-hover hover:text-fg"
-              >
-                {t('⇪ Importer (PuTTY / WinSCP / ssh_config)…')}
-              </button>
-              {(manualHosts.length > 0 || shownConfigHosts.length > 0) && (
-                <button
-                  onClick={exportServers}
-                  title={t('Exporter la liste au format ssh_config standard (OpenSSH, VS Code Remote-SSH…)')}
-                  className="w-full rounded-app px-2 py-1 text-left text-[11px] text-fg-muted hover:bg-bg-hover hover:text-fg"
-                >
-                  {t('⤓ Exporter (format ssh_config)')}
-                </button>
-              )}
-              {manualHosts.length > 1 && (
-                <button
-                  onClick={removeAllServers}
-                  title={t('Retirer tous les serveurs de la liste (ré-importables ensuite)')}
-                  className="w-full rounded-app px-2 py-1 text-left text-[11px] text-fg-muted hover:bg-bg-hover hover:text-danger-fg"
-                >
-                  {t('✕ Tout retirer…')}
-                </button>
-              )}
-            </>
           )}
+          <button
+            onClick={() => setAddServerOpen(true)}
+            className="mt-0.5 w-full rounded-app px-2 py-1 text-left text-[11px] text-fg-muted hover:bg-bg-hover hover:text-fg"
+          >
+            {t('⚙ Gérer les serveurs…')}
+          </button>
           {importOpen && (
             <ServerImportDialog
               existing={[...configHosts, ...manualHosts]}

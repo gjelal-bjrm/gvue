@@ -18,7 +18,8 @@ import {
   Search,
   ArrowUp,
   ArrowDown,
-  Link2
+  Link2,
+  Server
 } from 'lucide-react'
 import { useUiStore } from '../state/useUiStore'
 import { useTerminalStore } from '../state/useTerminalStore'
@@ -143,12 +144,20 @@ export default function TerminalPanel(): JSX.Element {
               <button
                 key={tab.id}
                 onClick={() => setActive(tab.id)}
+                title={tab.sshHostKey ? t('Session SSH distante — {key}', { key: tab.sshHostKey }) : undefined}
+                // Session SSH : teinte succès + icône serveur — un shell distant
+                // ne doit jamais se confondre avec un shell local (demande user).
                 className={`group flex shrink-0 items-center gap-1.5 rounded-app px-2.5 py-1 text-[12px] ${
-                  tab.id === activeId
-                    ? 'bg-bg-secondary text-fg'
-                    : 'text-fg-muted hover:bg-bg-hover hover:text-fg-secondary'
+                  tab.sshHostKey
+                    ? tab.id === activeId
+                      ? 'bg-success-bg text-success-fg ring-1 ring-inset ring-success-fg/40'
+                      : 'text-success-fg/70 hover:bg-bg-hover hover:text-success-fg'
+                    : tab.id === activeId
+                      ? 'bg-bg-secondary text-fg'
+                      : 'text-fg-muted hover:bg-bg-hover hover:text-fg-secondary'
                 }`}
               >
+                {tab.sshHostKey && <Server size={11} className="shrink-0" />}
                 <span className={tab.exited ? 'opacity-60' : ''}>{tab.title}</span>
                 <span
                   onClick={(e) => {
@@ -354,10 +363,17 @@ export default function TerminalPanel(): JSX.Element {
                   >
                     <div className="flex shrink-0 items-center justify-between gap-1 border-b border-border bg-bg-secondary px-2 py-0.5">
                       <span
-                        className={`truncate text-[11px] ${
-                          tab.exited ? 'text-fg-muted opacity-60' : tab.id === activeId ? 'text-fg' : 'text-fg-muted'
+                        className={`flex min-w-0 items-center gap-1 truncate text-[11px] ${
+                          tab.exited
+                            ? 'text-fg-muted opacity-60'
+                            : tab.sshHostKey
+                              ? 'text-success-fg'
+                              : tab.id === activeId
+                                ? 'text-fg'
+                                : 'text-fg-muted'
                         }`}
                       >
+                        {tab.sshHostKey && <Server size={10} className="shrink-0" />}
                         {tab.title}
                       </span>
                       <button
@@ -385,7 +401,11 @@ export default function TerminalPanel(): JSX.Element {
           tabs.map((t) => (
             <div
               key={t.id}
-              className="absolute inset-0 p-1.5"
+              // Liseré vert autour d'une session SSH : impossible de confondre
+              // un shell distant avec un shell local (demande utilisateur).
+              className={`absolute inset-0 p-1.5 ${
+                t.sshHostKey ? 'rounded-app ring-2 ring-inset ring-success-fg/30' : ''
+              }`}
               style={{ display: t.id === activeId && activeVisible ? 'block' : 'none' }}
             >
               <Terminal ptyId={t.ptyId} active={t.id === activeId} shellId={t.shell.id} cwd={t.cwd} />

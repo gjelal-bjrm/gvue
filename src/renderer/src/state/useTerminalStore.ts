@@ -14,6 +14,8 @@ export interface TermTab {
   cwd: string
   /** Onglet de dossier actif à la création (pour le mode « terminaux liés »). */
   paneId?: string
+  /** Session SSH (clé du serveur) — déclenche la distinction visuelle distant/local. */
+  sshHostKey?: string
   exited: boolean
   /** Désabonnement de l'événement de sortie du pty. */
   disposeExit: () => void
@@ -178,6 +180,7 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
         title,
         cwd: cwd || shell.path,
         paneId: useNavStore.getState().activeId,
+        sshHostKey,
         exited: false,
         disposeExit
       }

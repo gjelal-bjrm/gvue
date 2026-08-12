@@ -148,5 +148,42 @@ export const ssh: Record<string, string> = {
   'Ouvrir un terminal SSH': 'Open an SSH terminal',
   'Parcourir les fichiers (SFTP)': 'Browse files (SFTP)',
   'Modifier (hôte, tunnels, mot de passe…)': 'Edit (host, tunnels, password…)',
-  'Retirer ce serveur': 'Remove this server'
+  'Retirer ce serveur': 'Remove this server',
+  // ServerManager (refonte 31/07)
+  'Serveurs': 'Servers',
+  'Rechercher…': 'Search…',
+  'Aucun serveur ne correspond.': 'No server matches.',
+  'Aucun serveur — créez-en un ou importez.': 'No servers — create one or import.',
+  'Nouveau serveur': 'New server',
+  'Importer depuis PuTTY, WinSCP ou ~/.ssh/config': 'Import from PuTTY, WinSCP or ~/.ssh/config',
+  'Importer': 'Import',
+  'Exporter au format ssh_config (compatible VS Code)': 'Export as ssh_config (VS Code compatible)',
+  'Exporter': 'Export',
+  'Tout retirer (ré-importables ensuite)': 'Remove all (can be re-imported later)',
+  '~/.ssh/config — lecture seule': '~/.ssh/config — read-only',
+  'Dupliquer en serveur modifiable': 'Duplicate as an editable server',
+  'Dupliquer': 'Duplicate',
+  'Retirer de la liste': 'Remove from the list',
+  'Authentification': 'Authentication',
+  'Tunnels': 'Tunnels',
+  'Avancé': 'Advanced',
+  'Mot de passe': 'Password',
+  'Chiffré par Windows (jamais en clair). Vide = demandé à la connexion. Les clés SSH restent plus sûres.':
+    'Encrypted by Windows (never stored in plain text). Empty = asked at connection time. SSH keys remain safer.',
+  '•••• (laisser vide pour conserver)': '•••• (leave empty to keep)',
+  'Format OpenSSH (les .ppk PuTTY doivent être convertis : PuTTYgen → Export OpenSSH key).':
+    'OpenSSH format (PuTTY .ppk keys must be converted: PuTTYgen → Export OpenSSH key).',
+  'Redirections de port': 'Port forwardings',
+  'Cet hôte vient de votre ~/.ssh/config : modifiez le fichier, ou dupliquez-le ici pour une copie modifiable.':
+    'This host comes from your ~/.ssh/config: edit the file, or duplicate it here for an editable copy.',
+  'Ajouter le serveur': 'Add server',
+  '✓ Enregistré': '✓ Saved',
+  'Modifications non enregistrées': 'Unsaved changes',
+  'Modifications non enregistrées — les abandonner ?': 'Unsaved changes — discard them?',
+  'Retirer « {name} » de la liste ?': 'Remove "{name}" from the list?',
+  '{n} serveur': '{n} server',
+  '{n} serveurs': '{n} servers',
+  '« user@hôte » est accepté aussi.': '"user@host" is accepted too.',
+  'root, ubuntu, deploy…': 'root, ubuntu, deploy…',
+  '⚙ Gérer les serveurs…': '⚙ Manage servers…'
 }
