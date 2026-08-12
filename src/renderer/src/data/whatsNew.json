@@ -1,5 +1,23 @@
 [
   {
+    "version": "1.0.2",
+    "notes": [
+      "Etat du rangement auto unifie dans un store partage — toutes les surfaces synchrones",
+      "Une regle de rangement sans destination s'affiche en avertissement partout",
+      "La bascule sidebar du rangement auto ecrasait les regles (etat perime) — lecture fraiche partout",
+      "Le selecteur de fichiers/dossiers navigue comme un vrai explorateur",
+      "Le bouton Parcourir ouvre le selecteur de dossier de GVue, pas celui de Windows",
+      "Regles de rangement pour grand public — Parcourir natif, sous-dossier en menu, apercu concret",
+      "Les regles de rangement s'ouvrent dans une pop-up dediee (comme le manager SSH)",
+      "Raccourcis Rangement auto sur l'item Telechargements de la sidebar",
+      "Bandeau Rangement auto dans le dossier Telechargements — activer/desactiver/regles sur place",
+      "Rangement auto des telechargements — regles par extension, opt-in, annulable",
+      "Refonte SSH 2/2 — volet SFTP plus lisible (colonnes, etat de connexion, transferts, barre d'etat)",
+      "Refonte SSH 1/2 — manager plein ecran a onglets + terminaux SSH reconnaissables",
+      "Version anglaise — i18n complet fr/en, langue Auto/Francais/English dans les Parametres"
+    ]
+  },
+  {
     "version": "1.0.0",
     "notes": [
       "« Ouvrir dans GVue » dans le menu contextuel de l'Explorateur Windows",

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import {
   Server,
   X,
@@ -201,11 +202,16 @@ export default function ServerManager(props: {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6" onMouseDown={props.onClose}>
       <div className="absolute inset-0 bg-black/60" />
       <div
-        className="relative z-10 flex h-[min(600px,88vh)] w-[min(860px,94vw)] overflow-hidden rounded-app border border-border bg-bg-secondary shadow-2xl"
+        // resize: la fenêtre s'agrandit à la souris (poignée en bas à droite) —
+        // demande utilisateur : les longs noms de serveurs ont besoin de place.
+        className="relative z-10 flex h-[min(660px,90vh)] w-[min(980px,96vw)] overflow-hidden rounded-app border border-border bg-bg-secondary shadow-2xl"
+        style={{ resize: 'both', minWidth: 560, minHeight: 420, maxWidth: '96vw', maxHeight: '92vh' }}
         onMouseDown={(e) => e.stopPropagation()}
       >
-        {/* -------- Colonne gauche : liste des serveurs -------- */}
-        <div className="flex w-60 shrink-0 flex-col border-r border-border bg-bg">
+        <PanelGroup direction="horizontal">
+        <Panel defaultSize={30} minSize={18} maxSize={55}>
+        {/* -------- Colonne gauche : liste des serveurs (redimensionnable) -------- */}
+        <div className="flex h-full flex-col border-r border-border bg-bg">
           <div className="flex items-center gap-2 border-b border-border px-3 py-2.5">
             <Server size={15} className="text-accent" />
             <span className="text-[13px] font-medium text-fg">{t('Serveurs')}</span>
@@ -233,6 +239,7 @@ export default function ServerManager(props: {
               <button
                 key={`${ro ? 'c' : 'm'}:${host.name}`}
                 onClick={() => select(host.name)}
+                title={`${host.name}\n${sshSubtitle(host)}`}
                 className={`flex w-full flex-col gap-0.5 rounded-app px-2 py-1.5 text-left ${
                   selected === host.name ? 'bg-accent-soft' : 'hover:bg-bg-hover'
                 }`}
@@ -293,8 +300,13 @@ export default function ServerManager(props: {
           </div>
         </div>
 
+        </Panel>
+        <PanelResizeHandle className="group relative w-1.5 shrink-0">
+          <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-border transition-colors group-hover:bg-accent group-data-[resize-handle-active]:bg-accent" />
+        </PanelResizeHandle>
+        <Panel minSize={40}>
         {/* -------- Colonne droite : édition à onglets -------- */}
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex h-full min-w-0 flex-col">
           <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-2.5">
             <span className="min-w-0 truncate text-[13px] font-medium text-fg">
               {editingHost
@@ -551,6 +563,8 @@ export default function ServerManager(props: {
             </div>
           )}
         </div>
+        </Panel>
+        </PanelGroup>
       </div>
     </div>
   )
