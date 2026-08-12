@@ -25,28 +25,39 @@ export default function ServerItem(props: {
     <div className="group flex items-center gap-1 rounded-app pr-1 text-fg-secondary hover:bg-bg-hover hover:text-fg">
       <button
         onClick={props.onConnect}
+        // L'infobulle COMMENCE par le nom complet : même tronqué à l'écran,
+        // le survol le donne en entier (demande utilisateur).
         title={
+          `${host.name}\n` +
+          (subtitle && subtitle !== host.name ? `${subtitle}\n` : '') +
           (host.source === 'config' ? `${configLine}\n` : '') +
-          `${subtitle ? t('Clic : terminal SSH vers {target}', { target: subtitle }) : t('Clic : terminal SSH')}\n` +
-          t('Boutons (au survol) : ▸ terminal · 📂 fichiers (SFTP)')
+          `${t('Clic : terminal SSH')} · ${t('Boutons (au survol) : ▸ terminal · 📂 fichiers (SFTP)')}`
         }
-        className="flex min-w-0 flex-1 items-center gap-2.5 px-2 py-[var(--row-pad)] text-left"
+        className="flex min-w-0 flex-1 items-center gap-2.5 px-2 py-1 text-left"
       >
         <Server size={16} className="shrink-0" />
-        <span className="min-w-0 flex-1 truncate">{host.name}</span>
-        {host.forwards && host.forwards.length > 0 && (
-          <span
-            title={t('Tunnels : {list}', {
-              list: host.forwards.map(describeForward).join(' · ')
-            })}
-            className="shrink-0 text-fg-muted"
-          >
-            <Network size={12} />
+        {/* Deux lignes (comme le manager) : le nom garde TOUTE la largeur,
+            la cible passe dessous — fini le sous-titre qui vole 45 %. */}
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-1.5">
+            <span className="min-w-0 flex-1 truncate">{host.name}</span>
+            {host.forwards && host.forwards.length > 0 && (
+              <span
+                title={t('Tunnels : {list}', {
+                  list: host.forwards.map(describeForward).join(' · ')
+                })}
+                className="shrink-0 text-fg-muted"
+              >
+                <Network size={12} />
+              </span>
+            )}
           </span>
-        )}
-        {subtitle && subtitle !== host.name && (
-          <span className="max-w-[45%] shrink-0 truncate text-[11px] text-fg-muted">{subtitle}</span>
-        )}
+          {subtitle && subtitle !== host.name && (
+            <span className="block truncate text-[10px] leading-tight text-fg-muted">
+              {subtitle}
+            </span>
+          )}
+        </span>
       </button>
       <button
         onClick={(e) => {

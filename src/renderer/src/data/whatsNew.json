@@ -1,5 +1,11 @@
 [
   {
+    "version": "1.0.3",
+    "notes": [
+      "Manager SSH plus grand, redimensionnable, colonnes ajustables + notes 1.0.2 retablies"
+    ]
+  },
+  {
     "version": "1.0.2",
     "notes": [
       "Etat du rangement auto unifie dans un store partage — toutes les surfaces synchrones",
