@@ -143,5 +143,19 @@ export const misc: Record<string, string> = {
   Ko: 'KB',
   Mo: 'MB',
   Go: 'GB',
-  To: 'TB'
+  To: 'TB',
+  // Rangement auto des téléchargements
+  '« {name} » rangé → {dir}': '"{name}" tidied → {dir}',
+  'Rangement auto des téléchargements': 'Auto-tidy downloads',
+  'Range automatiquement les fichiers téléchargés selon vos règles — jamais un téléchargement en cours, chaque déplacement est annulable (Ctrl+Z). Aussi activable depuis le menu de l’icône près de l’horloge.':
+    'Automatically tidies downloaded files according to your rules — never a download in progress, and every move can be undone (Ctrl+Z). Also toggleable from the tray icon menu.',
+  'Dossier surveillé — vide = Téléchargements': 'Watched folder — empty = Downloads',
+  'Règle active': 'Rule enabled',
+  'pdf, zip — vide = tous': 'pdf, zip — empty = all',
+  'Supprimer cette règle': 'Delete this rule',
+  'Destination — ex. D:\\Documents\\Factures': 'Destination — e.g. D:\\Documents\\Invoices',
+  'Sous-dossier (facultatif) — gabarits {date}, {ext}': 'Subfolder (optional) — templates {date}, {ext}',
+  'Ajouter une règle': 'Add a rule',
+  'Première règle qui correspond gagne (de haut en bas). Exemple : extensions « pdf », destination D:\\Docs, sous-dossier {date} → D:\\Docs\\2026-08\\facture.pdf.':
+    'The first matching rule wins (top to bottom). Example: extensions "pdf", destination D:\\Docs, subfolder {date} → D:\\Docs\\2026-08\\invoice.pdf.'
 }

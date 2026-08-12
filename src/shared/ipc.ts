@@ -140,6 +140,9 @@ export const IPC = {
   windowNew: 'window:new',
   openExternal: 'app:openExternal',
 
+  // Rangement auto des téléchargements : un fichier vient d'être rangé.
+  tidyMoved: 'tidy:moved',
+
   // Plateau système (tray) → actions rapides
   trayOpenPath: 'tray:openPath',
   trayRunTask: 'tray:runTask',

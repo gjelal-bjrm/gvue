@@ -43,6 +43,7 @@ import type {
   JustRecipe,
   RecycleItem,
   SshHost,
+  TidyMovedEvent,
   SftpEntry,
   SftpConnectResult,
   SftpProgress
@@ -406,6 +407,14 @@ const api = {
       const listener = (_e: unknown, name: string): void => cb(name)
       ipcRenderer.on(IPC.trayLoadWorkspace, listener)
       return () => ipcRenderer.removeListener(IPC.trayLoadWorkspace, listener)
+    }
+  },
+  tidy: {
+    /** Rangement auto : un fichier vient d'être déplacé (toast + rafraîchit). */
+    onMoved: (cb: (ev: TidyMovedEvent) => void): (() => void) => {
+      const listener = (_e: unknown, ev: TidyMovedEvent): void => cb(ev)
+      ipcRenderer.on(IPC.tidyMoved, listener)
+      return () => ipcRenderer.removeListener(IPC.tidyMoved, listener)
     }
   },
   update: {

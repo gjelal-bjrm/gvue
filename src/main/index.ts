@@ -3,6 +3,7 @@ import { pathToFileURL } from 'node:url'
 import { isAbsolute, normalize } from 'node:path'
 import { createWindow } from './window'
 import { createTray, trayActive } from './tray'
+import { syncTidy } from './services/tidy'
 import { registerFsHandlers } from './ipc/fs'
 import { registerConfigHandlers } from './ipc/config'
 import { registerWindowHandlers } from './ipc/window'
@@ -122,6 +123,7 @@ if (!gotLock) {
     registerIpc()
     registerFileProtocol()
     createTray()
+    syncTidy()
     const win = createWindow()
     // Lancé avec un dossier en argument (« Ouvrir dans GVue » alors que GVue
     // était fermé) : on y navigue dès que la fenêtre est prête.

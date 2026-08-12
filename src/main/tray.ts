@@ -4,7 +4,8 @@ import { spawn } from 'node:child_process'
 import { writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { IPC } from '@shared/ipc'
-import { getConfig } from './services/config-store'
+import { getConfig, setConfig } from './services/config-store'
+import { syncTidy } from './services/tidy'
 import { createWindow } from './window'
 import { appIconPath } from './icon'
 import { checkForUpdates } from './services/updater'
@@ -171,6 +172,19 @@ function buildMenu(): Menu {
           click: () => sendToWindow(IPC.trayLoadWorkspace, n)
         }))
       )
+    },
+    { type: 'separator' },
+    {
+      // Interrupteur express du rangement auto (demande : « s'active et se
+      // désactive facilement ») — la config détaillée reste dans Paramètres.
+      label: t('Rangement auto des téléchargements'),
+      type: 'checkbox',
+      checked: getConfig('tidy')?.enabled ?? false,
+      click: (item) => {
+        const cfg = getConfig('tidy')
+        setConfig('tidy', { ...cfg, enabled: item.checked })
+        syncTidy()
+      }
     },
     { type: 'separator' },
     { label: t('Vérifier les mises à jour'), click: () => checkForUpdates(true) },

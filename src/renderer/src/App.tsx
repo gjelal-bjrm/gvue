@@ -308,6 +308,11 @@ export default function App(): JSX.Element {
     const offBrowse = tray.onBrowseSsh?.((host) => {
       useUiStore.getState().setRemoteHost(host)
     })
+    // Rangement auto : toast à chaque fichier rangé (annulable par Ctrl+Z).
+    const offTidy = window.api.tidy?.onMoved?.((ev) => {
+      useUiStore.getState().showToast(t('« {name} » rangé → {dir}', { name: ev.name, dir: ev.toDir }))
+      useNavStore.getState().refreshAll()
+    })
     return () => {
       offOpen()
       offRun()
@@ -315,6 +320,7 @@ export default function App(): JSX.Element {
       offWs()
       offSsh?.()
       offBrowse?.()
+      offTidy?.()
     }
   }, [])
 

@@ -22,6 +22,35 @@ export interface SshForward {
   destPort?: number
 }
 
+/**
+ * Une règle de rangement automatique : la PREMIÈRE règle active dont les
+ * extensions correspondent gagne. Extensions vides = tous les fichiers.
+ */
+export interface TidyRule {
+  id: string
+  enabled: boolean
+  /** Extensions sans point, minuscules (ex. ['pdf', 'zip']) ; vide = toutes. */
+  extensions: string[]
+  /** Dossier de destination (chemin absolu). */
+  destDir: string
+  /** Sous-dossier optionnel, gabarits : {date} (AAAA-MM), {ext}. */
+  subfolder?: string
+}
+
+/** Rangement auto des téléchargements — désactivé par défaut (opt-in). */
+export interface TidyConfig {
+  enabled: boolean
+  /** Dossier surveillé ; vide = le dossier Téléchargements du système. */
+  watchDir: string
+  rules: TidyRule[]
+}
+
+/** Événement main → renderer : un fichier vient d'être rangé. */
+export interface TidyMovedEvent {
+  name: string
+  toDir: string
+}
+
 /** Un serveur SSH (section « SSH / SFTP » de la sidebar). */
 export interface SshHost {
   /** Alias (ssh_config) ou libellé (hôte manuel). */
@@ -504,6 +533,8 @@ export interface AppConfig {
   lastSeenVersion: string
   /** Langue de l'interface : « auto » suit la langue du système. */
   language: 'auto' | 'fr' | 'en'
+  /** Rangement automatique des téléchargements (opt-in). */
+  tidy: TidyConfig
   hideGitIgnored: boolean
   /** Rouvrir les dossiers de la dernière session au démarrage. */
   restoreSession: boolean

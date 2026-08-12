@@ -63,6 +63,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   defaultShell: '',
   lastSeenVersion: '',
   language: 'auto',
+  tidy: { enabled: false, watchDir: '', rules: [] },
   hideGitIgnored: true,
   restoreSession: true,
   lastSession: { panes: [], activeIndex: 0 },
