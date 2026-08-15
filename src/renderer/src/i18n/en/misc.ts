@@ -189,6 +189,16 @@ export const misc: Record<string, string> = {
   'Tous les fichiers': 'All files',
   'Tapez les types séparés par des virgules (ex. pdf, jpg, zip). Laissez vide pour ranger tous les fichiers.':
     'Type the file types separated by commas (e.g. pdf, jpg, zip). Leave empty to tidy all files.',
+  // Filtre sur les noms de fichiers
+  'Et selon le nom ? (optionnel)': 'And by name? (optional)',
+  'expression régulière': 'regular expression',
+  'Pour les experts : le motif est lu comme une expression régulière.':
+    'For experts: the pattern is read as a regular expression.',
+  'ex. facture (contient) ou mn_* (commence par)': 'e.g. invoice (contains) or mn_* (starts with)',
+  '« facture » = le nom contient facture. « mn_* » = le nom commence par mn_. * remplace n’importe quoi, ? un seul caractère.':
+    '"invoice" = the name contains invoice. "mn_*" = the name starts with mn_. * matches anything, ? a single character.',
+  '⚠ Ce motif est invalide : la règle n’attrapera aucun fichier tant qu’il n’est pas corrigé.':
+    '⚠ This pattern is invalid: the rule will not catch any file until it is fixed.',
   '2. Dans quel dossier les mettre ?': '2. Which folder to put them in?',
   'Choisissez un dossier avec « Parcourir »': 'Pick a folder with "Browse"',
   'Choisir le dossier de destination': 'Choose the destination folder',

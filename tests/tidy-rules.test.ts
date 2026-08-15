@@ -5,7 +5,9 @@ import {
   pickRule,
   parseExtensions,
   renderSubfolder,
-  freeName
+  freeName,
+  compileNamePattern,
+  matchesName
 } from '../src/main/services/tidy-rules'
 import type { TidyRule } from '../src/shared/types'
 
@@ -46,6 +48,48 @@ describe('tidy-rules', () => {
 
   it('pickRule : une règle sans destination ne matche jamais', () => {
     expect(pickRule([rule({ destDir: '  ' })], 'doc.pdf')).toBeNull()
+  })
+
+  it('compileNamePattern : sans joker = contient, insensible à la casse', () => {
+    const re = compileNamePattern('facture', false)!
+    expect(re.test('Facture-2026.pdf')).toBe(true)
+    expect(re.test('ma-FACTURE.pdf')).toBe(true)
+    expect(re.test('devis.pdf')).toBe(false)
+  })
+
+  it('compileNamePattern : jokers * et ? = correspondance du nom entier', () => {
+    const re = compileNamePattern('mn_*', false)!
+    expect(re.test('mn_rapport.pdf')).toBe(true)
+    expect(re.test('rapport_mn_2.pdf')).toBe(false) // ne COMMENCE pas par mn_
+    const q = compileNamePattern('img_?.png', false)!
+    expect(q.test('img_1.png')).toBe(true)
+    expect(q.test('img_12.png')).toBe(false)
+    // Les caractères spéciaux de regex sont neutralisés en mode joker.
+    expect(compileNamePattern('v1.2*', false)!.test('v1x2-notes.txt')).toBe(false)
+    expect(compileNamePattern('v1.2*', false)!.test('v1.2-notes.txt')).toBe(true)
+  })
+
+  it('compileNamePattern : mode regex, et null si motif invalide', () => {
+    expect(compileNamePattern('^mn_\\d+', true)!.test('mn_42.csv')).toBe(true)
+    expect(compileNamePattern('([', true)).toBeNull()
+    expect(compileNamePattern('   ', false)).toBeNull()
+  })
+
+  it('matchesName + pickRule : le filtre de nom restreint la règle', () => {
+    const named = rule({ id: 'mn', namePattern: 'mn_*' })
+    expect(matchesName(named, 'mn_data.csv')).toBe(true)
+    expect(matchesName(named, 'other.csv')).toBe(false)
+    // Motif invalide : la règle n'attrape RIEN (plutôt que tout).
+    expect(matchesName(rule({ namePattern: '([', nameIsRegex: true }), 'x.pdf')).toBe(false)
+
+    const rules = [
+      rule({ id: 'factures', extensions: ['pdf'], namePattern: 'facture' }),
+      rule({ id: 'pdf', extensions: ['pdf'] })
+    ]
+    expect(pickRule(rules, 'facture-aout.pdf')?.id).toBe('factures')
+    expect(pickRule(rules, 'notice.pdf')?.id).toBe('pdf')
+    // Nom seul, sans extensions : règle valable pour tous les types.
+    expect(pickRule([rule({ id: 'n', namePattern: 'mn_*' })], 'mn_x.zip')?.id).toBe('n')
   })
 
   it('parseExtensions : séparateurs libres, points retirés, dédoublonné', () => {

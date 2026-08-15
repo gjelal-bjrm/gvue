@@ -15,7 +15,9 @@ const path = require('node:path')
 
 const ROOTS = ['src/renderer/src', 'src/main', 'src/preload']
 const IGNORE_DIRS = new Set(['i18n'])
-const IGNORE_FILES = [/\.test\.tsx?$/, /i18n-en\.ts$/]
+// updater-errors.ts : renvoie des clés françaises traduites PAR L'APPELANT
+// (t(friendlyUpdateError(msg))) — même statut que les dictionnaires.
+const IGNORE_FILES = [/\.test\.tsx?$/, /i18n-en\.ts$/, /updater-errors\.ts$/]
 // Lignes développeur : jamais montrées à l'utilisateur.
 const DEV_LINE = /logInfo|logError|logWarn|console\.|\.report\(|throw new Error/
 

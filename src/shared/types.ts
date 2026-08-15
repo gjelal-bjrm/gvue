@@ -31,6 +31,12 @@ export interface TidyRule {
   enabled: boolean
   /** Extensions sans point, minuscules (ex. ['pdf', 'zip']) ; vide = toutes. */
   extensions: string[]
+  /**
+   * Filtre optionnel sur le NOM : sans joker = « contient » (facture) ;
+   * avec * ou ? = correspondance complète (mn_*) ; regex si nameIsRegex.
+   */
+  namePattern?: string
+  nameIsRegex?: boolean
   /** Dossier de destination (chemin absolu). */
   destDir: string
   /** Sous-dossier optionnel, gabarits : {date} (AAAA-MM), {ext}. */

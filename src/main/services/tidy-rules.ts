@@ -1,4 +1,7 @@
 import type { TidyRule } from '@shared/types'
+import { compileNamePattern } from '@shared/name-pattern'
+
+export { compileNamePattern }
 
 /**
  * Logique PURE du rangement automatique des téléchargements (testée par
@@ -22,12 +25,23 @@ export function isTempDownload(name: string): boolean {
   return TEMP_EXT.has(extOf(name))
 }
 
-/** Première règle ACTIVE dont les extensions correspondent (vide = toutes). */
+/** Le nom passe-t-il le filtre de la règle ? (pas de filtre = oui) */
+export function matchesName(rule: TidyRule, name: string): boolean {
+  if (!rule.namePattern?.trim()) return true
+  const re = compileNamePattern(rule.namePattern, rule.nameIsRegex ?? false)
+  // Motif invalide : la règle ne DOIT rien attraper (le dialogue avertit).
+  if (!re) return false
+  return re.test(name)
+}
+
+/** Première règle ACTIVE dont les extensions ET le nom correspondent. */
 export function pickRule(rules: TidyRule[], name: string): TidyRule | null {
   const ext = extOf(name)
   for (const r of rules) {
     if (!r.enabled || !r.destDir.trim()) continue
-    if (r.extensions.length === 0 || r.extensions.includes(ext)) return r
+    if (r.extensions.length > 0 && !r.extensions.includes(ext)) continue
+    if (!matchesName(r, name)) continue
+    return r
   }
   return null
 }

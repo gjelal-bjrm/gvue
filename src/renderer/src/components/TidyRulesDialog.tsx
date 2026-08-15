@@ -6,6 +6,7 @@ import { useNavStore } from '../state/useNavStore'
 import { useTidyStore } from '../state/useTidyStore'
 import FilePickerDialog from './FilePickerDialog'
 import { parseExtensions, previewDestination, currentMonth } from '../lib/tidyText'
+import { compileNamePattern } from '@shared/name-pattern'
 import { t } from '../i18n'
 
 /**
@@ -104,6 +105,10 @@ export default function TidyRulesDialog(): JSX.Element | null {
             const knownSub = ['', '{date}', '{ext}', '{date}/{ext}'].includes(r.subfolder ?? '')
             // Une règle sans destination ne rangera JAMAIS rien : le dire fort.
             const incomplete = r.enabled && !r.destDir.trim()
+            // Motif de nom invalide (regex mal formée) : la règle n'attrape rien.
+            const badPattern = Boolean(
+              r.namePattern?.trim() && !compileNamePattern(r.namePattern, r.nameIsRegex ?? false)
+            )
             return (
               <div
                 key={r.id}
@@ -146,6 +151,39 @@ export default function TidyRulesDialog(): JSX.Element | null {
                     {t('Tapez les types séparés par des virgules (ex. pdf, jpg, zip). Laissez vide pour ranger tous les fichiers.')}
                   </span>
                 </label>
+
+                <label className="flex flex-col gap-1">
+                  <span className="flex items-center gap-2 text-[11px] text-fg-secondary">
+                    {t('Et selon le nom ? (optionnel)')}
+                    <label
+                      className="ml-auto flex items-center gap-1 text-[10px] text-fg-muted"
+                      title={t('Pour les experts : le motif est lu comme une expression régulière.')}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={r.nameIsRegex ?? false}
+                        onChange={(e) => patchRule(i, { nameIsRegex: e.target.checked })}
+                        className="accent-[var(--accent)]"
+                      />
+                      {t('expression régulière')}
+                    </label>
+                  </span>
+                  <input
+                    defaultValue={r.namePattern ?? ''}
+                    onBlur={(e) => patchRule(i, { namePattern: e.target.value.trim() })}
+                    placeholder={t('ex. facture (contient) ou mn_* (commence par)')}
+                    spellCheck={false}
+                    className={`${field} font-mono text-[11px]`}
+                  />
+                  <span className="text-[10px] text-fg-muted">
+                    {t('« facture » = le nom contient facture. « mn_* » = le nom commence par mn_. * remplace n’importe quoi, ? un seul caractère.')}
+                  </span>
+                </label>
+                {badPattern && (
+                  <p className="rounded-app bg-warning-bg px-2 py-1.5 text-[11px] text-warning-fg">
+                    {t('⚠ Ce motif est invalide : la règle n’attrapera aucun fichier tant qu’il n’est pas corrigé.')}
+                  </p>
+                )}
 
                 <label className="flex flex-col gap-1">
                   <span className="text-[11px] text-fg-secondary">{t('2. Dans quel dossier les mettre ?')}</span>
