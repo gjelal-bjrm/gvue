@@ -5,6 +5,7 @@ import { useUiStore } from '../state/useUiStore'
 import { useNavStore } from '../state/useNavStore'
 import { useTidyStore } from '../state/useTidyStore'
 import FilePickerDialog from './FilePickerDialog'
+import TidyActionsDialog from './TidyActionsDialog'
 import { parseExtensions, previewDestination, currentMonth } from '../lib/tidyText'
 import { compileNamePattern } from '@shared/name-pattern'
 import { t } from '../i18n'
@@ -23,19 +24,24 @@ export default function TidyRulesDialog(): JSX.Element | null {
   const tidy = useTidyStore((s) => s.tidy)
   // Index de la règle dont on choisit la destination (sélecteur GVue, pas natif).
   const [pickingFor, setPickingFor] = useState<number | null>(null)
+  // Bibliothèque des actions (« Ensuite, que faire du fichier ? »).
+  const [actionsOpen, setActionsOpen] = useState(false)
 
   useEffect(() => {
     if (open) void useTidyStore.getState().load()
   }, [open])
 
-  // Échap ferme le sélecteur de dossier s'il est ouvert, sinon ce dialogue.
+  // Échap ferme la surcouche ouverte (sélecteur ou actions), sinon ce dialogue.
   const pickingRef = useRef<number | null>(null)
   pickingRef.current = pickingFor
+  const actionsRef = useRef(false)
+  actionsRef.current = actionsOpen
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent): void => {
       if (e.key !== 'Escape') return
       if (pickingRef.current !== null) setPickingFor(null)
+      else if (actionsRef.current) setActionsOpen(false)
       else close()
     }
     window.addEventListener('keydown', onKey)
@@ -221,6 +227,28 @@ export default function TidyRulesDialog(): JSX.Element | null {
                   </select>
                 </label>
 
+                <label className="flex flex-col gap-1">
+                  <span className="text-[11px] text-fg-secondary">
+                    {t('4. Ensuite, que faire du fichier ?')}
+                  </span>
+                  <select
+                    value={r.actionId ?? ''}
+                    onChange={(e) => {
+                      if (e.target.value === '::manage') setActionsOpen(true)
+                      else patchRule(i, { actionId: e.target.value || undefined })
+                    }}
+                    className="w-full rounded-app border border-border bg-bg-tertiary px-2 py-1.5 text-[12px] text-fg outline-none focus:border-accent"
+                  >
+                    <option value="">{t('Rien de plus — juste le déplacer')}</option>
+                    {(tidy.actions ?? []).map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.label}
+                      </option>
+                    ))}
+                    <option value="::manage">{t('➕ Créer ou modifier les actions…')}</option>
+                  </select>
+                </label>
+
                 {incomplete ? (
                   <p className="rounded-app bg-warning-bg px-2 py-1.5 text-[11px] text-warning-fg">
                     {t('⚠ Cette règle ne fait rien encore : choisissez le dossier de destination (étape 2, bouton « Parcourir… »).')}
@@ -256,6 +284,13 @@ export default function TidyRulesDialog(): JSX.Element | null {
           {t('GVue attend qu’un téléchargement soit terminé avant de ranger le fichier, et Ctrl+Z annule le dernier rangement.')}
         </p>
       </div>
+
+      {/* Bibliothèque des actions, par-dessus ce dialogue. */}
+      {actionsOpen && (
+        <div onMouseDown={(e) => e.stopPropagation()}>
+          <TidyActionsDialog tidy={tidy} save={save} onClose={() => setActionsOpen(false)} />
+        </div>
+      )}
 
       {/* Choix de la destination avec l'explorateur de GVue — pas la boîte
           native : c'est le but du programme (demande utilisateur). */}

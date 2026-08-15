@@ -3,9 +3,10 @@ import * as path from 'node:path'
 import { app, BrowserWindow } from 'electron'
 import { IPC } from '@shared/ipc'
 import type { TidyMovedEvent } from '@shared/types'
-import { getConfig } from './config-store'
+import { getConfig, setConfig } from './config-store'
 import { pushUndo } from './undo-stack'
 import { isTempDownload, pickRule, renderSubfolder, freeName } from './tidy-rules'
+import { applyTidyAction } from '@shared/tidy-actions'
 import { t } from '../i18n'
 
 /**
@@ -119,10 +120,30 @@ async function settleThenMove(dir: string, name: string, tries: number): Promise
   // Ne jamais « ranger » vers le dossier surveillé lui-même (boucle infinie).
   if (path.resolve(destDir).toLowerCase() === path.resolve(dir).toLowerCase()) return
 
+  // Action « Ensuite » de la règle : nouveau nom voulu AVANT la résolution
+  // des collisions. Compteur avancé / nom consommé persistés aussitôt.
+  const action = rule.actionId ? (cfg.actions ?? []).find((a) => a.id === rule.actionId) : undefined
+  let wanted = name
+  let listEmpty = false
+  if (action) {
+    const out = applyTidyAction(action, name, new Date())
+    if (out.name) wanted = out.name
+    listEmpty = out.exhausted
+    if (out.updated) {
+      const fresh = getConfig('tidy')
+      setConfig('tidy', {
+        ...fresh,
+        actions: (fresh.actions ?? []).map((a) => (a.id === out.updated!.id ? out.updated! : a))
+      })
+      // Les surfaces (dialogue ouvert…) doivent voir la liste consommée.
+      for (const w of BrowserWindow.getAllWindows()) w.webContents.send(IPC.tidyChanged)
+    }
+  }
+
   try {
     await fsp.mkdir(destDir, { recursive: true })
     const existing = new Set(await fsp.readdir(destDir))
-    const finalName = freeName(existing, name)
+    const finalName = freeName(existing, wanted)
     const to = path.join(destDir, finalName)
     try {
       await fsp.rename(full, to)
@@ -132,7 +153,7 @@ async function settleThenMove(dir: string, name: string, tries: number): Promise
       await fsp.unlink(full)
     }
     pushUndo({ kind: 'move', label: t('Rangement de « {name} »', { name: finalName }), pairs: [{ from: full, to }] })
-    const payload: TidyMovedEvent = { name: finalName, toDir: destDir }
+    const payload: TidyMovedEvent = { name: finalName, toDir: destDir, listEmpty }
     BrowserWindow.getAllWindows()[0]?.webContents.send(IPC.tidyMoved, payload)
   } catch {
     /* destination injoignable ou fichier verrouillé : on n'insiste pas. */

@@ -199,6 +199,35 @@ export const misc: Record<string, string> = {
     '"invoice" = the name contains invoice. "mn_*" = the name starts with mn_. * matches anything, ? a single character.',
   '⚠ Ce motif est invalide : la règle n’attrapera aucun fichier tant qu’il n’est pas corrigé.':
     '⚠ This pattern is invalid: the rule will not catch any file until it is fixed.',
+  // Actions de rangement (« Ensuite, que faire du fichier ? »)
+  '4. Ensuite, que faire du fichier ?': '4. Then, what to do with the file?',
+  'Rien de plus — juste le déplacer': 'Nothing more — just move it',
+  '➕ Créer ou modifier les actions…': '➕ Create or edit actions…',
+  'Actions de rangement': 'Tidying actions',
+  'Une action décrit quoi faire du fichier une fois rangé. Choisissez-la ensuite dans une règle, à l’étape « Ensuite ».':
+    'An action describes what to do with the file once tidied. Then pick it in a rule, at the "Then" step.',
+  'Aucune action — ajoutez-en une ci-dessous.': 'No actions — add one below.',
+  'Nom de l’action': 'Action name',
+  'Dupliquer cette action': 'Duplicate this action',
+  'Supprimer cette action': 'Delete this action',
+  '{label} (copie)': '{label} (copy)',
+  'Renommer selon un modèle': 'Rename using a template',
+  'Attribuer des noms depuis une liste': 'Assign names from a list',
+  'ex. fichier_{n} ou {date} - {nom}': 'e.g. file_{n} or {date} - {nom}',
+  '{n} = numéro qui augmente tout seul, {date} = date du jour, {nom} = nom d’origine. L’extension est conservée.':
+    '{n} = number that grows on its own, {date} = today’s date, {nom} = original name. The extension is kept.',
+  'Aperçu :': 'Preview:',
+  'Prochain numéro :': 'Next number:',
+  'Un nom par ligne — le premier sert au prochain fichier rangé.':
+    'One name per line — the first one is used for the next tidied file.',
+  'Chaque fichier rangé prend le nom du haut de la liste, qui est ensuite retiré. Sans extension, celle du fichier est conservée. Restants : {n}.':
+    'Each tidied file takes the name at the top of the list, which is then removed. Without an extension, the file’s own is kept. Remaining: {n}.',
+  'Ajouter une action': 'Add an action',
+  'Nouvelle action': 'New action',
+  'Renommer en fichier_1, fichier_2…': 'Rename to file_1, file_2…',
+  'Mettre la date devant le nom': 'Put the date in front of the name',
+  '« {name} » rangé → {dir} — la liste de noms est épuisée, le fichier garde son nom.':
+    '"{name}" tidied → {dir} — the name list is empty, the file keeps its name.',
   '2. Dans quel dossier les mettre ?': '2. Which folder to put them in?',
   'Choisissez un dossier avec « Parcourir »': 'Pick a folder with "Browse"',
   'Choisir le dossier de destination': 'Choose the destination folder',

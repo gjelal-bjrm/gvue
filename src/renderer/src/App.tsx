@@ -314,7 +314,14 @@ export default function App(): JSX.Element {
     })
     // Rangement auto : toast à chaque fichier rangé (annulable par Ctrl+Z).
     const offTidy = window.api.tidy?.onMoved?.((ev) => {
-      useUiStore.getState().showToast(t('« {name} » rangé → {dir}', { name: ev.name, dir: ev.toDir }))
+      useUiStore.getState().showToast(
+        ev.listEmpty
+          ? t('« {name} » rangé → {dir} — la liste de noms est épuisée, le fichier garde son nom.', {
+              name: ev.name,
+              dir: ev.toDir
+            })
+          : t('« {name} » rangé → {dir}', { name: ev.name, dir: ev.toDir })
+      )
       useNavStore.getState().refreshAll()
     })
     // Store partagé du rangement : chargé au démarrage, rechargé à chaque

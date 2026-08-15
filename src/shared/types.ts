@@ -41,6 +41,30 @@ export interface TidyRule {
   destDir: string
   /** Sous-dossier optionnel, gabarits : {date} (AAAA-MM), {ext}. */
   subfolder?: string
+  /** Action de la bibliothèque appliquée après le déplacement ('' = aucune). */
+  actionId?: string
+}
+
+/** Type d'une action de rangement. */
+export type TidyActionKind = 'rename' | 'nameList' | 'script'
+
+/**
+ * Action de la bibliothèque : ce qu'une règle fait du fichier APRÈS l'avoir
+ * déplacé. Éditables, duplicables ; des actions par défaut sont proposées.
+ */
+export interface TidyAction {
+  id: string
+  /** Libellé montré dans le menu « Ensuite » des règles. */
+  label: string
+  kind: TidyActionKind
+  /** rename : gabarit du nouveau nom (sans extension) — {n}, {date}, {nom}, {ext}. */
+  template?: string
+  /** rename : prochaine valeur de {n}, incrémentée à chaque fichier rangé. */
+  counter?: number
+  /** nameList : noms restants, le premier sert au prochain fichier puis est retiré. */
+  names?: string[]
+  /** script : nom du fichier dans le dossier « Mes scripts ». */
+  script?: string
 }
 
 /** Rangement auto des téléchargements — désactivé par défaut (opt-in). */
@@ -49,12 +73,16 @@ export interface TidyConfig {
   /** Dossier surveillé ; vide = le dossier Téléchargements du système. */
   watchDir: string
   rules: TidyRule[]
+  /** Bibliothèque d'actions ; undefined = jamais initialisée (défauts à semer). */
+  actions?: TidyAction[]
 }
 
 /** Événement main → renderer : un fichier vient d'être rangé. */
 export interface TidyMovedEvent {
   name: string
   toDir: string
+  /** La liste de noms de l'action est épuisée (le fichier garde son nom). */
+  listEmpty?: boolean
 }
 
 /** Un serveur SSH (section « SSH / SFTP » de la sidebar). */
