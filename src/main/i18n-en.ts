@@ -91,6 +91,13 @@ export const EN: Record<string, string> = {
   'Rangement de « {name} »': 'Tidying of "{name}"',
   'Rangement auto des téléchargements': 'Auto-tidy downloads',
   'Choisir un dossier': 'Choose a folder',
+  // services/tidy-scripts.ts
+  'Script introuvable : « {name} » (dossier Mes scripts).':
+    'Script not found: "{name}" (My Scripts folder).',
+  'Aucun interpréteur trouvé pour « {name} » — installez-le ou choisissez un autre format.':
+    'No interpreter found for "{name}" — install it or choose another format.',
+  'Le script « {name} » a échoué (code {code}).': 'The script "{name}" failed (code {code}).',
+  'Le script « {name} » n’a pas pu être lancé.': 'The script "{name}" could not be started.',
   // services/updater-errors.ts
   'Connexion au serveur de mise à jour impossible. Vérifiez votre accès à Internet, puis réessayez.':
     'Could not reach the update server. Check your internet connection, then try again.',

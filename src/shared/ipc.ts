@@ -145,6 +145,10 @@ export const IPC = {
   tidyMoved: 'tidy:moved',
   // La config du rangement a changé (toute origine, tray compris) → recharger.
   tidyChanged: 'tidy:changed',
+  // Dossier « Mes scripts » : lister, ouvrir ; erreurs d'exécution (toast).
+  tidyScriptsList: 'tidy:scriptsList',
+  tidyScriptsOpen: 'tidy:scriptsOpen',
+  tidyScriptError: 'tidy:scriptError',
 
   // Plateau système (tray) → actions rapides
   trayOpenPath: 'tray:openPath',

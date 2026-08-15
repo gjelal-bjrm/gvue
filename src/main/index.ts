@@ -18,6 +18,7 @@ import { registerClipboardHandlers } from './ipc/clipboard'
 import { registerBinHandlers } from './ipc/bin'
 import { registerSshHandlers } from './ipc/ssh'
 import { registerIntegrationHandlers } from './ipc/integration'
+import { registerTidyScriptHandlers } from './services/tidy-scripts'
 import { IPC } from '@shared/ipc'
 import { dirFromArgv } from './services/shell-integration'
 import { sendToWindow } from './tray'
@@ -75,6 +76,7 @@ function registerIpc(): void {
   registerSshHandlers()
   registerSftpHandlers()
   registerIntegrationHandlers()
+  registerTidyScriptHandlers()
 }
 
 // Protocole gvue-file:// — sert les fichiers locaux au renderer (aperçu

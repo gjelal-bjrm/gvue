@@ -324,6 +324,10 @@ export default function App(): JSX.Element {
       )
       useNavStore.getState().refreshAll()
     })
+    // Action « Exécuter un script » : échec signalé (introuvable, interpréteur…).
+    const offScriptErr = window.api.tidy?.onScriptError?.((message) => {
+      useUiStore.getState().showToast(message)
+    })
     // Store partagé du rangement : chargé au démarrage, rechargé à chaque
     // changement notifié par le main (tray compris) — toutes les surfaces
     // (sidebar, bandeau, dialogue, Paramètres) restent synchrones.
@@ -342,6 +346,7 @@ export default function App(): JSX.Element {
       offSsh?.()
       offBrowse?.()
       offTidy?.()
+      offScriptErr?.()
       offTidyChanged?.()
     }
   }, [])

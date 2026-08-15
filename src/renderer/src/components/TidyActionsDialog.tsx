@@ -1,4 +1,5 @@
-import { Wand2, X, Plus, Copy } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Wand2, X, Plus, Copy, FolderOpen, RefreshCw } from 'lucide-react'
 import type { TidyAction, TidyConfig } from '@shared/types'
 import { renderNameTemplate } from '@shared/tidy-actions'
 import { t } from '../i18n'
@@ -17,6 +18,12 @@ interface Props {
 
 export default function TidyActionsDialog({ tidy, save, onClose }: Props): JSX.Element {
   const actions = tidy.actions ?? []
+  // Contenu du dossier « Mes scripts » (créé + exemples au premier appel).
+  const [scripts, setScripts] = useState<string[]>([])
+  const loadScripts = (): void => {
+    void window.api.tidy.listScripts?.().then((r) => setScripts(r.scripts))
+  }
+  useEffect(loadScripts, [])
   const patch = (i: number, p: Partial<TidyAction>): void =>
     save({ ...tidy, actions: actions.map((a, j) => (j === i ? { ...a, ...p } : a)) })
   const remove = (i: number): void =>
@@ -102,6 +109,7 @@ export default function TidyActionsDialog({ tidy, save, onClose }: Props): JSX.E
                 >
                   <option value="rename">{t('Renommer selon un modèle')}</option>
                   <option value="nameList">{t('Attribuer des noms depuis une liste')}</option>
+                  <option value="script">{t('Exécuter un script (dossier Mes scripts)')}</option>
                 </select>
 
                 {a.kind === 'rename' && (
@@ -137,6 +145,50 @@ export default function TidyActionsDialog({ tidy, save, onClose }: Props): JSX.E
                           onChange={(e) => patch(i, { counter: Math.max(0, Number(e.target.value) || 0) })}
                           className="w-16 rounded-app border border-border bg-bg-tertiary px-1.5 py-0.5 text-[11px] text-fg outline-none focus:border-accent"
                         />
+                      </span>
+                    )}
+                  </label>
+                )}
+
+                {a.kind === 'script' && (
+                  <label className="flex flex-col gap-1">
+                    <span className="flex items-center gap-1.5">
+                      <select
+                        value={a.script ?? ''}
+                        onChange={(e) => patch(i, { script: e.target.value || undefined })}
+                        className="min-w-0 flex-1 rounded-app border border-border bg-bg-tertiary px-2 py-1.5 text-[12px] text-fg outline-none focus:border-accent"
+                      >
+                        <option value="">{t('Choisissez un script…')}</option>
+                        {scripts.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                        {a.script && !scripts.includes(a.script) && (
+                          <option value={a.script}>{t('{name} (introuvable)', { name: a.script })}</option>
+                        )}
+                      </select>
+                      <button
+                        onClick={loadScripts}
+                        title={t('Relire le dossier')}
+                        className="grid h-7 w-7 shrink-0 place-items-center rounded-app border border-border text-fg-muted hover:bg-bg-hover hover:text-fg"
+                      >
+                        <RefreshCw size={12} />
+                      </button>
+                      <button
+                        onClick={() => void window.api.tidy.openScripts?.()}
+                        title={t('Ouvrir le dossier Mes scripts')}
+                        className="grid h-7 w-7 shrink-0 place-items-center rounded-app border border-border text-fg-muted hover:bg-bg-hover hover:text-fg"
+                      >
+                        <FolderOpen size={12} />
+                      </button>
+                    </span>
+                    <span className="text-[10px] text-fg-muted">
+                      {t('Le script reçoit le chemin du fichier rangé. Déposez vos scripts (.ps1, .bat, .cmd, .sh, .js, .py) dans Documents\\GVue\\Scripts — des exemples commentés vous y attendent.')}
+                    </span>
+                    {a.script && !scripts.includes(a.script) && (
+                      <span className="rounded-app bg-warning-bg px-2 py-1.5 text-[11px] text-warning-fg">
+                        {t('⚠ Ce script n’existe plus dans le dossier : l’action ne fera rien.')}
                       </span>
                     )}
                   </label>

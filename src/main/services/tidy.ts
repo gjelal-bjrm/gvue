@@ -7,6 +7,7 @@ import { getConfig, setConfig } from './config-store'
 import { pushUndo } from './undo-stack'
 import { isTempDownload, pickRule, renderSubfolder, freeName } from './tidy-rules'
 import { applyTidyAction } from '@shared/tidy-actions'
+import { runTidyScript } from './tidy-scripts'
 import { t } from '../i18n'
 
 /**
@@ -155,6 +156,8 @@ async function settleThenMove(dir: string, name: string, tries: number): Promise
     pushUndo({ kind: 'move', label: t('Rangement de « {name} »', { name: finalName }), pairs: [{ from: full, to }] })
     const payload: TidyMovedEvent = { name: finalName, toDir: destDir, listEmpty }
     BrowserWindow.getAllWindows()[0]?.webContents.send(IPC.tidyMoved, payload)
+    // Action « Exécuter un script » : APRÈS le déplacement, sur le chemin final.
+    if (action?.kind === 'script' && action.script) runTidyScript(action.script, to)
   } catch {
     /* destination injoignable ou fichier verrouillé : on n'insiste pas. */
   }

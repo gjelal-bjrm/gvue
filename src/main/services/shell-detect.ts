@@ -13,7 +13,7 @@ function firstExisting(paths: string[]): string | null {
 }
 
 /** Cherche le premier exécutable trouvé dans le PATH (ordre des noms = priorité). */
-function findOnPath(names: string[]): string | null {
+export function findOnPath(names: string[]): string | null {
   const dirs = (process.env.PATH ?? '').split(path.delimiter).filter(Boolean)
   for (const name of names) {
     for (const dir of dirs) {

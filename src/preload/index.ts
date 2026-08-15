@@ -424,6 +424,17 @@ const api = {
       const listener = (): void => cb()
       ipcRenderer.on(IPC.tidyChanged, listener)
       return () => ipcRenderer.removeListener(IPC.tidyChanged, listener)
+    },
+    /** Dossier « Mes scripts » : contenu (crée + exemples au premier appel). */
+    listScripts: (): Promise<{ dir: string; scripts: string[] }> =>
+      ipcRenderer.invoke(IPC.tidyScriptsList),
+    /** Ouvre le dossier « Mes scripts » dans l'explorateur. */
+    openScripts: (): Promise<void> => ipcRenderer.invoke(IPC.tidyScriptsOpen),
+    /** Un script d'action a échoué (introuvable, interpréteur absent…). */
+    onScriptError: (cb: (message: string) => void): (() => void) => {
+      const listener = (_e: unknown, message: string): void => cb(message)
+      ipcRenderer.on(IPC.tidyScriptError, listener)
+      return () => ipcRenderer.removeListener(IPC.tidyScriptError, listener)
     }
   },
   update: {

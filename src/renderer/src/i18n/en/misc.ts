@@ -222,6 +222,15 @@ export const misc: Record<string, string> = {
     'One name per line — the first one is used for the next tidied file.',
   'Chaque fichier rangé prend le nom du haut de la liste, qui est ensuite retiré. Sans extension, celle du fichier est conservée. Restants : {n}.':
     'Each tidied file takes the name at the top of the list, which is then removed. Without an extension, the file’s own is kept. Remaining: {n}.',
+  'Exécuter un script (dossier Mes scripts)': 'Run a script (My Scripts folder)',
+  'Choisissez un script…': 'Pick a script…',
+  '{name} (introuvable)': '{name} (not found)',
+  'Relire le dossier': 'Re-read the folder',
+  'Ouvrir le dossier Mes scripts': 'Open the My Scripts folder',
+  'Le script reçoit le chemin du fichier rangé. Déposez vos scripts (.ps1, .bat, .cmd, .sh, .js, .py) dans Documents\\GVue\\Scripts — des exemples commentés vous y attendent.':
+    'The script receives the path of the tidied file. Drop your scripts (.ps1, .bat, .cmd, .sh, .js, .py) into Documents\\GVue\\Scripts — commented examples are waiting for you there.',
+  '⚠ Ce script n’existe plus dans le dossier : l’action ne fera rien.':
+    '⚠ This script no longer exists in the folder: the action will do nothing.',
   'Ajouter une action': 'Add an action',
   'Nouvelle action': 'New action',
   'Renommer en fichier_1, fichier_2…': 'Rename to file_1, file_2…',
