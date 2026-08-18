@@ -107,6 +107,18 @@ export function candidateArgs(argv: string[], isPackaged: boolean): string[] {
 }
 
 /**
+ * Espace de travail demandé en ligne de commande (pur, testable) :
+ * « GVue.exe --workspace <nom> » — utilisé par GRay pour ouvrir GVue avec le
+ * profil du projet. Renvoie le nom, ou null si l'option est absente/incomplète.
+ */
+export function workspaceFromArgv(argv: string[]): string | null {
+  const i = argv.indexOf('--workspace')
+  if (i === -1) return null
+  const name = argv[i + 1]
+  return name && !name.startsWith('-') ? name : null
+}
+
+/**
  * Mode sélecteur (pur, testable) : « GVue.exe --pick --pick-out <fichier> ».
  * Un autre outil G (GRay…) lance GVue pour choisir un fichier ; GVue écrira
  * les chemins choisis dans <fichier> puis se fermera. Renvoie le fichier de

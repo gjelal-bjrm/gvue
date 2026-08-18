@@ -3,7 +3,8 @@ import {
   launchCommand,
   registryAdds,
   candidateArgs,
-  pickOutFromArgv
+  pickOutFromArgv,
+  workspaceFromArgv
 } from '../src/main/services/shell-integration'
 
 describe('launchCommand', () => {
@@ -74,5 +75,17 @@ describe('pickOutFromArgv', () => {
   it('valeur manquante ou option à la place → null', () => {
     expect(pickOutFromArgv(['GVue.exe', '--pick', '--pick-out'])).toBe(null)
     expect(pickOutFromArgv(['GVue.exe', '--pick', '--pick-out', '--autre'])).toBe(null)
+  })
+})
+
+describe('workspaceFromArgv', () => {
+  it('extrait le nom de l’espace de travail', () => {
+    expect(workspaceFromArgv(['GVue.exe', '--workspace', 'wasl'])).toBe('wasl')
+  })
+
+  it('sans option, valeur manquante ou option à la place → null', () => {
+    expect(workspaceFromArgv(['GVue.exe'])).toBe(null)
+    expect(workspaceFromArgv(['GVue.exe', '--workspace'])).toBe(null)
+    expect(workspaceFromArgv(['GVue.exe', '--workspace', '--pick'])).toBe(null)
   })
 })
