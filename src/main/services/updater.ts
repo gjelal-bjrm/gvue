@@ -72,10 +72,14 @@ function reportError(e: unknown): void {
     return
   }
   if (isNoReleaseError(msg)) {
-    // Distinct de « à jour » : aucune release exploitable n'a été trouvée.
+    // Distinct de « à jour » : aucune release VISIBLE. Les deux causes réelles
+    // (dépôt de releases privé → 404 anonyme ; release restée en brouillon)
+    // sont nommées, sinon le message n'aide personne à s'en sortir.
     broadcast({
       state: 'error',
-      message: t('Aucune release exploitable trouvée sur GitHub (latest.yml manquant ou release absente).')
+      message: t(
+        'Aucune release publiée n’est visible. Vérifiez que le dépôt des releases est public et que la release n’est pas restée en brouillon.'
+      )
     })
   } else {
     broadcast({ state: 'error', message: t(friendlyUpdateError(msg)) })

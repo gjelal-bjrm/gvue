@@ -2,13 +2,20 @@ appId: com.gvue.app
 productName: GVue
 
 # Flux de mise à jour (electron-updater lit la même config) : releases GitHub.
+#
+# Dépôt SÉPARÉ « gvue-releases », PUBLIC, qui ne contient que les installeurs :
+# le code source (dépôt « gvue ») reste privé. Indispensable — electron-updater
+# lit https://github.com/OWNER/REPO/releases.atom SANS authentification : sur un
+# dépôt privé il reçoit 404 et conclut « aucune release ». Embarquer un jeton
+# dans l'app est exclu (il partirait chez chaque client, avec accès au code).
+#
 # La release est créée en BROUILLON (défaut) : GitHub refuse une release publiée
 # si le tag n'existe pas encore. On publie le brouillon en un clic sur GitHub
 # (cela crée le tag) ; ensuite l'auto-update voit la version.
 publish:
   provider: github
   owner: gjelal-bjrm
-  repo: gvue
+  repo: gvue-releases
 
 directories:
   output: dist

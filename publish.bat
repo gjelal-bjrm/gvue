@@ -9,6 +9,8 @@ echo.
 
 REM --- 1) Token GitHub (jamais stocke dans ce fichier) ---
 REM Tu peux le definir avant de lancer (set GH_TOKEN=ghp_...) pour ne pas le retaper.
+REM Le token doit avoir acces au depot des RELEASES : gjelal-bjrm/gvue-releases
+REM (depot public dedie aux installeurs ; le code source reste prive).
 if not defined GH_TOKEN set /p GH_TOKEN=Colle ton token GitHub (ghp_...) :
 if not defined GH_TOKEN (
   echo.
@@ -59,13 +61,16 @@ if errorlevel 1 (
 
 echo.
 echo ===============================================
-echo   Build v!FINAL! televerse en BROUILLON sur GitHub.
+echo   Build v!FINAL! televerse en BROUILLON sur gvue-releases.
 echo.
 echo   DERNIERE ETAPE (1 clic) :
-echo   GitHub -^> Releases -^> ouvre le brouillon v!FINAL!
-echo   -^> bouton "Publish release".
+echo   github.com/gjelal-bjrm/gvue-releases -^> Releases
+echo   -^> ouvre le brouillon v!FINAL! -^> "Publish release".
 echo   (Cela cree le tag ; ensuite les apps installees se
 echo    mettront a jour automatiquement.)
+echo.
+echo   RAPPEL : ce depot doit rester PUBLIC. S'il est prive,
+echo   les apps recoivent 404 et ne voient aucune mise a jour.
 echo ===============================================
 echo.
 echo Pense a committer le changement de version + les notes :

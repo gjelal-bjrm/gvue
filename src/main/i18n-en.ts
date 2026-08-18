@@ -27,8 +27,8 @@ export const EN: Record<string, string> = {
     'An error occurred but the application remains open.\n\n{error}\n\nDetails: {log}',
 
   // services/updater.ts
-  'Aucune release exploitable trouvée sur GitHub (latest.yml manquant ou release absente).':
-    'No usable release found on GitHub (missing latest.yml or no release).',
+  'Aucune release publiée n’est visible. Vérifiez que le dépôt des releases est public et que la release n’est pas restée en brouillon.':
+    'No published release is visible. Check that the releases repository is public and that the release is not still a draft.',
 
   // services/shell-integration.ts
   'Ouvrir dans GVue': 'Open in GVue',
