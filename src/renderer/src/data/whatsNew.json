@@ -1,5 +1,11 @@
 [
   {
+    "version": "1.0.8",
+    "notes": [
+      "Mode sélecteur : fenêtre légère, sans session"
+    ]
+  },
+  {
     "version": "1.0.7",
     "notes": [
       "Publier les mises a jour depuis un depot public dedie (gvue-releases)"
