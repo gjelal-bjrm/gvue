@@ -378,6 +378,16 @@ const api = {
       return () => ipcRenderer.removeListener(IPC.windowOnStatus, listener)
     }
   },
+  pick: {
+    /** Mode sélecteur (--pick) : GVue choisit un fichier pour un autre outil G. */
+    onMode: (cb: () => void): (() => void) => {
+      const listener = (): void => cb()
+      ipcRenderer.on(IPC.pickMode, listener)
+      return () => ipcRenderer.removeListener(IPC.pickMode, listener)
+    },
+    /** Valide le choix : le main écrit le fichier de sortie puis quitte. */
+    confirm: (paths: string[]): Promise<void> => ipcRenderer.invoke(IPC.pickConfirm, paths)
+  },
   tray: {
     onOpenPath: (cb: (path: string) => void): (() => void) => {
       const listener = (_e: unknown, path: string): void => cb(path)

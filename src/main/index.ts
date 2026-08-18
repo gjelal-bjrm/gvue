@@ -20,7 +20,8 @@ import { registerSshHandlers } from './ipc/ssh'
 import { registerIntegrationHandlers } from './ipc/integration'
 import { registerTidyScriptHandlers } from './services/tidy-scripts'
 import { IPC } from '@shared/ipc'
-import { dirFromArgv } from './services/shell-integration'
+import { dirFromArgv, pickOutFromArgv } from './services/shell-integration'
+import { registerPickHandlers, setPickOut } from './ipc/pick'
 import { sendToWindow } from './tray'
 import { registerSftpHandlers } from './ipc/sftp'
 import { disconnectAll } from './services/sftp-manager'
@@ -77,6 +78,7 @@ function registerIpc(): void {
   registerSftpHandlers()
   registerIntegrationHandlers()
   registerTidyScriptHandlers()
+  registerPickHandlers()
 }
 
 // Protocole gvue-file:// — sert les fichiers locaux au renderer (aperçu
@@ -103,10 +105,16 @@ function registerFileProtocol(): void {
   })
 }
 
+// Mode sélecteur (--pick --pick-out <fichier>) : instance transitoire lancée
+// par un autre outil G (GRay…) pour choisir un fichier. Elle vit hors du
+// verrou d'instance (l'instance principale peut tourner en parallèle), sans
+// tray, sans mises à jour, sans MCP.
+const pickOut = pickOutFromArgv(process.argv)
+
 // Verrou d'instance unique : un seul *processus* GVue (les fenêtres multiples
 // vivent dans ce processus). Évite que deux processus se disputent le cache
 // (erreurs « Unable to move the cache »).
-const gotLock = app.requestSingleInstanceLock()
+const gotLock = pickOut !== null || app.requestSingleInstanceLock()
 if (!gotLock) {
   app.quit()
 } else {
@@ -124,21 +132,31 @@ if (!gotLock) {
     logInfo('app', `GVue ${app.getVersion()} démarré (packagé: ${app.isPackaged}).`)
     registerIpc()
     registerFileProtocol()
-    createTray()
-    syncTidy()
+    if (pickOut === null) {
+      createTray()
+      syncTidy()
+    } else {
+      setPickOut(pickOut)
+    }
     const win = createWindow()
-    // Lancé avec un dossier en argument (« Ouvrir dans GVue » alors que GVue
-    // était fermé) : on y navigue dès que la fenêtre est prête.
-    void dirFromArgv(process.argv, app.isPackaged).then((dir) => {
-      if (dir) win.webContents.once('did-finish-load', () => win.webContents.send(IPC.trayOpenPath, dir))
-    })
-    initAutoUpdate()
+    if (pickOut !== null) {
+      // Mode sélecteur : prévenir le renderer dès que la fenêtre est prête.
+      win.webContents.once('did-finish-load', () => win.webContents.send(IPC.pickMode))
+    } else {
+      // Lancé avec un dossier en argument (« Ouvrir dans GVue » alors que GVue
+      // était fermé) : on y navigue dès que la fenêtre est prête.
+      void dirFromArgv(process.argv, app.isPackaged).then((dir) => {
+        if (dir)
+          win.webContents.once('did-finish-load', () => win.webContents.send(IPC.trayOpenPath, dir))
+      })
+      initAutoUpdate()
 
-    // Serveur MCP (agents IA) : opt-in, relancé si activé lors d'une session précédente.
-    try {
-      if (getConfig('mcpEnabled')) startMcpServer()
-    } catch {
-      /* config indisponible : reste désactivé */
+      // Serveur MCP (agents IA) : opt-in, relancé si activé lors d'une session précédente.
+      try {
+        if (getConfig('mcpEnabled')) startMcpServer()
+      } catch {
+        /* config indisponible : reste désactivé */
+      }
     }
 
     // Mort d'un process de rendu (page blanche) : on journalise pour diagnostic.

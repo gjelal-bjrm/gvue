@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest'
 import {
   launchCommand,
   registryAdds,
-  candidateArgs
+  candidateArgs,
+  pickOutFromArgv
 } from '../src/main/services/shell-integration'
 
 describe('launchCommand', () => {
@@ -54,5 +55,24 @@ describe('candidateArgs', () => {
   it('aucun argument → liste vide', () => {
     expect(candidateArgs(['C:\\Apps\\GVue.exe'], true)).toEqual([])
     expect(candidateArgs(['electron.exe', 'C:\\Dev\\gvue'], false)).toEqual([])
+  })
+})
+
+describe('pickOutFromArgv', () => {
+  it('extrait le fichier de sortie du mode sélecteur', () => {
+    expect(pickOutFromArgv(['GVue.exe', '--pick', '--pick-out', 'C:\\Temp\\out.txt'])).toBe(
+      'C:\\Temp\\out.txt'
+    )
+  })
+
+  it('sans --pick ou sans --pick-out → null', () => {
+    expect(pickOutFromArgv(['GVue.exe', '--pick'])).toBe(null)
+    expect(pickOutFromArgv(['GVue.exe', '--pick-out', 'C:\\Temp\\out.txt'])).toBe(null)
+    expect(pickOutFromArgv(['GVue.exe'])).toBe(null)
+  })
+
+  it('valeur manquante ou option à la place → null', () => {
+    expect(pickOutFromArgv(['GVue.exe', '--pick', '--pick-out'])).toBe(null)
+    expect(pickOutFromArgv(['GVue.exe', '--pick', '--pick-out', '--autre'])).toBe(null)
   })
 })

@@ -48,6 +48,9 @@ interface UiState {
   /** Antisèche des raccourcis clavier (F1) ouverte ? */
   shortcutsOpen: boolean
   setShortcuts: (v: boolean) => void
+  /** Mode sélecteur (--pick) : GVue choisit un fichier pour un autre outil G. */
+  pickMode: boolean
+  setPickMode: (v: boolean) => void
   /** Créateur de dossiers en lot ouvert ? */
   folderCreatorOpen: boolean
   /** Dossier cible du créateur (null = volet actif). */
@@ -136,6 +139,8 @@ export const useUiStore = create<UiState>((set) => ({
   setArchive: (p) => set({ archivePath: p }),
   shortcutsOpen: false,
   setShortcuts: (v) => set({ shortcutsOpen: v }),
+  pickMode: false,
+  setPickMode: (v) => set({ pickMode: v }),
   folderCreatorOpen: false,
   folderCreatorBase: null,
   whatsNewSince: null,

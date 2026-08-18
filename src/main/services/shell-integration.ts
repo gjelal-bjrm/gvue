@@ -105,3 +105,17 @@ export function candidateArgs(argv: string[], isPackaged: boolean): string[] {
   // argv[0] = exécutable ; en dev, argv[1] = dossier de l'app.
   return argv.slice(isPackaged ? 1 : 2).filter((a) => a && !a.startsWith('-'))
 }
+
+/**
+ * Mode sélecteur (pur, testable) : « GVue.exe --pick --pick-out <fichier> ».
+ * Un autre outil G (GRay…) lance GVue pour choisir un fichier ; GVue écrira
+ * les chemins choisis dans <fichier> puis se fermera. Renvoie le fichier de
+ * sortie, ou null si le mode n'est pas demandé (ou incomplet).
+ */
+export function pickOutFromArgv(argv: string[]): string | null {
+  if (!argv.includes('--pick')) return null
+  const i = argv.indexOf('--pick-out')
+  if (i === -1) return null
+  const out = argv[i + 1]
+  return out && !out.startsWith('-') ? out : null
+}

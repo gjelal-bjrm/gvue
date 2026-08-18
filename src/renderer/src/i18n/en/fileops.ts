@@ -96,6 +96,13 @@ export const fileops: Record<string, string> = {
   'Choisir {name}': 'Choose {name}',
   'Cliquez un fichier pour le choisir.': 'Click a file to choose it.',
 
+  // PickerBanner.tsx (mode sélecteur --pick)
+  'Mode sélecteur : double-clique un fichier, ou valide ta sélection.':
+    'Picker mode: double-click a file, or confirm your selection.',
+  'Choisir la sélection': 'Choose selection',
+  'Choisir {n} fichier': 'Choose {n} file',
+  'Choisir {n} fichiers': 'Choose {n} files',
+
   // DiskUsage.tsx
   'o': 'B',
   'Ko': 'KB',

@@ -180,6 +180,11 @@ export const IPC = {
   /** Changer le thème appliqué. */
   mcpSetTheme: 'mcp:setTheme',
 
+  // Mode sélecteur (--pick) : un autre outil G (GRay…) lance GVue pour
+  // choisir un fichier ; GVue écrit le choix puis se ferme.
+  pickMode: 'pick:mode',
+  pickConfirm: 'pick:confirm',
+
   // Journalisation / diagnostic
   logReport: 'log:report',
   logPath: 'log:path'

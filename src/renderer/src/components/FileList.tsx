@@ -164,6 +164,8 @@ export default function FileList(props: { paneId: string }): JSX.Element {
   const onActivate = (entry: DirEntry): void => {
     clearRenameTimer() // un double-clic ouvre, il n'arme pas le renommage
     if (entry.kind === 'directory') navigate(entry.path)
+    // mode sélecteur (--pick) : activer un fichier = le choisir, pas l'ouvrir
+    else if (useUiStore.getState().pickMode) void window.api.pick.confirm([entry.path])
     else void window.api.fs.open(entry.path)
   }
 

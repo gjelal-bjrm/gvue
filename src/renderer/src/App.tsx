@@ -21,6 +21,7 @@ import FolderCreator from './components/FolderCreator'
 import WhatsNew from './components/WhatsNew'
 import GitPanel from './components/GitPanel'
 import UpdateBanner from './components/UpdateBanner'
+import PickerBanner from './components/PickerBanner'
 import { useNavStore, activePane } from './state/useNavStore'
 import { useGitStore } from './state/useGitStore'
 import { useTerminalStore } from './state/useTerminalStore'
@@ -261,6 +262,14 @@ export default function App(): JSX.Element {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  // Mode sélecteur (--pick) : le main prévient au démarrage, le bandeau
+  // PickerBanner et FileList (double-clic = choisir) s'adaptent.
+  useEffect(() => {
+    const pick = window.api.pick
+    if (!pick) return
+    return pick.onMode(() => useUiStore.getState().setPickMode(true))
   }, [])
 
   // Actions du plateau système (tray) : ouvrir un dossier, lancer un lancement/
@@ -576,6 +585,7 @@ export default function App(): JSX.Element {
       <Toolbar />
       <CommandBar />
       <UpdateBanner />
+      <PickerBanner />
       <CommandPalette />
       <FileFinder />
       <DiskUsage />
