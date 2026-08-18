@@ -528,6 +528,8 @@ export default function App(): JSX.Element {
   // Sauvegarde continue de la session (colonnes/onglets/chemins), débattue :
   // sert à « Rouvrir les dossiers au démarrage ».
   useEffect(() => {
+    // le sélecteur ne doit pas écraser la session de la vraie fenêtre de travail
+    if (useUiStore.getState().pickMode) return
     let t: number | null = null
     const unsub = useNavStore.subscribe((s) => {
       if (t) window.clearTimeout(t)

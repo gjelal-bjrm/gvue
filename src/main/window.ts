@@ -11,8 +11,15 @@ import type { WindowState, WindowStatus } from '@shared/types'
  * restaurées depuis electron-store et resauvegardées à la fermeture.
  * Sécurité : contextIsolation true, nodeIntegration false, sandbox true.
  */
-export function createWindow(): BrowserWindow {
+/**
+ * `pick` : instance transitoire lancée par un autre outil G pour choisir un
+ * fichier. Elle ne restaure NI la session de dossiers NI la taille de fenêtre,
+ * et n'enregistre rien en partant — sinon le sélecteur écraserait la vraie
+ * session de travail (plusieurs colonnes, plein écran) par la sienne.
+ */
+export function createWindow(opts: { pick?: boolean } = {}): BrowserWindow {
   const saved = getConfig('window')
+  const pick = opts.pick === true
 
   // Icône de fenêtre (barre des tâches en dev) ; en production, l'icône de
   // l'exécutable est posée par l'empaqueteur.
@@ -23,10 +30,11 @@ export function createWindow(): BrowserWindow {
   const offset = existing * 28
 
   const win = new BrowserWindow({
-    width: saved.width,
-    height: saved.height,
-    x: saved.x != null ? saved.x + offset : undefined,
-    y: saved.y != null ? saved.y + offset : undefined,
+    width: pick ? 1000 : saved.width,
+    height: pick ? 680 : saved.height,
+    x: pick || saved.x == null ? undefined : saved.x + offset,
+    y: pick || saved.y == null ? undefined : saved.y + offset,
+    center: pick,
     minWidth: 760,
     minHeight: 520,
     show: false,
@@ -45,7 +53,7 @@ export function createWindow(): BrowserWindow {
   })
 
   // Seule la première fenêtre restaure l'état maximisé (sinon elles se couvrent).
-  if (saved.maximized && existing === 0) win.maximize()
+  if (!pick && saved.maximized && existing === 0) win.maximize()
 
   win.on('ready-to-show', () => win.show())
 
@@ -77,7 +85,7 @@ export function createWindow(): BrowserWindow {
     }
     setConfig('window', state)
   }
-  win.on('close', persist)
+  if (!pick) win.on('close', persist)
 
   // Notifie le renderer pour basculer l'icône agrandir/restaurer.
   const emitStatus = (): void => {
@@ -102,11 +110,15 @@ export function createWindow(): BrowserWindow {
   })
 
   // Chargement : dev server en HMR, fichier statique en production.
+  // Le mode sélecteur passe par le fragment d'URL : le renderer doit le savoir
+  // AVANT de démarrer, pour ne pas rouvrir la session au passage (le coût des
+  // vingt secondes) — un message IPC après chargement arriverait trop tard.
+  const hash = pick ? '#pick' : ''
   const devUrl = process.env['ELECTRON_RENDERER_URL']
   if (devUrl) {
-    win.loadURL(devUrl)
+    win.loadURL(devUrl + hash)
   } else {
-    win.loadFile(join(__dirname, '../renderer/index.html'))
+    win.loadFile(join(__dirname, '../renderer/index.html'), { hash })
   }
 
   return win

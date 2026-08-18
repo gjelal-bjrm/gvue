@@ -139,7 +139,10 @@ export const useUiStore = create<UiState>((set) => ({
   setArchive: (p) => set({ archivePath: p }),
   shortcutsOpen: false,
   setShortcuts: (v) => set({ shortcutsOpen: v }),
-  pickMode: false,
+  // Lu depuis le fragment d'URL posé par le main (#pick) : disponible dès le
+  // premier rendu, avant toute restauration — le message IPC, lui, arrive
+  // après coup et ne sert plus que de filet.
+  pickMode: window.location.hash === '#pick',
   setPickMode: (v) => set({ pickMode: v }),
   folderCreatorOpen: false,
   folderCreatorBase: null,

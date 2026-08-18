@@ -2,12 +2,7 @@
   {
     "version": "1.0.7",
     "notes": [
-      "CLI --workspace <nom> : GRay ouvre GVue avec le profil du projet",
-      "Mode sélecteur --pick : GVue choisit un fichier pour un autre outil G (GRay)",
-      "Rangement — dossier « Mes scripts » et action Executer un script",
-      "Rangement — bibliotheque d'actions (renommer {n}, liste de noms)",
-      "Rangement — filtrer aussi par NOM de fichier (joker ou regex)",
-      "Mise a jour — reessai des erreurs reseau et messages comprehensibles"
+      "Publier les mises a jour depuis un depot public dedie (gvue-releases)"
     ]
   },
   {

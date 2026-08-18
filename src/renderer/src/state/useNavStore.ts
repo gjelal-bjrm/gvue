@@ -231,6 +231,15 @@ export const useNavStore = create<NavState>((set, get) => {
         gridSize: typeof gridSize === 'number' ? gridSize : 112
       })
 
+      // Mode sélecteur : une seule page sur l'Accès rapide, tout de suite.
+      // Rouvrir la session de travail (plusieurs colonnes, gros dossiers)
+      // coûterait de longues secondes pour une fenêtre qui ne vit qu'un choix.
+      if (window.location.hash === '#pick') {
+        await navigatePane(get().activeId, locations.home, false)
+        patch(get().activeId, { quickAccess: true })
+        return
+      }
+
       // Restauration de session : rouvre colonnes + onglets de la dernière
       // fois (option « Rouvrir les dossiers au démarrage », activée par défaut).
       try {

@@ -145,7 +145,7 @@ if (!gotLock) {
     } else {
       setPickOut(pickOut)
     }
-    const win = createWindow()
+    const win = createWindow({ pick: pickOut !== null })
     if (pickOut !== null) {
       // Mode sélecteur : prévenir le renderer dès que la fenêtre est prête.
       win.webContents.once('did-finish-load', () => win.webContents.send(IPC.pickMode))
