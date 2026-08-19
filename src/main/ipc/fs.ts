@@ -6,7 +6,7 @@ import * as filesystem from '../services/filesystem'
 import * as fileops from '../services/fileops'
 import { readPreview } from '../services/preview'
 import { justRecipes } from '../services/justfile'
-import { pushRecent, pushRecentFile, getConfig } from '../services/config-store'
+import { pushRecent, unhideOnVisit, pushRecentFile, getConfig } from '../services/config-store'
 import { watchDir } from '../services/fs-watch'
 import { pushUndo, undoLast, peekUndo } from '../services/undo-stack'
 import { t } from '../i18n'
@@ -127,7 +127,12 @@ export function registerFsHandlers(): void {
     const result = await filesystem.list(dirPath)
     // `track` distingue une vraie navigation (compte la visite) d'un simple
     // rafraîchissement auto déclenché par la surveillance disque.
-    if (track) pushRecent(result.path)
+    if (track) {
+      pushRecent(result.path)
+      // Ouvrir le dossier d'un projet mis de côté le fait revenir dans la
+      // liste — mais lui seul : un rafraîchissement de statut ne suffit plus.
+      unhideOnVisit(result.path)
+    }
     const wc = e.sender
     watchDir(result.path, (dir) => {
       if (!wc.isDestroyed()) wc.send(IPC.fsOnChange, dir)

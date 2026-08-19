@@ -2,6 +2,7 @@ import Store from 'electron-store'
 import * as os from 'node:os'
 import type { AppConfig } from '@shared/types'
 import { DEFAULT_CONFIG, sanitizeConfig } from './config-schema'
+import { sameDir } from '@shared/launches'
 
 /**
  * Store de configuration persistée (electron-store → JSON local).
@@ -69,32 +70,41 @@ export function pushRecentFile(p: string, max = 30): void {
   store.set('recentFiles', files.slice(0, max))
 }
 
-// Dernière racine de dépôt vue : un simple rafraîchissement de statut sur le
-// même dépôt ne compte pas comme une « visite », sinon masquer un projet depuis
-// son propre dossier le ferait réapparaître aussitôt.
-let lastVisitedRoot = ''
-
 /**
- * Mémorise la racine d'un dépôt visité (en tête, FIFO borné).
- * Une visite RÉELLE (changement de dépôt) démasque le projet : c'est ainsi
- * qu'un projet mis de côté réapparaît quand on rouvre son dossier.
+ * Mémorise la racine d'un dépôt vue lors d'un statut Git (en tête, FIFO borné).
+ *
+ * Ne démasque JAMAIS : cet appel a lieu à chaque rafraîchissement de statut,
+ * y compris pour des dépôts qu'on ne fait que côtoyer. C'est ce qui empêchait
+ * de retirer un projet de la liste — il revenait au rafraîchissement suivant.
+ * Le retour d'un projet mis de côté se décide en OUVRANT son dossier
+ * (voir unhideOnVisit).
  */
 export function pushProject(root: string, max = 40): void {
+  // Un projet mis de côté ne remonte pas dans la liste au passage.
+  if (store.get('hiddenProjects').includes(root)) return
   const roots = store.get('projectRoots').filter((r) => r !== root)
   roots.unshift(root)
   store.set('projectRoots', roots.slice(0, max))
-
-  if (root !== lastVisitedRoot) {
-    lastVisitedRoot = root
-    const hidden = store.get('hiddenProjects')
-    if (hidden.includes(root)) {
-      store.set(
-        'hiddenProjects',
-        hidden.filter((r) => r !== root)
-      )
-    }
-  }
 }
+
+/**
+ * Navigation DÉLIBÉRÉE vers un dossier : si c'est la racine d'un projet mis
+ * de côté, il réapparaît — « revient en rouvrant le dossier », comme annoncé
+ * sur le bouton. Ouvrir un sous-dossier ne suffit pas : seul le dossier
+ * racine compte, pour qu'un projet reste caché quand on ne fait que passer.
+ */
+export function unhideOnVisit(dir: string): void {
+  const hidden = store.get('hiddenProjects')
+  const match = hidden.find((r) => sameDir(r, dir))
+  if (!match) return
+  store.set(
+    'hiddenProjects',
+    hidden.filter((r) => r !== match)
+  )
+  const roots = store.get('projectRoots').filter((r) => !sameDir(r, match))
+  store.set('projectRoots', [match, ...roots].slice(0, 40))
+}
+
 
 /** Retire un projet de la liste (masqué jusqu'à sa prochaine visite). */
 export function hideProject(root: string): void {
@@ -104,10 +114,6 @@ export function hideProject(root: string): void {
     'projectRoots',
     store.get('projectRoots').filter((r) => r !== root)
   )
-  // On masque peut-être le projet depuis SON dossier : on marque la visite en
-  // cours pour que les rafraîchissements de statut suivants ne le redémasquent
-  // pas. Il ne reviendra qu'à une vraie nouvelle visite (aller ailleurs, revenir).
-  lastVisitedRoot = root
 }
 
 /** Réaffiche tous les projets mis de côté. */
