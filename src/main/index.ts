@@ -125,7 +125,9 @@ if (!gotLock) {
     // « GVue.exe --workspace <nom> » (lancé par GRay) : on charge le profil
     // demandé dans la fenêtre existante, comme le fait le menu du plateau.
     const ws = workspaceFromArgv(argv)
+    logInfo('cli', `seconde instance : ${argv.join(' ')}`)
     if (ws) {
+      logInfo('cli', `espace de travail demande : ${ws}`)
       sendToWindow(IPC.trayLoadWorkspace, ws)
       return
     }

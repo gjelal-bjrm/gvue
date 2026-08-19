@@ -127,6 +127,10 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
     if (data.terminals) {
       await useTerminalStore.getState().restore(data.terminalOpen ? data.terminals : [])
     }
+
+    // Confirmation visible : sans elle, impossible de distinguer « rien ne
+    // s est passe » de « ca s est passe dans une autre fenetre ».
+    useUiStore.getState().showToast(`Espace de travail « ${key} » charge.`)
   },
 
   remove: (name) => {
