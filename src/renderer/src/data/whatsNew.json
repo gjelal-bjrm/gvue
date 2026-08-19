@@ -1,5 +1,11 @@
 [
   {
+    "version": "1.0.16",
+    "notes": [
+      "Correctif : glisser un fichier vers l’Explorateur Windows ne ferme plus GVue"
+    ]
+  },
+  {
     "version": "1.0.15",
     "notes": [
       "Correctif : glisser un fichier vers une autre application ne ferme plus GVue",
