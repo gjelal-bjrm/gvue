@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.15",
+    "notes": [
+      "Correctif : glisser un fichier vers une autre application ne ferme plus GVue",
+      "Retirer un projet de la liste depuis le clic droit"
+    ]
+  },
+  {
     "version": "1.0.14",
     "notes": [
       "Un projet retiré de la liste y reste",
