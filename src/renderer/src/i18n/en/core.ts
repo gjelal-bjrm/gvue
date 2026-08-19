@@ -78,6 +78,8 @@ export const core: Record<string, string> = {
   'Tout sélectionner': 'Select all',
   'Sélection au lasso (Ctrl : ajouter)': 'Lasso selection (Ctrl: add)',
   'Copier / Couper / Coller': 'Copy / Cut / Paste',
+  'Glisser vers une autre app': 'Drag to another app',
+  'Copie (déplacer : Ctrl+X puis Ctrl+V)': 'Copies (to move: Ctrl+X then Ctrl+V)',
   'Renommer (sélection multiple : en masse)': 'Rename (multi-selection: bulk)',
   'Supprimer vers la corbeille': 'Delete to recycle bin',
   'Déplacer / forcer la copie': 'Move / force copy',

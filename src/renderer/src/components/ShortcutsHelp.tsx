@@ -57,6 +57,9 @@ const GROUPS: Group[] = [
       { keys: ['Ctrl', 'Z'], label: 'Annuler la dernière opération' },
       { keys: ['Glisser', '+ Maj / Ctrl'], label: 'Déplacer / forcer la copie' },
       { keys: ['Glisser clic droit'], label: 'Menu « Copier / Déplacer ici »' },
+      // Limite d'Electron : aucun moyen d'annoncer un déplacement à la cible,
+      // ni de savoir si le dépôt a eu lieu (supprimer la source serait risqué).
+      { keys: ['Glisser vers une autre app'], label: 'Copie (déplacer : Ctrl+X puis Ctrl+V)' },
       { keys: ['Double-clic'], label: 'Ouvrir (dossier ou application)' }
     ]
   },
