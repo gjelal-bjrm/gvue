@@ -1,5 +1,5 @@
 import { ipcMain, shell, app, nativeImage } from 'electron'
-import { dirname, basename, extname } from 'node:path'
+import { dirname, basename, extname, join } from 'node:path'
 import { IPC } from '@shared/ipc'
 import type { NavLocations, DirEntry, QuickAccessData, ConflictMode } from '@shared/types'
 import * as filesystem from '../services/filesystem'
@@ -9,6 +9,7 @@ import { justRecipes } from '../services/justfile'
 import { pushRecent, unhideOnVisit, pushRecentFile, getConfig } from '../services/config-store'
 import { watchDir } from '../services/fs-watch'
 import { pushUndo, undoLast, peekUndo } from '../services/undo-stack'
+import { logError } from '../services/logger'
 import { t } from '../i18n'
 
 // Icône minimale pour le glisser-déposer natif (startDrag exige une icône non vide).
@@ -20,6 +21,30 @@ const DRAG_ICON = nativeImage
 
 // Icônes de glisser déjà résolues, par extension (voir fsStartDrag).
 const dragIcons = new Map<string, Electron.NativeImage>()
+
+/**
+ * Icône affichée sous le curseur tant que celle du fichier n'est pas connue.
+ * On préfère le PNG de l'application (un vrai fichier image) au pixel
+ * transparent étiré : startDrag est chatouilleux sur l'image qu'on lui donne.
+ */
+let cachedDefaultIcon: Electron.NativeImage | null = null
+function defaultDragIcon(): Electron.NativeImage {
+  if (cachedDefaultIcon) return cachedDefaultIcon
+  try {
+    const p = app.isPackaged
+      ? join(process.resourcesPath, 'icon.png')
+      : join(app.getAppPath(), 'build', 'icon.png')
+    const img = nativeImage.createFromPath(p)
+    if (!img.isEmpty()) {
+      cachedDefaultIcon = img.resize({ width: 32, height: 32 })
+      return cachedDefaultIcon
+    }
+  } catch {
+    /* fichier absent : le carré de secours suffit */
+  }
+  cachedDefaultIcon = DRAG_ICON
+  return cachedDefaultIcon
+}
 
 // Extensions dont l'icône est propre à chaque fichier (logo embarqué).
 const PER_FILE_ICON = new Set(['exe', 'lnk', 'ico', 'msi', 'cur', 'ani', 'scr', 'dll'])
@@ -325,7 +350,14 @@ export function registerFsHandlers(): void {
     if (!Array.isArray(paths) || paths.length === 0 || e.sender.isDestroyed()) return
     const key = extname(paths[0]).toLowerCase()
     const cached = dragIcons.get(key)
-    e.sender.startDrag({ file: paths[0], files: paths, icon: cached ?? DRAG_ICON })
+    const icon = cached && !cached.isEmpty() ? cached : defaultDragIcon()
+    try {
+      e.sender.startDrag({ file: paths[0], files: paths, icon })
+    } catch (err) {
+      // Un glisser qui échoue ne doit jamais emporter l'application avec lui.
+      logError('startDrag', err)
+      return
+    }
     // L'icône réelle est préparée APRÈS coup, pour le prochain glisser du même
     // type : jamais de travail asynchrone avant le startDrag lui-même.
     if (!cached) {

@@ -32,6 +32,13 @@ const EMPTY_MAP: Record<string, GitFileChange> = {}
 const EMPTY_SET = new Set<string>()
 const EMPTY_LIST: string[] = []
 
+/**
+ * Chemins portés par le glisser natif en cours. Au niveau du MODULE, donc
+ * partagés par tous les volets : le glisser part d'une liste et arrive dans
+ * une autre — un état par composant serait vide à l'arrivée.
+ */
+let nativeDragPaths: string[] = []
+
 export default function FileList(props: { paneId: string }): JSX.Element {
   const pane = useNavStore((s) => s.panes.find((p) => p.id === props.paneId))
   const activeId = useNavStore((s) => s.activeId)
@@ -50,8 +57,6 @@ export default function FileList(props: { paneId: string }): JSX.Element {
   const ignoredAll = useGitStore((s) => s.ignored)
   const [menu, setMenu] = useState<{ x: number; y: number; entry: DirEntry | null } | null>(null)
   const [dragOver, setDragOver] = useState<string | null>(null)
-  // Chemins portés par le glisser natif en cours (voir startDragOf).
-  const nativeDragRef = useRef<string[]>([])
   const [dropMenu, setDropMenu] = useState<{ x: number; y: number; paths: string[]; destDir: string } | null>(
     null
   )
@@ -290,18 +295,22 @@ export default function FileList(props: { paneId: string }): JSX.Element {
   /**
    * Démarre un glisser NATIF : les fichiers deviennent de vrais fichiers pour
    * le système, donc déposables dans l'Explorateur Windows, un mail, un
-   * éditeur… (le glisser HTML5 seul ne sort jamais de la fenêtre).
+   * éditeur… (le glisser HTML seul ne sort jamais de la fenêtre).
    *
-   * Contrepartie : un dépôt dans GVue même revient alors comme un dépôt
-   * EXTERNE, dont le geste par défaut est « copier ». On mémorise donc les
-   * chemins portés pour que le dépôt entre volets reste un DÉPLACEMENT.
+   * preventDefault() est INDISPENSABLE — c'est ce que fait l'exemple officiel
+   * d'Electron. Sans lui, le glisser HTML continue en parallèle du natif : les
+   * deux se disputent le même geste, la cible affiche un rond barré (elle ne
+   * reçoit que du texte) et l'application se ferme brutalement, sans même une
+   * erreur dans le journal. Constaté en 1.0.14 puis en 1.0.15.
+   *
+   * Conséquence : un dépôt dans GVue même arrive alors comme un dépôt EXTERNE,
+   * dont le geste par défaut est « copier ». Les chemins portés sont donc
+   * mémorisés pour que le dépôt entre volets reste un DÉPLACEMENT.
    */
   const startDragOf = (e: React.DragEvent, path: string): void => {
+    e.preventDefault()
     const sel = selectedSet.has(path) ? selected : [path]
-    // Conservé : un dépôt qui arrive encore par ce canal reste interne.
-    e.dataTransfer.setData('application/x-gvue-paths', JSON.stringify(sel))
-    e.dataTransfer.effectAllowed = 'copyMove'
-    nativeDragRef.current = sel
+    nativeDragPaths = sel
     window.api.fs.startDrag(sel)
   }
 
@@ -322,13 +331,13 @@ export default function FileList(props: { paneId: string }): JSX.Element {
       // Depuis que le glisser est natif, nos propres fichiers reviennent par
       // le canal « externe » : s'ils correspondent au glisser en cours, c'est
       // un déplacement interne, pas une copie venue d'ailleurs.
-      const own = nativeDragRef.current
+      const own = nativeDragPaths
       defaultMove =
         own.length > 0 &&
         own.length === paths.length &&
         own.every((p) => paths.some((q) => sameDir(p, q)))
     }
-    nativeDragRef.current = []
+    nativeDragPaths = []
     if (paths.length === 0) return
     const move = e.ctrlKey ? false : e.shiftKey ? true : defaultMove
     // Gère les conflits (dialogue), le toast d'erreurs et le rafraîchissement.
