@@ -42,7 +42,7 @@ export default function ProjectItem(props: {
       <LaunchButtons root={project.root} onConfigure={props.onConfig} />
       <button
         onClick={props.onHide}
-        title={t('Retirer de la liste (revient en rouvrant le dossier)')}
+        title={t('Retirer de la liste — le dossier n’est pas supprimé ; il revient si vous rouvrez son dossier')}
         className="grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted opacity-0 hover:bg-bg-hover hover:text-danger-fg group-hover:opacity-100"
       >
         <X size={13} />

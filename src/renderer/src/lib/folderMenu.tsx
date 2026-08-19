@@ -7,7 +7,8 @@ import {
   PieChart,
   Star,
   StarOff,
-  Info
+  Info,
+  X
 } from 'lucide-react'
 import type { MenuEntry } from '../components/ContextMenu'
 import { useNavStore } from '../state/useNavStore'
@@ -20,8 +21,11 @@ import { t } from '../i18n'
  * Menu contextuel commun pour un dossier (sidebar, arbre, favoris, projets).
  * Les actions ciblent `dir` ; « Créer des dossiers » s'ouvre directement dans ce
  * dossier — utile quand le volet est plein et n'a pas de zone vide cliquable.
+ *
+ * `onRemoveProject` : fourni uniquement pour une ligne de la section Projets —
+ * la même action que la croix, à portée de clic droit (demande utilisateur).
  */
-export function buildFolderMenu(dir: string): MenuEntry[] {
+export function buildFolderMenu(dir: string, onRemoveProject?: () => void): MenuEntry[] {
   const fav = useFavoritesStore.getState()
   const isFav = fav.has(dir)
   const openTerminalHere = (): void => {
@@ -63,6 +67,16 @@ export function buildFolderMenu(dir: string): MenuEntry[] {
       label: t('Propriétés'),
       icon: <Info size={14} />,
       onClick: () => window.api.apps.properties(dir)
-    }
+    },
+    ...(onRemoveProject
+      ? ([
+          { type: 'sep' },
+          {
+            label: t('Retirer ce projet de la liste'),
+            icon: <X size={14} />,
+            onClick: onRemoveProject
+          }
+        ] as MenuEntry[])
+      : [])
   ]
 }

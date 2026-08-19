@@ -90,12 +90,21 @@ export default function Sidebar(): JSX.Element {
   const [launchOpen, setLaunchOpen] = useState(false)
   const [groupAxis, setGroupAxis] = useState<'project' | 'category'>('project')
   const [config, setConfig] = useState<{ root: string; name: string } | null>(null)
-  const [menu, setMenu] = useState<{ x: number; y: number; dir: string } | null>(null)
+  const [menu, setMenu] = useState<{ x: number; y: number; dir: string; project?: string } | null>(null)
 
   // Ouvre le menu contextuel de dossier (Ce PC, favoris, projets).
-  const openCtx = (e: React.MouseEvent, dir: string): void => {
+  // `project` : renseigné depuis la section Projets, pour proposer « Retirer
+  // ce projet de la liste » au clic droit (même action que la croix).
+  const openCtx = (e: React.MouseEvent, dir: string, project?: string): void => {
     e.preventDefault()
-    setMenu({ x: e.clientX, y: e.clientY, dir })
+    setMenu({ x: e.clientX, y: e.clientY, dir, project })
+  }
+
+  // Retrait d'un projet de la liste — le dossier n'est JAMAIS touché ; il
+  // réapparaît si on rouvre son dossier, ou via « tout réafficher ».
+  const removeProject = (root: string): void => {
+    setHiddenCount((n) => n + 1)
+    void window.api.git.hideProject(root).then(setProjects)
   }
 
   // Charge l'ordre et le repli des sections (persistés).
@@ -317,10 +326,9 @@ export default function Sidebar(): JSX.Element {
                 }}
                 onHide={(e) => {
                   e.stopPropagation()
-                  setHiddenCount((n) => n + 1)
-                  void window.api.git.hideProject(p.root).then(setProjects)
+                  removeProject(p.root)
                 }}
-                onContextMenu={(e) => openCtx(e, p.root)}
+                onContextMenu={(e) => openCtx(e, p.root, p.root)}
               />
             ))
           )}
@@ -518,7 +526,10 @@ export default function Sidebar(): JSX.Element {
         <ContextMenu
           x={menu.x}
           y={menu.y}
-          entries={buildFolderMenu(menu.dir)}
+          entries={buildFolderMenu(
+            menu.dir,
+            menu.project ? () => removeProject(menu.project!) : undefined
+          )}
           onClose={() => setMenu(null)}
         />
       )}

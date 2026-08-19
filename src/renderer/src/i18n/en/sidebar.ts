@@ -116,5 +116,9 @@ export const sidebar: Record<string, string> = {
   'Scripts :': 'Scripts:',
   Effacer: 'Clear',
   Annuler: 'Cancel',
-  Enregistrer: 'Save'
+  Enregistrer: 'Save',
+  // Retrait d'un projet de la liste
+  'Retirer de la liste — le dossier n’est pas supprimé ; il revient si vous rouvrez son dossier':
+    'Remove from the list — the folder is not deleted; it comes back if you reopen its folder',
+  'Retirer ce projet de la liste': 'Remove this project from the list'
 }

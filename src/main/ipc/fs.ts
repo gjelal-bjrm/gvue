@@ -18,6 +18,9 @@ const DRAG_ICON = nativeImage
   )
   .resize({ width: 24, height: 24 })
 
+// Icônes de glisser déjà résolues, par extension (voir fsStartDrag).
+const dragIcons = new Map<string, Electron.NativeImage>()
+
 // Extensions dont l'icône est propre à chaque fichier (logo embarqué).
 const PER_FILE_ICON = new Set(['exe', 'lnk', 'ico', 'msi', 'cur', 'ani', 'scr', 'dll'])
 // Images dont on génère une vraie vignette.
@@ -129,8 +132,10 @@ export function registerFsHandlers(): void {
     // rafraîchissement auto déclenché par la surveillance disque.
     if (track) {
       pushRecent(result.path)
-      // Ouvrir le dossier d'un projet mis de côté le fait revenir dans la
-      // liste — mais lui seul : un rafraîchissement de statut ne suffit plus.
+      // Ouvrir le dossier d'un projet retiré le fait revenir dans la liste —
+      // lui seul : un rafraîchissement de statut ne suffit pas. C'est le
+      // comportement voulu : « ça l'enlève de la liste tant que je ne rouvre
+      // pas le dossier ».
       unhideOnVisit(result.path)
     }
     const wc = e.sender
@@ -311,22 +316,29 @@ export function registerFsHandlers(): void {
   // Démarre un glisser natif (VRAIS fichiers) : la cible peut être n'importe
   // quelle application — Explorateur Windows, client mail, éditeur… Sans lui,
   // le glisser HTML5 ne sort jamais de la fenêtre.
-  ipcMain.on(IPC.fsStartDrag, async (e, paths: string[]) => {
-    if (!Array.isArray(paths) || paths.length === 0) return
-    // Icône du fichier glissé plutôt qu'un carré vide : on voit ce qu'on porte.
-    let icon = DRAG_ICON
-    try {
-      const url = await getFileIconUrl(paths[0], 48)
-      if (url) {
-        const real = nativeImage.createFromDataURL(url)
-        if (!real.isEmpty()) icon = real
-      }
-    } catch {
-      /* icône indisponible : le carré par défaut suffit */
+  //
+  // IMPÉRATIF : appel SYNCHRONE. Electron exige que startDrag soit invoqué
+  // PENDANT l'événement dragstart ; un simple `await` avant (pour résoudre
+  // l'icône du fichier) décale l'appel après la fin du geste et FAIT PLANTER
+  // l'application — constaté en 1.0.14, trois fermetures d'affilée.
+  ipcMain.on(IPC.fsStartDrag, (e, paths: string[]) => {
+    if (!Array.isArray(paths) || paths.length === 0 || e.sender.isDestroyed()) return
+    const key = extname(paths[0]).toLowerCase()
+    const cached = dragIcons.get(key)
+    e.sender.startDrag({ file: paths[0], files: paths, icon: cached ?? DRAG_ICON })
+    // L'icône réelle est préparée APRÈS coup, pour le prochain glisser du même
+    // type : jamais de travail asynchrone avant le startDrag lui-même.
+    if (!cached) {
+      void getFileIconUrl(paths[0], 48)
+        .then((url) => {
+          if (!url) return
+          const img = nativeImage.createFromDataURL(url)
+          if (!img.isEmpty()) dragIcons.set(key, img)
+        })
+        .catch(() => {
+          /* icône indisponible : le carré par défaut fera l'affaire */
+        })
     }
-    // La fenêtre peut avoir été fermée pendant la résolution de l'icône.
-    if (e.sender.isDestroyed()) return
-    e.sender.startDrag({ file: paths[0], files: paths, icon })
   })
 
   ipcMain.handle(IPC.fsQuickAccess, async () => {
