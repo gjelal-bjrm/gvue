@@ -303,11 +303,25 @@ export function registerFsHandlers(): void {
     }
   })
 
-  // Démarre un glisser natif (vrais fichiers) → fonctionne vers l'explorateur
-  // Windows ou une autre instance de GVue.
-  ipcMain.on(IPC.fsStartDrag, (e, paths: string[]) => {
+  // Démarre un glisser natif (VRAIS fichiers) : la cible peut être n'importe
+  // quelle application — Explorateur Windows, client mail, éditeur… Sans lui,
+  // le glisser HTML5 ne sort jamais de la fenêtre.
+  ipcMain.on(IPC.fsStartDrag, async (e, paths: string[]) => {
     if (!Array.isArray(paths) || paths.length === 0) return
-    e.sender.startDrag({ file: paths[0], files: paths, icon: DRAG_ICON })
+    // Icône du fichier glissé plutôt qu'un carré vide : on voit ce qu'on porte.
+    let icon = DRAG_ICON
+    try {
+      const url = await getFileIconUrl(paths[0], 48)
+      if (url) {
+        const real = nativeImage.createFromDataURL(url)
+        if (!real.isEmpty()) icon = real
+      }
+    } catch {
+      /* icône indisponible : le carré par défaut suffit */
+    }
+    // La fenêtre peut avoir été fermée pendant la résolution de l'icône.
+    if (e.sender.isDestroyed()) return
+    e.sender.startDrag({ file: paths[0], files: paths, icon })
   })
 
   ipcMain.handle(IPC.fsQuickAccess, async () => {

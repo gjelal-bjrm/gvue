@@ -137,5 +137,8 @@ export const fileops: Record<string, string> = {
   // FileFinder.tsx
   'Aller à un fichier dans {dir}…': 'Go to a file in {dir}…',
   'Indexation…': 'Indexing…',
-  'Aucun fichier': 'No files'
+  'Aucun fichier': 'No files',
+  // Retour apres mise a la corbeille
+  '{n} élément mis à la corbeille — récupérable': '{n} item moved to the Recycle Bin — recoverable',
+  '{n} éléments mis à la corbeille — récupérables': '{n} items moved to the Recycle Bin — recoverable'
 }

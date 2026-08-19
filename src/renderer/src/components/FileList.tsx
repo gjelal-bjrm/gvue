@@ -5,6 +5,7 @@ import { useNavStore } from '../state/useNavStore'
 import { useAppearanceStore } from '../state/useAppearanceStore'
 import { useGitStore } from '../state/useGitStore'
 import type { DirEntry, GitFileChange } from '@shared/types'
+import { sameDir } from '@shared/launches'
 import { useUiStore } from '../state/useUiStore'
 import { useTerminalStore } from '../state/useTerminalStore'
 import { pathKey } from '../lib/format'
@@ -49,6 +50,8 @@ export default function FileList(props: { paneId: string }): JSX.Element {
   const ignoredAll = useGitStore((s) => s.ignored)
   const [menu, setMenu] = useState<{ x: number; y: number; entry: DirEntry | null } | null>(null)
   const [dragOver, setDragOver] = useState<string | null>(null)
+  // Chemins portés par le glisser natif en cours (voir startDragOf).
+  const nativeDragRef = useRef<string[]>([])
   const [dropMenu, setDropMenu] = useState<{ x: number; y: number; paths: string[]; destDir: string } | null>(
     null
   )
@@ -236,6 +239,19 @@ export default function FileList(props: { paneId: string }): JSX.Element {
         .showToast(
           tn(failed.length, 'Corbeille : {n} échec — {list}', 'Corbeille : {n} échecs — {list}', { list })
         )
+    } else if (paths.length) {
+      // Dire OÙ c'est parti : sans ce retour, on doute que la suppression
+      // soit réversible et on va vérifier dans la corbeille de Windows.
+      useUiStore
+        .getState()
+        .showToast(
+          tn(
+            paths.length,
+            '{n} élément mis à la corbeille — récupérable',
+            '{n} éléments mis à la corbeille — récupérables',
+            {}
+          )
+        )
     }
     setSelected([])
     await refreshAfter()
@@ -271,6 +287,24 @@ export default function FileList(props: { paneId: string }): JSX.Element {
   // Dépôt : drag interne (entre volets, chemins en données) ou externe (fichiers
   // de l'explorateur). Interne → déplacer par défaut ; externe → copier. Ctrl
   // force la copie, Maj force le déplacement.
+  /**
+   * Démarre un glisser NATIF : les fichiers deviennent de vrais fichiers pour
+   * le système, donc déposables dans l'Explorateur Windows, un mail, un
+   * éditeur… (le glisser HTML5 seul ne sort jamais de la fenêtre).
+   *
+   * Contrepartie : un dépôt dans GVue même revient alors comme un dépôt
+   * EXTERNE, dont le geste par défaut est « copier ». On mémorise donc les
+   * chemins portés pour que le dépôt entre volets reste un DÉPLACEMENT.
+   */
+  const startDragOf = (e: React.DragEvent, path: string): void => {
+    const sel = selectedSet.has(path) ? selected : [path]
+    // Conservé : un dépôt qui arrive encore par ce canal reste interne.
+    e.dataTransfer.setData('application/x-gvue-paths', JSON.stringify(sel))
+    e.dataTransfer.effectAllowed = 'copyMove'
+    nativeDragRef.current = sel
+    window.api.fs.startDrag(sel)
+  }
+
   const doDrop = async (e: React.DragEvent, destDir: string): Promise<void> => {
     e.preventDefault()
     e.stopPropagation()
@@ -285,8 +319,16 @@ export default function FileList(props: { paneId: string }): JSX.Element {
       paths = Array.from(e.dataTransfer.files)
         .map((f) => window.api.fs.pathForFile(f))
         .filter(Boolean)
-      defaultMove = false
+      // Depuis que le glisser est natif, nos propres fichiers reviennent par
+      // le canal « externe » : s'ils correspondent au glisser en cours, c'est
+      // un déplacement interne, pas une copie venue d'ailleurs.
+      const own = nativeDragRef.current
+      defaultMove =
+        own.length > 0 &&
+        own.length === paths.length &&
+        own.every((p) => paths.some((q) => sameDir(p, q)))
     }
+    nativeDragRef.current = []
     if (paths.length === 0) return
     const move = e.ctrlKey ? false : e.shiftKey ? true : defaultMove
     // Gère les conflits (dialogue), le toast d'erreurs et le rafraîchissement.
@@ -573,11 +615,7 @@ export default function FileList(props: { paneId: string }): JSX.Element {
                           onCommitRename={(name) => void commitRename(entry.path, name)}
                           onCancelRename={() => setRenaming(null)}
                           dropDir={isDir ? entry.path : undefined}
-                          onDragStart={(e) => {
-                            const sel = selectedSet.has(entry.path) ? selected : [entry.path]
-                            e.dataTransfer.setData('application/x-gvue-paths', JSON.stringify(sel))
-                            e.dataTransfer.effectAllowed = 'copyMove'
-                          }}
+                          onDragStart={(e) => startDragOf(e, entry.path)}
                           onDirOver={
                             isDir
                               ? (e) => {
@@ -615,11 +653,7 @@ export default function FileList(props: { paneId: string }): JSX.Element {
                 onCommitRename={(name) => void commitRename(entry.path, name)}
                 onCancelRename={() => setRenaming(null)}
                 dropDir={isDir ? entry.path : undefined}
-                onDragStart={(e) => {
-                  const sel = selectedSet.has(entry.path) ? selected : [entry.path]
-                  e.dataTransfer.setData('application/x-gvue-paths', JSON.stringify(sel))
-                  e.dataTransfer.effectAllowed = 'copyMove'
-                }}
+                onDragStart={(e) => startDragOf(e, entry.path)}
                 onRightDragStart={(e) => onRowMouseDown(e, entry)}
                 onDirOver={
                   isDir
