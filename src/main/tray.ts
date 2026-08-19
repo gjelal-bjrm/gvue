@@ -12,6 +12,7 @@ import { checkForUpdates } from './services/updater'
 import { readSshConfigHosts } from './services/ssh-config'
 import { t } from './i18n'
 import type { SshHost } from '@shared/types'
+import { normalizeLaunches } from '@shared/launches'
 
 // Hôtes du ~/.ssh/config, rafraîchis à chaque ouverture du menu (lecture
 // asynchrone → cache utilisé par le buildMenu synchrone).
@@ -107,7 +108,9 @@ function buildMenu(): Menu {
   // Un projet : ouvrir le dossier (dans GVue), et/ou lancer sa commande ▶ dans une
   // console externe (sans ouvrir GVue) si elle est définie.
   const projectItem = (root: string): Electron.MenuItemConstructorOptions => {
-    const cmd = projectLaunch[root]
+    // Un projet peut avoir plusieurs lancements : le plateau propose le
+    // premier (celui du bouton principal), les autres restent dans GVue.
+    const cmd = normalizeLaunches(projectLaunch[root])[0]?.command
     if (!cmd) return folderItem(root)
     return {
       label: basename(root) || root,

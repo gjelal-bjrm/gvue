@@ -459,6 +459,9 @@ export interface WindowState {
   maximized: boolean
 }
 
+import type { StoredLaunch } from './launches'
+export type { ProjectLaunch, LaunchIcon, StoredLaunch } from './launches'
+
 // --- Lanceur de tâches (phase 6) ---
 
 /** Un lancement exécutable : une commande shell lancée dans un dossier. */
@@ -570,8 +573,11 @@ export interface AppConfig {
   /** Lancements et profils du lanceur. */
   runnerTasks: RunnerTask[]
   runnerProfiles: RunnerProfile[]
-  /** Commande lancée par le bouton ▶ de chaque projet (racine → commande). */
-  projectLaunch: Record<string, string>
+  /**
+   * Lancements du bouton ▶ de chaque projet (racine → lancements).
+   * Une chaîne = ancien format (une seule commande), toujours lu.
+   */
+  projectLaunch: Record<string, StoredLaunch>
   /** Ordre des sections de la sidebar (clés : thispc, drives, favorites, projects). */
   sidebarOrder: string[]
   /** Sections de la sidebar repliées (clé → replié). */

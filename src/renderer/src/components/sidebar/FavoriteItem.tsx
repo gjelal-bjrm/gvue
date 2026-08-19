@@ -1,20 +1,18 @@
-import { Star, X, Play, Square, Settings2 } from 'lucide-react'
+import { Star, X, Settings2 } from 'lucide-react'
 import { baseName } from '../../lib/format'
+import LaunchButtons from './LaunchButtons'
 import { t } from '../../i18n'
 
 /**
  * Favori de la sidebar (ouvrir au clic, retirer au survol). Comme les projets,
- * il porte un ▶ pour exécuter une commande définie (⚙ pour la définir / la
- * changer) — utile pour un dossier de projet mis en favori.
+ * il porte les boutons de lancement configurés (⚙ pour les définir) — utile
+ * pour un dossier de projet mis en favori.
  */
 export default function FavoriteItem(props: {
   path: string
   active?: boolean
-  running: boolean
-  configured: boolean
   onOpen: () => void
   onRemove: () => void
-  onPlay: (e: React.MouseEvent) => void
   onConfig: (e: React.MouseEvent) => void
   onContextMenu?: (e: React.MouseEvent) => void
 }): JSX.Element {
@@ -35,26 +33,16 @@ export default function FavoriteItem(props: {
       </button>
       <button
         onClick={props.onConfig}
-        title={t('Définir la commande du ▶')}
-        className="grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted opacity-0 hover:bg-bg-hover hover:text-fg group-hover:opacity-100"
+        title={t('Configurer les lancements')}
+        className="hidden h-6 w-6 shrink-0 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg group-hover:grid"
       >
         <Settings2 size={13} />
       </button>
-      <button
-        onClick={props.onPlay}
-        title={props.running ? t('Arrêter') : props.configured ? t('Lancer') : t('Définir puis lancer')}
-        className={`grid h-6 w-6 shrink-0 place-items-center rounded hover:bg-bg-hover ${
-          props.running
-            ? 'text-danger-fg'
-            : 'text-fg-muted opacity-0 hover:text-success-fg group-hover:opacity-100'
-        }`}
-      >
-        {props.running ? <Square size={12} /> : <Play size={13} />}
-      </button>
+      <LaunchButtons root={props.path} onConfigure={props.onConfig} />
       <button
         onClick={props.onRemove}
         title={t('Retirer des favoris')}
-        className="grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted opacity-0 hover:bg-bg-hover hover:text-danger-fg group-hover:opacity-100"
+        className="hidden h-6 w-6 shrink-0 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-danger-fg group-hover:grid"
       >
         <X size={12} />
       </button>

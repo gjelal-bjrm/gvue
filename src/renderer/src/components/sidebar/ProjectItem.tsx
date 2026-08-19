@@ -1,15 +1,13 @@
-import { FolderGit2, Play, Square, Settings2, X } from 'lucide-react'
+import { FolderGit2, Settings2, X } from 'lucide-react'
 import type { GitProject } from '@shared/types'
+import LaunchButtons from './LaunchButtons'
 import { t } from '../../i18n'
 
-/** Dépôt de la section Projets : nom + branche + ▶ configurable (⚙) + retrait. */
+/** Dépôt de la section Projets : nom + branche + lancements (⚙) + retrait. */
 export default function ProjectItem(props: {
   project: GitProject
   active?: boolean
-  running: boolean
-  configured: boolean
   onClick: () => void
-  onPlay: (e: React.MouseEvent) => void
   onConfig: (e: React.MouseEvent) => void
   onHide: (e: React.MouseEvent) => void
   onContextMenu?: (e: React.MouseEvent) => void
@@ -36,24 +34,12 @@ export default function ProjectItem(props: {
       </button>
       <button
         onClick={props.onConfig}
-        title={t('Définir la commande du ▶')}
-        className="grid h-6 w-6 shrink-0 place-items-center rounded text-fg-muted opacity-0 hover:bg-bg-hover hover:text-fg group-hover:opacity-100"
+        title={t('Configurer les lancements')}
+        className="hidden h-6 w-6 shrink-0 place-items-center rounded text-fg-muted hover:bg-bg-hover hover:text-fg group-hover:grid"
       >
         <Settings2 size={13} />
       </button>
-      <button
-        onClick={props.onPlay}
-        title={
-          props.running ? t('Arrêter') : props.configured ? t('Lancer le projet') : t('Définir puis lancer')
-        }
-        className={`grid h-6 w-6 shrink-0 place-items-center rounded hover:bg-bg-hover ${
-          props.running
-            ? 'text-danger-fg'
-            : 'text-fg-muted opacity-0 hover:text-success-fg group-hover:opacity-100'
-        }`}
-      >
-        {props.running ? <Square size={12} /> : <Play size={13} />}
-      </button>
+      <LaunchButtons root={project.root} onConfigure={props.onConfig} />
       <button
         onClick={props.onHide}
         title={t('Retirer de la liste (revient en rouvrant le dossier)')}

@@ -15,7 +15,7 @@ import { useNavStore, activePane } from '../state/useNavStore'
 import { useSearchStore } from '../state/useSearchStore'
 import { useUiStore } from '../state/useUiStore'
 import { useFavoritesStore } from '../state/useFavoritesStore'
-import { useRunnerStore, projKey } from '../state/useRunnerStore'
+import { useRunnerStore } from '../state/useRunnerStore'
 import { useSidebarStore } from '../state/useSidebarStore'
 import type { GitProject, RunnerTask, SshHost } from '@shared/types'
 import { pathKey, baseName } from '../lib/format'
@@ -68,9 +68,6 @@ export default function Sidebar(): JSX.Element {
   // Mode démo : ni lancements ni favoris réels (noms de projets/chemins).
   const tasks = useRunnerStore((s) => (demoOn ? EMPTY_TASKS : s.tasks))
   const running = useRunnerStore((s) => s.running)
-  const projectLaunch = useRunnerStore((s) => s.projectLaunch)
-  const runProject = useRunnerStore((s) => s.runProject)
-  const stopProject = useRunnerStore((s) => s.stopProject)
   const runTask = useRunnerStore((s) => s.runTask)
   const stopTask = useRunnerStore((s) => s.stopTask)
 
@@ -207,15 +204,6 @@ export default function Sidebar(): JSX.Element {
     showLauncher()
   }
 
-  // Clic sur ▶ d'un dossier (projet ou favori) : arrête si en cours, lance si
-  // une commande est définie, sinon ouvre la configuration.
-  const onPlay = (e: React.MouseEvent, root: string, name: string): void => {
-    e.stopPropagation()
-    if (running[projKey(root)]) stopProject(root)
-    else if (projectLaunch[root]) void runProject(root, name)
-    else setConfig({ root, name })
-  }
-
   // Regroupe les lancements selon l'axe choisi (projet ou catégorie).
   const groups = useMemo(() => {
     const map = new Map<string, RunnerTask[]>()
@@ -299,11 +287,8 @@ export default function Sidebar(): JSX.Element {
               key={f}
               path={f}
               active={isActive(f)}
-              running={!!running[projKey(f)]}
-              configured={!!projectLaunch[f]}
               onOpen={() => navigate(f)}
               onRemove={() => removeFavorite(f)}
-              onPlay={(e) => onPlay(e, f, baseName(f))}
               onConfig={(e) => {
                 e.stopPropagation()
                 setConfig({ root: f, name: baseName(f) })
@@ -325,10 +310,7 @@ export default function Sidebar(): JSX.Element {
                 key={p.root}
                 project={p}
                 active={!quickAccess && !launcher && pathKey(path) === pathKey(p.root)}
-                running={!!running[projKey(p.root)]}
-                configured={!!projectLaunch[p.root]}
                 onClick={() => navigate(p.root)}
-                onPlay={(e) => onPlay(e, p.root, p.name)}
                 onConfig={(e) => {
                   e.stopPropagation()
                   setConfig({ root: p.root, name: p.name })

@@ -1,7 +1,9 @@
 import { create } from 'zustand'
-import type { RunnerTask, RunnerProfile } from '@shared/types'
+import type { RunnerTask, RunnerProfile, StoredLaunch, ProjectLaunch } from '@shared/types'
+import { normalizeLaunches } from '@shared/launches'
 import { useTerminalStore } from './useTerminalStore'
 import { useUiStore } from './useUiStore'
+import { t } from '../i18n'
 
 /**
  * Lanceur de tâches : tâches (commande + dossier) et profils (groupes de tâches).
@@ -10,14 +12,18 @@ import { useUiStore } from './useUiStore'
  */
 /** Clé d'état « en cours » pour le lancement d'un projet (vs un lancement). */
 export const projKey = (root: string): string => `proj:${root}`
+/** Clé d'état d'UN lancement précis d'un projet (plusieurs boutons ▶). */
+export const launchKey = (root: string, launchId: string): string => `proj:${root}#${launchId}`
 
 interface RunnerState {
   tasks: RunnerTask[]
   profiles: RunnerProfile[]
-  /** Commande du bouton ▶ de chaque projet (racine → commande). */
-  projectLaunch: Record<string, string>
+  /** Lancements du bouton ▶ de chaque projet (racine → lancements). */
+  projectLaunch: Record<string, StoredLaunch>
   /** En cours : taskId (ou projKey) → ptyId de l'onglet terminal. */
   running: Record<string, string>
+  /** Lancements tournant dans un terminal REPRIS (arrêt = Ctrl+C, pas kill). */
+  reused: Record<string, boolean>
 
   init: () => Promise<void>
   addTask: (task: Omit<RunnerTask, 'id'>) => void
@@ -31,8 +37,15 @@ interface RunnerState {
   runProfile: (id: string) => Promise<void>
   stopProfile: (id: string) => void
 
-  /** Définit (ou efface) la commande ▶ d'un projet. */
+  /** Définit (ou efface) la commande ▶ d'un projet (rétrocompatible). */
   setProjectCommand: (root: string, command: string) => void
+  /** Remplace la liste des lancements d'un projet. */
+  setProjectLaunches: (root: string, launches: ProjectLaunch[]) => void
+  /** Lancements d'un projet, ancien format compris. */
+  launchesFor: (root: string) => ProjectLaunch[]
+  /** Lance UN lancement précis du projet. */
+  runLaunch: (root: string, launchId: string) => Promise<void>
+  stopLaunch: (root: string, launchId: string) => void
   runProject: (root: string, name: string) => Promise<void>
   stopProject: (root: string) => void
 }
@@ -50,13 +63,50 @@ export const useRunnerStore = create<RunnerState>((set, get) => {
     void window.api.config.set('runnerProfiles', profiles)
   }
 
-  // Lance une commande dans un onglet terminal et suit son état sous `key`.
+  /**
+   * Lance une commande et suit son état sous `key`.
+   *
+   * Réutilise un terminal LIBRE déjà ouvert sur le même dossier plutôt que
+   * d'empiler un onglet de plus (demande utilisateur). « Libre » = vivant,
+   * local, et sans tâche du lanceur en cours : on n'écrase jamais un serveur
+   * qui tourne — dans ce cas un nouvel onglet est ouvert.
+   *
+   * Nuance assumée : dans un terminal réutilisé, GVue ne peut pas savoir
+   * quand la commande se termine (c'est un shell interactif, le pty survit).
+   * L'état reste donc « en cours » jusqu'au clic sur ■, qui envoie Ctrl+C au
+   * lieu de tuer un terminal que l'utilisateur avait ouvert lui-même.
+   */
   const runUnder = async (
     key: string,
     opts: { cwd: string; title: string; command: string }
   ): Promise<void> => {
     if (get().running[key]) return
     useUiStore.getState().setTerminalOpen(true)
+
+    const busy = Object.values(get().running)
+    const free = useTerminalStore.getState().freeTabFor(opts.cwd, busy)
+    if (free) {
+      useTerminalStore.getState().runInTab(free.id, opts.command)
+      set((s) => ({
+        running: { ...s.running, [key]: free.ptyId },
+        reused: { ...s.reused, [key]: true }
+      }))
+      // Le terminal peut quand même mourir (exit tapé par l'utilisateur).
+      const off = window.api.terminal.onExit(free.ptyId, () => {
+        set((s) => {
+          const r = { ...s.running }
+          const u = { ...s.reused }
+          if (r[key] === free.ptyId) {
+            delete r[key]
+            delete u[key]
+          }
+          return { running: r, reused: u }
+        })
+        off()
+      })
+      return
+    }
+
     const ptyId = await useTerminalStore.getState().openTaskTab(opts)
     if (!ptyId) return
     set((s) => ({ running: { ...s.running, [key]: ptyId } }))
@@ -73,11 +123,15 @@ export const useRunnerStore = create<RunnerState>((set, get) => {
   const stopUnder = (key: string): void => {
     const ptyId = get().running[key]
     if (!ptyId) return
-    window.api.terminal.kill(ptyId)
+    // Terminal réutilisé : il appartient à l'utilisateur → Ctrl+C, pas kill.
+    if (get().reused[key]) window.api.terminal.write(ptyId, '\u0003') // Ctrl+C
+    else window.api.terminal.kill(ptyId)
     set((s) => {
       const r = { ...s.running }
+      const u = { ...s.reused }
       delete r[key]
-      return { running: r }
+      delete u[key]
+      return { running: r, reused: u }
     })
   }
 
@@ -86,6 +140,7 @@ export const useRunnerStore = create<RunnerState>((set, get) => {
     profiles: [],
     projectLaunch: {},
     running: {},
+    reused: {},
 
     init: async () => {
       try {
@@ -141,19 +196,53 @@ export const useRunnerStore = create<RunnerState>((set, get) => {
     },
 
     setProjectCommand: (root, command) => {
+      const cmd = command.trim()
+      if (!cmd) {
+        get().setProjectLaunches(root, [])
+        return
+      }
+      // Conserve les autres lancements : on ne remplace que le premier.
+      const list = get().launchesFor(root)
+      const next = list.length
+        ? list.map((l, i) => (i === 0 ? { ...l, command: cmd } : l))
+        : [{ id: 'principal', name: t('Lancer'), command: cmd, icon: 'play' as const }]
+      get().setProjectLaunches(root, next)
+    },
+
+    setProjectLaunches: (root, launches) => {
       const next = { ...get().projectLaunch }
-      if (command.trim()) next[root] = command.trim()
+      if (launches.length) next[root] = launches
       else delete next[root]
       set({ projectLaunch: next })
       void window.api.config.set('projectLaunch', next)
     },
 
-    runProject: async (root, name) => {
-      const command = get().projectLaunch[root]
-      if (!command) return
-      await runUnder(projKey(root), { cwd: root, title: name, command })
+    launchesFor: (root) => normalizeLaunches(get().projectLaunch[root]),
+
+    runLaunch: async (root, launchId) => {
+      const launch = get().launchesFor(root).find((l) => l.id === launchId)
+      if (!launch) return
+      await runUnder(launchKey(root, launchId), {
+        cwd: root,
+        title: launch.name,
+        command: launch.command
+      })
     },
 
-    stopProject: (root) => stopUnder(projKey(root))
+    stopLaunch: (root, launchId) => stopUnder(launchKey(root, launchId)),
+
+    // Bouton ▶ historique : le PREMIER lancement du projet.
+    runProject: async (root, name) => {
+      const first = get().launchesFor(root)[0]
+      if (!first) return
+      await runUnder(launchKey(root, first.id), { cwd: root, title: name, command: first.command })
+    },
+
+    stopProject: (root) => {
+      const first = get().launchesFor(root)[0]
+      if (first) stopUnder(launchKey(root, first.id))
+      // Ancien état éventuellement enregistré sous la clé sans lancement.
+      stopUnder(projKey(root))
+    }
   }
 })

@@ -237,6 +237,27 @@ export const misc: Record<string, string> = {
   'Mettre la date devant le nom': 'Put the date in front of the name',
   '« {name} » rangé → {dir} — la liste de noms est épuisée, le fichier garde son nom.':
     '"{name}" tidied → {dir} — the name list is empty, the file keeps its name.',
+  // Lancements multiples (sidebar + barre du terminal)
+  'Configurer les lancements': 'Configure launches',
+  'Lancements de {name}': 'Launches of {name}',
+  'Chaque lancement devient un bouton sur la ligne du projet, exécuté dans son dossier.':
+    'Each launch becomes a button on the project row, run in its folder.',
+  'Icône du bouton': 'Button icon',
+  'Nom': 'Name',
+  'Retirer ce lancement': 'Remove this launch',
+  'Ajouter un lancement': 'Add a launch',
+  'Maximum {n} lancements — au-delà, les icônes ne tiennent plus sur la ligne du projet.':
+    'Maximum {n} launches — beyond that, the icons no longer fit on the project row.',
+  'Tout effacer': 'Clear all',
+  'Arrêter : {name}': 'Stop: {name}',
+  'Démarrer': 'Start',
+  'Construire': 'Build',
+  'Tester': 'Test',
+  'Déployer': 'Deploy',
+  'Commande': 'Command',
+  'Base de données': 'Database',
+  'Rafraîchir': 'Refresh',
+  'Déboguer': 'Debug',
   '2. Dans quel dossier les mettre ?': '2. Which folder to put them in?',
   'Choisissez un dossier avec « Parcourir »': 'Pick a folder with "Browse"',
   'Choisir le dossier de destination': 'Choose the destination folder',

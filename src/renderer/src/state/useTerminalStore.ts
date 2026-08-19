@@ -3,6 +3,7 @@ import type { ShellInfo } from '@shared/types'
 import { useNavStore, activePane } from './useNavStore'
 import { disposeTerminal } from '../lib/terminalBridge'
 import { baseName } from '../lib/format'
+import { sameDir } from '@shared/launches'
 import { t } from '../i18n'
 
 export interface TermTab {
@@ -56,6 +57,14 @@ interface TerminalState {
   setActive: (id: string) => void
   /** Écrit dans le terminal actif (ex. depuis la barre de commande). */
   writeActive: (data: string) => void
+  /**
+   * Onglet LIBRE ouvert sur ce dossier, s'il en existe un : même dossier,
+   * vivant, local (jamais une session SSH) et sans tâche GVue en cours.
+   * `busyPtyIds` vient du lanceur — lui seul sait ce qu'il a démarré.
+   */
+  freeTabFor: (cwd: string, busyPtyIds: string[]) => TermTab | null
+  /** Envoie une commande dans un onglet existant et l'affiche. */
+  runInTab: (tabId: string, command: string) => void
 }
 
 // Garde anti-doublon : évite d'ouvrir deux terminaux quand React StrictMode
@@ -241,5 +250,28 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
   writeActive: (data) => {
     const { activeId } = get()
     if (activeId) window.api.terminal.write(activeId, data)
+  },
+
+  freeTabFor: (cwd, busyPtyIds) => {
+    const busy = new Set(busyPtyIds)
+    const ok = (t: TermTab): boolean =>
+      !t.exited &&
+      // Une session SSH est un shell DISTANT : y envoyer une commande
+      // locale n'a aucun sens.
+      !t.sshHostKey &&
+      !busy.has(t.ptyId) &&
+      sameDir(t.cwd, cwd)
+    // Le terminal AFFICHÉ d'abord : si celui que l'utilisateur regarde
+    // convient, c'est là que la commande doit partir.
+    const active = get().tabs.find((t) => t.id === get().activeId)
+    if (active && ok(active)) return active
+    return get().tabs.find(ok) ?? null
+  },
+
+  runInTab: (tabId, command) => {
+    const tab = get().tabs.find((t) => t.id === tabId)
+    if (!tab || tab.exited) return
+    set({ activeId: tab.id })
+    window.api.terminal.write(tab.ptyId, command + '\r')
   }
 }))

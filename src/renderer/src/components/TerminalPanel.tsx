@@ -19,11 +19,15 @@ import {
   ArrowUp,
   ArrowDown,
   Link2,
-  Server
+  Server,
+  Play
 } from 'lucide-react'
 import { useUiStore } from '../state/useUiStore'
 import { useTerminalStore } from '../state/useTerminalStore'
 import { useNavStore } from '../state/useNavStore'
+import { useRunnerStore, launchKey } from '../state/useRunnerStore'
+import { projectOf, normalizeLaunches } from '@shared/launches'
+import { LAUNCH_ICON_MAP } from '../lib/launchIcons'
 import {
   clearTerminal,
   getTerminalText,
@@ -65,6 +69,17 @@ export default function TerminalPanel(): JSX.Element {
     [linked, tabs, navActiveId, paneIdSet]
   )
   const activeVisible = visibleTabs.some((t) => t.id === activeId)
+
+  // Lancements du PROJET du terminal actif (racine configurée contenant son
+  // dossier) : boutons ▶ directement dans la barre — demande utilisateur
+  // (« pouvoir lancer la commande depuis le terminal déjà ouvert »).
+  const projectLaunch = useRunnerStore((s) => s.projectLaunch)
+  const running = useRunnerStore((s) => s.running)
+  const activeTab = tabs.find((t) => t.id === activeId)
+  const launchRoot = activeTab && !activeTab.sshHostKey
+    ? projectOf(activeTab.cwd, Object.keys(projectLaunch))
+    : null
+  const launches = launchRoot ? normalizeLaunches(projectLaunch[launchRoot]) : []
 
   // En changeant d'onglet de dossier, bascule sur un terminal de cet onglet.
   useEffect(() => {
@@ -226,7 +241,31 @@ export default function TerminalPanel(): JSX.Element {
           </div>
         </div>
 
+
         <div className="flex shrink-0 items-center gap-1">
+          {/* Lancements du projet du terminal actif (dév, build, déploiement…). */}
+          {launches.length > 0 && launchRoot && (
+            <div className="mr-1 flex shrink-0 items-center gap-0.5 border-r border-border pr-1.5">
+              {launches.map((l) => {
+                const key = launchKey(launchRoot, l.id)
+                const on = Boolean(running[key])
+                const Icon = LAUNCH_ICON_MAP[l.icon] ?? Play
+                return (
+                  <HeaderBtn
+                    key={l.id}
+                    label={on ? t('Arrêter : {name}', { name: l.name }) : `${l.name} — ${l.command}`}
+                    onClick={() => {
+                      if (on) useRunnerStore.getState().stopLaunch(launchRoot, l.id)
+                      else void useRunnerStore.getState().runLaunch(launchRoot, l.id)
+                    }}
+                    active={on}
+                  >
+                    {on ? <Square size={13} className="text-danger-fg" /> : <Icon size={13} />}
+                  </HeaderBtn>
+                )
+              })}
+            </div>
+          )}
           {searchOpen ? (
             <div
               className={`flex items-center gap-0.5 rounded-app border bg-bg px-1 ${
