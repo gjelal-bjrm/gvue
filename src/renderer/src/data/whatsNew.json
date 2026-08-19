@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.9",
+    "notes": [
+      "Trois themes rouges — Rubis, Braise, Carmin",
+      "Lancements multiples par projet + boutons dans la barre du terminal"
+    ]
+  },
+  {
     "version": "1.0.8",
     "notes": [
       "Mode sélecteur : fenêtre légère, sans session"
