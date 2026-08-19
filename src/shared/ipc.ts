@@ -19,6 +19,8 @@ export const IPC = {
   fsJustRecipes: 'fs:justRecipes',
 
   // Intégration à l'Explorateur Windows (« Ouvrir dans GVue »)
+  /** Ce que la ligne de commande demandait au démarrage (espace, dossier). */
+  cliPending: 'cli:pending',
   integrationGet: 'integration:get',
   integrationSet: 'integration:set',
 

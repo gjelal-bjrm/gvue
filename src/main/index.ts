@@ -23,6 +23,7 @@ import { IPC } from '@shared/ipc'
 import { dirFromArgv, pickOutFromArgv, workspaceFromArgv } from './services/shell-integration'
 import { registerPickHandlers, setPickOut } from './ipc/pick'
 import { sendToWindow } from './tray'
+import { setPendingStartup } from './ipc/integration'
 import { registerSftpHandlers } from './ipc/sftp'
 import { disconnectAll } from './services/sftp-manager'
 import { startMcpServer, stopMcpServer } from './services/mcp-server'
@@ -156,15 +157,15 @@ if (!gotLock) {
       // projet) : on le charge dès que la fenêtre est prête.
       const ws = workspaceFromArgv(process.argv)
       if (ws) {
-        win.webContents.once('did-finish-load', () =>
-          win.webContents.send(IPC.trayLoadWorkspace, ws)
-        )
+        logInfo('cli', `démarrage : espace de travail demandé « ${ws} »`)
+        // mémorisé, pas envoyé : l'interface viendra le chercher quand elle
+        // sera prête (elle ne l'était pas forcément à did-finish-load)
+        setPendingStartup({ workspace: ws })
       }
       // Lancé avec un dossier en argument (« Ouvrir dans GVue » alors que GVue
       // était fermé) : on y navigue dès que la fenêtre est prête.
       void dirFromArgv(process.argv, app.isPackaged).then((dir) => {
-        if (dir)
-          win.webContents.once('did-finish-load', () => win.webContents.send(IPC.trayOpenPath, dir))
+        if (dir) setPendingStartup({ ...(ws ? { workspace: ws } : {}), dir })
       })
       initAutoUpdate()
 

@@ -416,6 +416,9 @@ const api = {
       ipcRenderer.on(IPC.trayRunProject, listener)
       return () => ipcRenderer.removeListener(IPC.trayRunProject, listener)
     },
+    /** Ce que la ligne de commande demandait — consommé une seule fois. */
+    pending: (): Promise<{ workspace?: string; dir?: string } | null> =>
+      ipcRenderer.invoke(IPC.cliPending),
     onLoadWorkspace: (cb: (name: string) => void): (() => void) => {
       const listener = (_e: unknown, name: string): void => cb(name)
       ipcRenderer.on(IPC.trayLoadWorkspace, listener)

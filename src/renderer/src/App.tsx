@@ -300,13 +300,23 @@ export default function App(): JSX.Element {
       }
       void r.runProject(root, baseName(root))
     })
-    const offWs = tray.onLoadWorkspace(async (name) => {
+    const applyWorkspace = async (name: string): Promise<void> => {
       let w = useWorkspaceStore.getState()
       if (!w.workspaces[name]) {
         await w.init()
         w = useWorkspaceStore.getState()
       }
       void w.load(name)
+    }
+    const offWs = tray.onLoadWorkspace(applyWorkspace)
+
+    // GVue lancé PAR GRay alors qu’il était fermé : le moteur a mémorisé ce que
+    // la ligne de commande demandait. On vient le chercher maintenant que les
+    // écouteurs existent — un envoi sur did-finish-load arrivait trop tôt.
+    void tray.pending?.().then((p) => {
+      if (!p) return
+      if (p.workspace) void applyWorkspace(p.workspace)
+      else if (p.dir) void useNavStore.getState().navigate(p.dir)
     })
     // Serveurs SSH du tray : terminal connecté, ou explorateur SFTP.
     const offSsh = tray.onOpenSsh?.((host) => {
