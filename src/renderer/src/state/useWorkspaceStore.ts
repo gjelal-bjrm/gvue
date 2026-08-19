@@ -71,8 +71,30 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
   },
 
   load: async (name) => {
-    const data = get().workspaces[name]
-    if (!data) return
+    // Tolérant sur le nom : GRay (ou le tray) transmet ce que l'utilisateur a
+    // saisi ailleurs. Une casse ou un espace de différence ne doit pas se
+    // solder par un silence complet.
+    const wanted = name.trim()
+    const key =
+      wanted in get().workspaces
+        ? wanted
+        : Object.keys(get().workspaces).find(
+            (k) => k.trim().toLowerCase() === wanted.toLowerCase()
+          )
+    const data = key === undefined ? undefined : get().workspaces[key]
+    if (!data) {
+      // Échouer en silence était le pire des cas : l'utilisateur voyait GVue
+      // s'ouvrir sans son espace, sans savoir pourquoi.
+      const known = Object.keys(get().workspaces)
+      useUiStore
+        .getState()
+        .showToast(
+          known.length > 0
+            ? `Espace de travail « ${wanted} » introuvable. Disponibles : ${known.join(", ")}.`
+            : `Espace de travail « ${wanted} » introuvable : aucun espace enregistré ici.`
+        )
+      return
+    }
     const ui = useUiStore.getState()
     ui.setTerminalOpen(data.terminalOpen)
     ui.setPreviewOpen(data.previewOpen)
