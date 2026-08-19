@@ -243,7 +243,6 @@ export const misc: Record<string, string> = {
   'Chaque lancement devient un bouton sur la ligne du projet, exécuté dans son dossier.':
     'Each launch becomes a button on the project row, run in its folder.',
   'Icône du bouton': 'Button icon',
-  'Nom': 'Name',
   'Retirer ce lancement': 'Remove this launch',
   'Ajouter un lancement': 'Add a launch',
   'Maximum {n} lancements — au-delà, les icônes ne tiennent plus sur la ligne du projet.':

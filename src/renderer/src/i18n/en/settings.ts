@@ -23,6 +23,12 @@ export const settings: Record<string, string> = {
   Annuler: 'Cancel',
 
   // theme/themes.ts
+  Rubis: 'Ruby',
+  'Sombre profond, rouge rubis et lueurs dorées': 'Deep dark with ruby red and golden glints',
+  Braise: 'Ember',
+  'Noir charbon, rouge incandescent des braises': 'Charcoal black with the glowing red of embers',
+  Carmin: 'Carmine',
+  'Clair ivoire relevé de rouge carmin': 'Ivory light accented with carmine red',
   'Cyber néon': 'Cyber neon',
   'Nuit bleutée, cyan et magenta électriques': 'Deep blue night with electric cyan and magenta',
   Matrix: 'Matrix',

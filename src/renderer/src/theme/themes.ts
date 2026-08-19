@@ -228,6 +228,66 @@ export const THEMES: ThemeDef[] = [
     }
   },
   {
+    id: 'rubis',
+    label: 'Rubis',
+    tagline: 'Sombre profond, rouge rubis et lueurs dorées',
+    base: 'dark',
+    accent: '#e11d48',
+    vars: {
+      bg: '#120a0d',
+      'bg-secondary': '#180d12',
+      'bg-tertiary': '#221219',
+      'bg-hover': 'rgba(225, 29, 72, 0.08)',
+      border: 'rgba(255, 120, 150, 0.14)',
+      'border-strong': 'rgba(255, 120, 150, 0.28)',
+      fg: '#f5dce2',
+      'fg-secondary': '#c9a3ae',
+      'fg-muted': '#8a6570',
+      'warning-fg': '#e8b64c',
+      'warning-bg': 'rgba(232, 182, 76, 0.13)',
+      'info-fg': '#e88ca0',
+      'info-bg': 'rgba(232, 140, 160, 0.12)',
+      'success-fg': '#3ddc84',
+      'success-bg': 'rgba(61, 220, 132, 0.12)',
+      'danger-fg': '#ff5c7a',
+      'danger-bg': 'rgba(255, 92, 122, 0.15)',
+      'term-red': '#e11d48',
+      'term-bright-red': '#ff5c7a',
+      'term-magenta': '#d4547c',
+      'term-yellow': '#e8b64c'
+    }
+  },
+  {
+    id: 'braise',
+    label: 'Braise',
+    tagline: 'Noir charbon, rouge incandescent des braises',
+    base: 'dark',
+    accent: '#ff3d2e',
+    vars: {
+      bg: '#0e0908',
+      'bg-secondary': '#150d0a',
+      'bg-tertiary': '#1e120d',
+      'bg-hover': 'rgba(255, 61, 46, 0.08)',
+      border: 'rgba(255, 110, 70, 0.15)',
+      'border-strong': 'rgba(255, 110, 70, 0.30)',
+      fg: '#f6ddd2',
+      'fg-secondary': '#cfa190',
+      'fg-muted': '#8f6a58',
+      'warning-fg': '#ffa02e',
+      'warning-bg': 'rgba(255, 160, 46, 0.14)',
+      'info-fg': '#ff8a5e',
+      'info-bg': 'rgba(255, 138, 94, 0.12)',
+      'success-fg': '#9acd4c',
+      'success-bg': 'rgba(154, 205, 76, 0.12)',
+      'danger-fg': '#ff6a3c',
+      'danger-bg': 'rgba(255, 106, 60, 0.16)',
+      'term-red': '#ff3d2e',
+      'term-bright-red': '#ff6a3c',
+      'term-yellow': '#ffa02e',
+      'term-green': '#9acd4c'
+    }
+  },
+  {
     id: 'paper',
     label: 'Papier',
     tagline: 'Clair façon e-ink, encre et sépia, reposant',
@@ -251,6 +311,34 @@ export const THEMES: ThemeDef[] = [
       'success-bg': 'rgba(74, 124, 70, 0.12)',
       'danger-fg': '#b5432e',
       'danger-bg': 'rgba(181, 67, 46, 0.12)'
+    }
+  },
+  {
+    id: 'carmin',
+    label: 'Carmin',
+    tagline: 'Clair ivoire relevé de rouge carmin',
+    base: 'light',
+    accent: '#c41e3a',
+    vars: {
+      bg: '#fbf7f5',
+      'bg-secondary': '#f4ecea',
+      'bg-tertiary': '#ecdfdd',
+      'bg-hover': 'rgba(196, 30, 58, 0.06)',
+      border: 'rgba(90, 40, 48, 0.16)',
+      'border-strong': 'rgba(90, 40, 48, 0.28)',
+      fg: '#332226',
+      'fg-secondary': '#65484f',
+      'fg-muted': '#93737a',
+      'warning-fg': '#a5761b',
+      'warning-bg': 'rgba(165, 118, 27, 0.13)',
+      'info-fg': '#8a4a5e',
+      'info-bg': 'rgba(138, 74, 94, 0.10)',
+      'success-fg': '#3e7d44',
+      'success-bg': 'rgba(62, 125, 68, 0.12)',
+      'danger-fg': '#c41e3a',
+      'danger-bg': 'rgba(196, 30, 58, 0.12)',
+      'term-red': '#c41e3a',
+      'term-bright-red': '#e04358'
     }
   }
 ]
