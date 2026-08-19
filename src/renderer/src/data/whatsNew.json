@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.0.14",
+    "notes": [
+      "Un projet retiré de la liste y reste",
+      "Glisser un fichier de GVue vers n'importe quelle application (Explorateur, mail, éditeur…)",
+      "La suppression confirme la mise à la corbeille — donc réversible",
+      "Ouvrir un espace de travail depuis l'extérieur : la bonne fenêtre le charge, et un espace introuvable le dit"
+    ]
+  },
+  {
     "version": "1.0.9",
     "notes": [
       "Trois themes rouges — Rubis, Braise, Carmin",
