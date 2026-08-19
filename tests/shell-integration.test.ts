@@ -89,3 +89,40 @@ describe('workspaceFromArgv', () => {
     expect(workspaceFromArgv(['GVue.exe', '--workspace', '--pick'])).toBe(null)
   })
 })
+
+describe('argv livré par Electron à une seconde instance', () => {
+  // Cas RÉEL relevé dans le journal de Gjelal : Electron insère ses propres
+  // options entre `--workspace` et sa valeur, rejetée à la fin.
+  const reel = [
+    'C:\Users\gjelal\AppData\Local\Programs\GVue\GVue.exe',
+    '--workspace',
+    '--allow-file-access-from-files',
+    '--bypasscsp-schemes=gvue-file',
+    '--fetch-schemes=gvue-file',
+    '--streaming-schemes=gvue-file',
+    'GestFit'
+  ]
+
+  it('enjambe les options insérées par Electron', () => {
+    expect(workspaceFromArgv(reel)).toBe('GestFit')
+  })
+
+  it('lit encore la forme simple', () => {
+    expect(workspaceFromArgv(['GVue.exe', '--workspace', 'SGPA'])).toBe('SGPA')
+  })
+
+  it('accepte la forme collée, que rien ne peut couper', () => {
+    expect(workspaceFromArgv(['GVue.exe', '--workspace=Mon Espace'])).toBe('Mon Espace')
+  })
+
+  it('renvoie null sans option ni valeur', () => {
+    expect(workspaceFromArgv(['GVue.exe'])).toBeNull()
+    expect(workspaceFromArgv(['GVue.exe', '--workspace'])).toBeNull()
+  })
+
+  it('le mode sélecteur résiste au même piège', () => {
+    expect(
+      pickOutFromArgv(['GVue.exe', '--pick', '--pick-out', '--allow-file-access', 'C:\tmp\o.txt'])
+    ).toBe('C:\tmp\o.txt')
+  })
+})

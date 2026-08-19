@@ -107,15 +107,37 @@ export function candidateArgs(argv: string[], isPackaged: boolean): string[] {
 }
 
 /**
+ * Valeur d'une option en ligne de commande, quelle que soit sa forme.
+ *
+ * Piège vérifié dans les journaux : quand GVue tourne déjà, Electron livre à
+ * `second-instance` un argv où IL A INSÉRÉ ses propres options entre l'option
+ * et sa valeur —
+ *   `--workspace --allow-file-access-from-files --fetch-schemes=… GestFit`
+ * Prendre bêtement l'élément suivant renvoyait donc un tiret, et la demande
+ * était abandonnée en silence. On enjambe les options pour trouver la valeur.
+ * La forme `--option=valeur` est acceptée aussi : elle, rien ne peut la couper.
+ */
+export function optionValue(argv: string[], option: string): string | null {
+  const glued = argv.find((a) => a.startsWith(`${option}=`))
+  if (glued) {
+    const value = glued.slice(option.length + 1).trim()
+    return value === '' ? null : value
+  }
+  const i = argv.indexOf(option)
+  if (i === -1) return null
+  for (let k = i + 1; k < argv.length; k++) {
+    if (!argv[k].startsWith('-')) return argv[k]
+  }
+  return null
+}
+
+/**
  * Espace de travail demandé en ligne de commande (pur, testable) :
  * « GVue.exe --workspace <nom> » — utilisé par GRay pour ouvrir GVue avec le
  * profil du projet. Renvoie le nom, ou null si l'option est absente/incomplète.
  */
 export function workspaceFromArgv(argv: string[]): string | null {
-  const i = argv.indexOf('--workspace')
-  if (i === -1) return null
-  const name = argv[i + 1]
-  return name && !name.startsWith('-') ? name : null
+  return optionValue(argv, '--workspace')
 }
 
 /**
@@ -126,8 +148,5 @@ export function workspaceFromArgv(argv: string[]): string | null {
  */
 export function pickOutFromArgv(argv: string[]): string | null {
   if (!argv.includes('--pick')) return null
-  const i = argv.indexOf('--pick-out')
-  if (i === -1) return null
-  const out = argv[i + 1]
-  return out && !out.startsWith('-') ? out : null
+  return optionValue(argv, '--pick-out')
 }
