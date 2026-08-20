@@ -4,6 +4,7 @@ import {
   registryAdds,
   candidateArgs,
   pickOutFromArgv,
+  gitFromArgv,
   workspaceFromArgv
 } from '../src/main/services/shell-integration'
 
@@ -124,5 +125,15 @@ describe('argv livré par Electron à une seconde instance', () => {
     expect(
       pickOutFromArgv(['GVue.exe', '--pick', '--pick-out', '--allow-file-access', 'C:\tmp\o.txt'])
     ).toBe('C:\tmp\o.txt')
+  })
+})
+
+describe('gitFromArgv', () => {
+  it('détecte --git même au milieu des options injectées par Electron', () => {
+    const argv = ['GVue.exe', '--workspace', '--allow-file-access-from-files', 'GestFit', '--git']
+    expect(gitFromArgv(argv)).toBe(true)
+  })
+  it('absent : pas de panneau Git', () => {
+    expect(gitFromArgv(['GVue.exe', 'C:/dev'])).toBe(false)
   })
 })

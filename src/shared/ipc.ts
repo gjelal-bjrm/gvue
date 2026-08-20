@@ -159,6 +159,7 @@ export const IPC = {
   trayBrowseSsh: 'tray:browseSsh',
   trayRunProject: 'tray:runProject',
   trayLoadWorkspace: 'tray:loadWorkspace',
+  trayOpenGit: 'tray:openGit',
 
   // Mises à jour automatiques
   updateCheck: 'update:check',

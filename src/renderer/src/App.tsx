@@ -317,7 +317,10 @@ export default function App(): JSX.Element {
       if (!p) return
       if (p.workspace) void applyWorkspace(p.workspace)
       else if (p.dir) void useNavStore.getState().navigate(p.dir)
+      // « --git » (GRay, bouton Git avancé) : le panneau Git s'ouvre tout seul
+      if (p.git) useUiStore.getState().setGitView(true)
     })
+    const offGit = tray.onOpenGit?.(() => useUiStore.getState().setGitView(true))
     // Serveurs SSH du tray : terminal connecté, ou explorateur SFTP.
     const offSsh = tray.onOpenSsh?.((host) => {
       useUiStore.getState().setTerminalOpen(true)
@@ -362,6 +365,7 @@ export default function App(): JSX.Element {
       offRun()
       offRunProj()
       offWs()
+      offGit?.()
       offSsh?.()
       offBrowse?.()
       offTidy?.()

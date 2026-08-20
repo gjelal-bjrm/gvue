@@ -20,10 +20,12 @@ import { registerSshHandlers } from './ipc/ssh'
 import { registerIntegrationHandlers } from './ipc/integration'
 import { registerTidyScriptHandlers } from './services/tidy-scripts'
 import { IPC } from '@shared/ipc'
-import { dirFromArgv, pickOutFromArgv, workspaceFromArgv } from './services/shell-integration'
+import { dirFromArgv, pickOutFromArgv, workspaceFromArgv,
+  gitFromArgv } from './services/shell-integration'
 import { registerPickHandlers, setPickOut } from './ipc/pick'
 import { sendToWindow } from './tray'
 import { setPendingStartup } from './ipc/integration'
+
 import { registerSftpHandlers } from './ipc/sftp'
 import { disconnectAll } from './services/sftp-manager'
 import { startMcpServer, stopMcpServer } from './services/mcp-server'
@@ -126,15 +128,18 @@ if (!gotLock) {
     // « GVue.exe --workspace <nom> » (lancé par GRay) : on charge le profil
     // demandé dans la fenêtre existante, comme le fait le menu du plateau.
     const ws = workspaceFromArgv(argv)
+    const wantGit = gitFromArgv(argv)
     logInfo('cli', `seconde instance : ${argv.join(' ')}`)
     if (ws) {
       logInfo('cli', `espace de travail demande : ${ws}`)
       sendToWindow(IPC.trayLoadWorkspace, ws)
+      if (wantGit) sendToWindow(IPC.trayOpenGit, null)
       return
     }
     void dirFromArgv(argv, app.isPackaged).then((dir) => {
       if (dir) sendToWindow(IPC.trayOpenPath, dir)
-      else createWindow()
+      else if (!wantGit) createWindow()
+      if (wantGit) sendToWindow(IPC.trayOpenGit, null)
     })
   })
 
@@ -156,16 +161,23 @@ if (!gotLock) {
       // Lancé avec un espace de travail en argument (GRay ouvre le profil du
       // projet) : on le charge dès que la fenêtre est prête.
       const ws = workspaceFromArgv(process.argv)
-      if (ws) {
-        logInfo('cli', `démarrage : espace de travail demandé « ${ws} »`)
+      const wantGit = gitFromArgv(process.argv)
+      if (ws || wantGit) {
+        if (ws) logInfo('cli', `démarrage : espace de travail demandé « ${ws} »`)
+        if (wantGit) logInfo('cli', 'démarrage : panneau Git demandé (--git)')
         // mémorisé, pas envoyé : l'interface viendra le chercher quand elle
         // sera prête (elle ne l'était pas forcément à did-finish-load)
-        setPendingStartup({ workspace: ws })
+        setPendingStartup({ ...(ws ? { workspace: ws } : {}), ...(wantGit ? { git: true } : {}) })
       }
       // Lancé avec un dossier en argument (« Ouvrir dans GVue » alors que GVue
       // était fermé) : on y navigue dès que la fenêtre est prête.
       void dirFromArgv(process.argv, app.isPackaged).then((dir) => {
-        if (dir) setPendingStartup({ ...(ws ? { workspace: ws } : {}), dir })
+        if (dir)
+          setPendingStartup({
+            ...(ws ? { workspace: ws } : {}),
+            ...(wantGit ? { git: true } : {}),
+            dir
+          })
       })
       initAutoUpdate()
 

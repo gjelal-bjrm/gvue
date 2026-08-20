@@ -146,6 +146,14 @@ export function workspaceFromArgv(argv: string[]): string | null {
  * les chemins choisis dans <fichier> puis se fermera. Renvoie le fichier de
  * sortie, ou null si le mode n'est pas demandé (ou incomplet).
  */
+/**
+ * « GVue.exe --git » (lancé par GRay, bouton « Git avancé » d'un dépôt) :
+ * ouvrir directement le panneau Git une fois le dossier/espace chargé.
+ */
+export function gitFromArgv(argv: string[]): boolean {
+  return argv.includes('--git')
+}
+
 export function pickOutFromArgv(argv: string[]): string | null {
   if (!argv.includes('--pick')) return null
   return optionValue(argv, '--pick-out')

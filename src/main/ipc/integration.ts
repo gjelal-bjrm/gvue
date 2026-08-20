@@ -15,7 +15,7 @@ import {
  * s'ouvrait sans charger l'espace demandé. Une demande de l'interface, elle,
  * ne peut pas arriver trop tôt.
  */
-let pending: { workspace?: string; dir?: string } | null = null
+let pending: { workspace?: string; dir?: string; git?: boolean } | null = null
 
 export function setPendingStartup(value: { workspace?: string; dir?: string }): void {
   pending = value
