@@ -1,6 +1,6 @@
 import { app, BrowserWindow, dialog, protocol, net } from 'electron'
 import { pathToFileURL } from 'node:url'
-import { isAbsolute, normalize } from 'node:path'
+import { isAbsolute, join, normalize } from 'node:path'
 import { createWindow } from './window'
 import { createTray, trayActive } from './tray'
 import { syncTidy } from './services/tidy'
@@ -113,6 +113,15 @@ function registerFileProtocol(): void {
 // verrou d'instance (l'instance principale peut tourner en parallèle), sans
 // tray, sans mises à jour, sans MCP.
 const pickOut = pickOutFromArgv(process.argv)
+
+// Le sélecteur vit hors du verrou : sans session à lui, il se bat avec
+// l'instance principale pour le cache Chromium (« Unable to move the cache :
+// accès refusé », cache GPU en échec) et la fenêtre reste NOIRE. On isole
+// donc le stockage Chromium (cache, GPU, localStorage) dans un sous-dossier ;
+// userData ne bouge pas — la config (config.json) reste lue au même endroit.
+if (pickOut !== null) {
+  app.setPath('sessionData', join(app.getPath('userData'), 'pick-session'))
+}
 
 // Verrou d'instance unique : un seul *processus* GVue (les fenêtres multiples
 // vivent dans ce processus). Évite que deux processus se disputent le cache
