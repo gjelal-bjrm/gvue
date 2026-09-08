@@ -205,6 +205,8 @@ export interface McpContext {
     paneId?: string
     /** Session SSH : clé du serveur (hôte:port:utilisateur), sinon absent. */
     sshHost?: string
+    /** Shell du terminal (cmd, powershell, git-bash…) — syntaxe des commandes. */
+    shellId?: string
   }[]
   ui?: McpUiState
 }

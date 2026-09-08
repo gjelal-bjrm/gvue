@@ -12,6 +12,7 @@ import { hostKeyOf } from './sftp-manager'
 import { sendToWindow } from '../tray'
 import { logInfo, logError } from './logger'
 import { stripAnsi, tailLines } from './strip-ansi'
+import { makeTag, shellKindOf, wrapCommand, scanForExit } from '@shared/terminal-exit'
 
 /**
  * Serveur MCP local (agents IA — Claude Code, etc.) : expose le contexte de la
@@ -26,6 +27,7 @@ import { stripAnsi, tailLines } from './strip-ansi'
  */
 
 let server: Server | null = null
+let runSeq = 0
 let token = ''
 let port = 0
 
@@ -131,20 +133,52 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<To
       // Repère de départ : on ne rend que ce que CETTE commande a produit.
       const before = getPtyBuffer(term.ptyId).length
       const submit = args.submit !== false
-      writePty(term.ptyId, submit ? `${command}
-` : command)
+      const timeoutMs = Math.min(300_000, Math.max(500, Number(args.timeoutMs || args.waitMs) || 20_000))
 
-      const waitMs = Math.min(30_000, Math.max(0, Number(args.waitMs) || 1500))
-      await new Promise((r) => setTimeout(r, waitMs))
-      const produced = getPtyBuffer(term.ptyId).slice(before)
+      // Sans validation (répondre à une invite, envoyer une touche…), il n'y a
+      // pas de « fin de commande » à guetter : on rend ce qui sort, c'est tout.
+      if (!submit) {
+        writePty(term.ptyId, command)
+        await new Promise((r) => setTimeout(r, Math.min(timeoutMs, 1500)))
+        return {
+          ptyId: term.ptyId,
+          title: term.title,
+          finished: false,
+          exitCode: null,
+          output: tailLines(stripAnsi(getPtyBuffer(term.ptyId).slice(before)), 400)
+        }
+      }
+
+      // Un terminal ne rend pas de code de sortie : on fait suivre la commande
+      // d'un écho balisé qui le porte, et on attend CETTE balise plutôt qu'un
+      // délai fixe. L'agent sait alors si la commande a réussi, et n'a plus à
+      // deviner combien de temps patienter.
+      const tag = makeTag(++runSeq)
+      const kind = shellKindOf(term.shellId, Boolean(term.sshHost))
+      writePty(term.ptyId, `${wrapCommand(command, tag, kind)}\r`)
+
+      const deadline = Date.now() + timeoutMs
+      const read = (): ReturnType<typeof scanForExit> =>
+        scanForExit(stripAnsi(getPtyBuffer(term.ptyId).slice(before)), tag)
+      let scan = read()
+      while (!scan.done && Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 150))
+        scan = read()
+      }
+
       return {
         ptyId: term.ptyId,
         title: term.title,
         sshHost: term.sshHost ?? null,
-        output: tailLines(stripAnsi(produced), 400),
-        note:
-          'Sortie produite pendant l’attente. Une commande plus longue continue ' +
-          'de tourner : rappelez get_terminal_output pour lire la suite.'
+        finished: scan.done,
+        exitCode: scan.code,
+        output: tailLines(scan.output, 400),
+        note: scan.done
+          ? scan.code === 0
+            ? 'Commande terminée avec succès (code 0).'
+            : `Commande terminée en ÉCHEC (code ${scan.code}).`
+          : 'Toujours en cours après le délai imparti — un serveur qui tourne, par ' +
+            'exemple. Le processus continue : relisez avec get_terminal_output.'
       }
     }
 

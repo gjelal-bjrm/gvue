@@ -123,7 +123,9 @@ const TOOLS = [
   {
     name: 'run_in_terminal',
     description:
-      'Lance une commande dans un terminal DÉJÀ OUVERT de GVue et rend la sortie produite. ' +
+      'Lance une commande dans un terminal DÉJÀ OUVERT de GVue, attend sa FIN et rend sa ' +
+      'sortie avec son CODE DE SORTIE (`exitCode` 0 = succès ; `finished` faux = toujours ' +
+      'en cours après le délai, cas normal pour un serveur qui tourne). ' +
       "À PRÉFÉRER à open_terminal : n'ouvre pas d'onglet supplémentaire. " +
       'Sur une session SSH ouverte par GVue (voir list_terminals / open_ssh), la commande ' +
       "part sur le SERVEUR dans la connexion déjà authentifiée : rien n'est redemandé à " +
@@ -145,9 +147,11 @@ const TOOLS = [
           type: 'boolean',
           description: 'Valider par Entrée (défaut vrai ; faux pour répondre à une invite)'
         },
-        waitMs: {
+        timeoutMs: {
           type: 'number',
-          description: "Attente avant de lire la sortie (défaut 1500, max 30000)"
+          description:
+            "Attente MAXIMALE de la fin de la commande (défaut 20000, max 300000). " +
+            'Au-delà, la commande continue de tourner et la sortie est rendue telle quelle.'
         }
       },
       required: ['command'],

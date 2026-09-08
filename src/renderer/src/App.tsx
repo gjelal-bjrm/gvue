@@ -411,7 +411,8 @@ export default function App(): JSX.Element {
             // Un agent doit pouvoir reconnaître une session distante déjà
             // ouverte plutôt que d'en relancer une (et de redemander le mot
             // de passe à l'utilisateur).
-            sshHost: tb.sshHostKey
+            sshHost: tb.sshHostKey,
+            shellId: tb.shell.id
           })),
           ui: {
             gitViewOpen: ui.gitViewOpen,
