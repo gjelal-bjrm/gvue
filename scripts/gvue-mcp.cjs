@@ -98,7 +98,11 @@ const TOOLS = [
   },
   {
     name: 'list_terminals',
-    description: 'Liste les terminaux intégrés ouverts dans GVue (ptyId, titre, dossier, état).',
+    description:
+      'Liste les terminaux intégrés ouverts dans GVue (ptyId, titre, dossier, état, et ' +
+      '`sshHost` pour les sessions DISTANTES déjà connectées). ' +
+      "À CONSULTER EN PREMIER : travailler dans un terminal existant (run_in_terminal) " +
+      "évite d'en empiler un nouveau et réutilise une connexion SSH déjà établie.",
     inputSchema: { type: 'object', properties: {}, additionalProperties: false }
   },
   {
@@ -113,6 +117,36 @@ const TOOLS = [
         title: { type: 'string', description: 'Fragment du titre du terminal' },
         tailLines: { type: 'number', description: 'Nombre de lignes de fin (défaut 200, max 2000)' }
       },
+      additionalProperties: false
+    }
+  },
+  {
+    name: 'run_in_terminal',
+    description:
+      'Lance une commande dans un terminal DÉJÀ OUVERT de GVue et rend la sortie produite. ' +
+      "À PRÉFÉRER à open_terminal : n'ouvre pas d'onglet supplémentaire. " +
+      'Sur une session SSH ouverte par GVue (voir list_terminals / open_ssh), la commande ' +
+      "part sur le SERVEUR dans la connexion déjà authentifiée : rien n'est redemandé à " +
+      "l'utilisateur. Sert aussi à naviguer (cd, ls) puisque le shell garde son état. " +
+      'Sans cible : le dernier terminal vivant. La commande tourne dans le shell de ' +
+      "l'utilisateur, potentiellement distant — vérifiez la cible avant d'écrire.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        command: { type: 'string', description: 'Commande à exécuter' },
+        ptyId: { type: 'string', description: 'Terminal visé (voir list_terminals)' },
+        title: { type: 'string', description: 'À défaut : fragment du titre' },
+        server: { type: 'string', description: 'À défaut : fragment du serveur SSH (hôte:port:user)' },
+        submit: {
+          type: 'boolean',
+          description: 'Valider par Entrée (défaut vrai ; faux pour répondre à une invite)'
+        },
+        waitMs: {
+          type: 'number',
+          description: "Attente avant de lire la sortie (défaut 1500, max 30000)"
+        }
+      },
+      required: ['command'],
       additionalProperties: false
     }
   },
@@ -154,9 +188,11 @@ const TOOLS = [
   {
     name: 'open_terminal',
     description:
-      'Ouvre un terminal intégré VISIBLE dans GVue (et y lance une commande si fournie). ' +
-      "À préférer pour les commandes longues (serveurs de dev…) : l'utilisateur voit la " +
-      "sortie en direct et le processus survit à la session de l'agent.",
+      'Ouvre un NOUVEAU terminal intégré visible dans GVue (et y lance une commande si ' +
+      "fournie). À réserver aux commandes longues (serveurs de dev…) qui méritent leur " +
+      "propre onglet : l'utilisateur voit la sortie en direct et le processus survit à la " +
+      "session de l'agent. Pour tout le reste, préférez run_in_terminal dans un terminal " +
+      'déjà ouvert — sinon les onglets s’accumulent.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -255,10 +291,20 @@ const TOOLS = [
   {
     name: 'open_ssh',
     description:
-      "Ouvre un terminal SSH connecté au serveur indiqué (nom exact — voir list_servers).",
+      'Ouvre — ou REPREND — un terminal SSH sur le serveur indiqué (nom exact, voir ' +
+      'list_servers) et rend son `ptyId`. Une session déjà ouverte vers ce serveur est ' +
+      "réutilisée. Le mot de passe enregistré dans GVue est fourni automatiquement à " +
+      "l'invite : l'utilisateur n'a rien à saisir. Enchaînez ensuite avec run_in_terminal " +
+      'sur le ptyId rendu.',
     inputSchema: {
       type: 'object',
-      properties: { name: { type: 'string' } },
+      properties: {
+        name: { type: 'string' },
+        newSession: {
+          type: 'boolean',
+          description: 'Forcer une nouvelle session même si une est déjà ouverte (défaut faux)'
+        }
+      },
       required: ['name'],
       additionalProperties: false
     }

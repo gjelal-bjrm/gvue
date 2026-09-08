@@ -197,7 +197,15 @@ export interface McpContext {
     selected: string[]
   }[]
   repo: { root: string; branch: string } | null
-  terminals: { ptyId: string; title: string; cwd: string; exited: boolean; paneId?: string }[]
+  terminals: {
+    ptyId: string
+    title: string
+    cwd: string
+    exited: boolean
+    paneId?: string
+    /** Session SSH : clé du serveur (hôte:port:utilisateur), sinon absent. */
+    sshHost?: string
+  }[]
   ui?: McpUiState
 }
 

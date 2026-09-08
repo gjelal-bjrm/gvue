@@ -5,9 +5,10 @@ import { join } from 'node:path'
 import { app, BrowserWindow } from 'electron'
 import { IPC } from '@shared/ipc'
 import type { McpContext } from '@shared/types'
-import { getPtyBuffer } from './pty-manager'
+import { getPtyBuffer, writePty } from './pty-manager'
 import { getConfig } from './config-store'
 import { readSshConfigHosts } from './ssh-config'
+import { hostKeyOf } from './sftp-manager'
 import { sendToWindow } from '../tray'
 import { logInfo, logError } from './logger'
 import { stripAnsi, tailLines } from './strip-ansi'
@@ -46,6 +47,36 @@ export function bridgePath(): string {
     : join(app.getAppPath(), 'scripts', 'gvue-mcp.cjs')
 }
 
+/** Attend l'apparition du terminal SSH que l'interface vient d'ouvrir. */
+async function waitForSshTerminal(hostKey: string, timeoutMs: number): Promise<string | null> {
+  const deadline = Date.now() + timeoutMs
+  while (Date.now() < deadline) {
+    const found = context.terminals.find((t) => !t.exited && t.sshHost === hostKey)
+    if (found) return found.ptyId
+    await new Promise((r) => setTimeout(r, 200))
+  }
+  return null
+}
+
+/**
+ * Terminal visé par un outil : par ptyId, sinon par titre approché, sinon par
+ * serveur SSH, sinon le dernier ouvert. Les sessions terminées ne sont
+ * choisies par défaut que s'il n'y a rien de vivant.
+ */
+function findTerminal(args: Record<string, unknown>): McpContext['terminals'][number] | null {
+  const id = typeof args.ptyId === 'string' ? args.ptyId : ''
+  const title = typeof args.title === 'string' ? args.title.toLowerCase() : ''
+  const server = typeof args.server === 'string' ? args.server.toLowerCase() : ''
+  if (id) return context.terminals.find((t) => t.ptyId === id) ?? null
+  if (title) return context.terminals.find((t) => t.title.toLowerCase().includes(title)) ?? null
+  if (server) {
+    return context.terminals.find((t) => (t.sshHost ?? '').toLowerCase().includes(server)) ?? null
+  }
+  const alive = context.terminals.filter((t) => !t.exited)
+  const pool = alive.length ? alive : context.terminals
+  return pool[pool.length - 1] ?? null
+}
+
 /* ------------------------------- Outils MCP ------------------------------ */
 
 type ToolResult = unknown
@@ -65,15 +96,8 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<To
       return context.terminals
 
     case 'get_terminal_output': {
-      const wantedId = typeof args.ptyId === 'string' ? args.ptyId : ''
-      const wantedTitle = typeof args.title === 'string' ? args.title.toLowerCase() : ''
       const lines = Math.min(2000, Math.max(1, Number(args.tailLines) || 200))
-      const term =
-        context.terminals.find((t) => t.ptyId === wantedId) ??
-        (wantedTitle
-          ? context.terminals.find((t) => t.title.toLowerCase().includes(wantedTitle))
-          : // Par défaut : le dernier terminal (le plus récent).
-            context.terminals[context.terminals.length - 1])
+      const term = findTerminal(args)
       if (!term) throw new Error('Aucun terminal ouvert dans GVue.')
       const raw = getPtyBuffer(term.ptyId)
       return {
@@ -82,6 +106,45 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<To
         cwd: term.cwd,
         exited: term.exited,
         output: tailLines(stripAnsi(raw), lines)
+      }
+    }
+
+    /**
+     * Écrit dans un terminal DÉJÀ ouvert, puis rend la sortie produite.
+     *
+     * C'est ce qui manquait pour travailler dans une session existante :
+     * jusqu'ici un agent ne pouvait qu'ouvrir un onglet de plus. Sur une
+     * session SSH ouverte par GVue, la connexion (et son mot de passe
+     * enregistré) est déjà établie — la commande part directement sur le
+     * serveur, sans rien redemander à l'utilisateur.
+     */
+    case 'run_in_terminal': {
+      const command = typeof args.command === 'string' ? args.command : ''
+      if (!command.trim()) throw new Error('Paramètre « command » requis.')
+      const term = findTerminal(args)
+      if (!term) throw new Error('Aucun terminal ouvert dans GVue (voir list_terminals).')
+      if (term.exited) {
+        throw new Error(
+          `Le terminal « ${term.title} » est terminé : rouvrez-en un (open_terminal) ou visez-en un autre.`
+        )
+      }
+      // Repère de départ : on ne rend que ce que CETTE commande a produit.
+      const before = getPtyBuffer(term.ptyId).length
+      const submit = args.submit !== false
+      writePty(term.ptyId, submit ? `${command}
+` : command)
+
+      const waitMs = Math.min(30_000, Math.max(0, Number(args.waitMs) || 1500))
+      await new Promise((r) => setTimeout(r, waitMs))
+      const produced = getPtyBuffer(term.ptyId).slice(before)
+      return {
+        ptyId: term.ptyId,
+        title: term.title,
+        sshHost: term.sshHost ?? null,
+        output: tailLines(stripAnsi(produced), 400),
+        note:
+          'Sortie produite pendant l’attente. Une commande plus longue continue ' +
+          'de tourner : rappelez get_terminal_output pour lire la suite.'
       }
     }
 
@@ -229,8 +292,43 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<To
         manual.find((h) => h.name.toLowerCase() === wanted) ??
         (await readSshConfigHosts()).find((h) => h.name.toLowerCase() === wanted)
       if (!host) throw new Error(`Serveur introuvable : ${args.name} (voir list_servers).`)
-      sendToWindow(name === 'open_ssh' ? IPC.trayOpenSsh : IPC.trayBrowseSsh, host)
-      return { ok: true, server: host.name, mode: name === 'open_ssh' ? 'terminal' : 'sftp' }
+
+      if (name === 'open_sftp') {
+        sendToWindow(IPC.trayBrowseSsh, host)
+        return { ok: true, server: host.name, mode: 'sftp' }
+      }
+
+      // Une session vers ce serveur est peut-être DÉJÀ ouverte : la réutiliser
+      // plutôt qu'empiler un onglet de plus (et refaire saisir le mot de passe).
+      const key = hostKeyOf(host)
+      const existing = context.terminals.find((t) => !t.exited && t.sshHost === key)
+      if (existing && args.newSession !== true) {
+        return {
+          ok: true,
+          server: host.name,
+          mode: 'terminal',
+          ptyId: existing.ptyId,
+          reused: true,
+          note: 'Session déjà ouverte — réutilisée. Enchaînez avec run_in_terminal sur ce ptyId.'
+        }
+      }
+
+      sendToWindow(IPC.trayOpenSsh, host)
+      // Le terminal naît côté interface : on attend qu'il apparaisse dans le
+      // contexte pour rendre son ptyId, sans quoi l'agent n'a rien à viser.
+      const ptyId = await waitForSshTerminal(key, 8000)
+      return {
+        ok: true,
+        server: host.name,
+        mode: 'terminal',
+        ptyId,
+        reused: false,
+        note: ptyId
+          ? 'Session ouverte. Le mot de passe enregistré, s’il existe, est fourni ' +
+            'automatiquement : laissez ~2 s avant la première commande (run_in_terminal).'
+          : 'Session demandée, mais son identifiant n’est pas encore visible — ' +
+            'appelez list_terminals dans un instant.'
+      }
     }
 
     default:

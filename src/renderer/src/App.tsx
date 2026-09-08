@@ -407,7 +407,11 @@ export default function App(): JSX.Element {
             title: tb.title,
             cwd: tb.cwd,
             exited: tb.exited,
-            paneId: tb.paneId
+            paneId: tb.paneId,
+            // Un agent doit pouvoir reconnaître une session distante déjà
+            // ouverte plutôt que d'en relancer une (et de redemander le mot
+            // de passe à l'utilisateur).
+            sshHost: tb.sshHostKey
           })),
           ui: {
             gitViewOpen: ui.gitViewOpen,
