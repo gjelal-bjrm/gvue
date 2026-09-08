@@ -129,7 +129,11 @@ const TOOLS = [
       "part sur le SERVEUR dans la connexion déjà authentifiée : rien n'est redemandé à " +
       "l'utilisateur. Sert aussi à naviguer (cd, ls) puisque le shell garde son état. " +
       'Sans cible : le dernier terminal vivant. La commande tourne dans le shell de ' +
-      "l'utilisateur, potentiellement distant — vérifiez la cible avant d'écrire.",
+      "l'utilisateur, potentiellement distant — vérifiez la cible avant d'écrire. " +
+      'POUR JOINDRE UN SERVEUR : passez par open_ssh, jamais par un « ssh » tapé ici. ' +
+      "Lancé à la main, ssh ignore le mot de passe enregistré dans GVue (et avec " +
+      "BatchMode=yes il ne peut même pas le demander : « Permission denied » assuré " +
+      'sans clé publique).',
     inputSchema: {
       type: 'object',
       properties: {

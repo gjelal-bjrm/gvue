@@ -291,7 +291,20 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<To
       const host =
         manual.find((h) => h.name.toLowerCase() === wanted) ??
         (await readSshConfigHosts()).find((h) => h.name.toLowerCase() === wanted)
-      if (!host) throw new Error(`Serveur introuvable : ${args.name} (voir list_servers).`)
+      if (!host) {
+        // Un agent qui ne trouve pas le serveur se rabat sur « ssh » lancé à la
+        // main dans un terminal — souvent avec BatchMode=yes, qui INTERDIT la
+        // saisie du mot de passe : l'échec est garanti sans clé publique. On
+        // lui dit donc quoi faire au lieu de le laisser improviser.
+        const known = [...manual.map((h) => h.name), ...(await readSshConfigHosts()).map((h) => h.name)]
+        throw new Error(
+          `Serveur introuvable : ${args.name}. Serveurs connus de GVue : ${known.join(', ') || '(aucun)'}. ` +
+            "Ne lancez PAS « ssh » vous-même dans un terminal : sans clé publique, l'authentification " +
+            "échouera et le mot de passe enregistré ne sera pas utilisé. Demandez plutôt à l'utilisateur " +
+            "d'ajouter ce serveur dans GVue (gestionnaire de serveurs : hôte, port, utilisateur, mot de " +
+            'passe), puis rappelez open_ssh.'
+        )
+      }
 
       if (name === 'open_sftp') {
         sendToWindow(IPC.trayBrowseSsh, host)
