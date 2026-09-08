@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.0.20",
+    "notes": [
+      "Les assistants IA pilotent vos terminaux SSH : commandes exécutées dans la session ouverte, avec le résultat réel (succès ou échec)",
+      "Un serveur inconnu de GVue est signalé clairement, au lieu de laisser l’assistant tenter une connexion vouée à l’échec"
+    ]
+  },
+  {
     "version": "1.0.19",
     "notes": [
       "Les assistants IA travaillent dans vos terminaux déjà ouverts — y compris vos sessions SSH, sans redemander le mot de passe",
