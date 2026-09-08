@@ -1,21 +1,26 @@
 #!/usr/bin/env node
 /**
- * Relaie une release DÉJÀ CONSTRUITE vers un autre dépôt GitHub, sans
- * reconstruire quoi que ce soit.
+ * Publie une release DÉJÀ CONSTRUITE (le contenu de dist/) sur un dépôt GitHub,
+ * sans rien reconstruire : l'installeur, son blockmap et latest.yml partent
+ * tels quels, dans UNE release publiée d'emblée.
  *
- * Pourquoi : quand l'adresse de mise à jour change (ici gvue → gvue-releases),
- * les apps déjà installées continuent d'interroger l'ANCIEN dépôt. On y publie
- * donc une dernière fois le MÊME installeur — celui qui embarque la nouvelle
- * adresse — pour que ces installations migrent d'elles-mêmes.
+ * C'est l'outil de publication de GVue. Il remplace le téléversement par
+ * electron-builder, qui créait des BROUILLONS — parfois deux pour la même
+ * version, avec les fichiers éparpillés entre eux — et laissait une étape
+ * manuelle facile à oublier (une version restée en brouillon est invisible
+ * pour les applications installées).
  *
- * Impératif : NE PAS relancer publish.bat avec l'ancienne adresse. Un rebuild
- * regénérerait un exe pointant vers l'ancien dépôt (les clients resteraient
- * bloqués) et changerait son sha512, qui ne correspondrait plus au latest.yml.
- * Ce script téléverse les octets exacts de dist/.
+ * Téléverser les octets exacts de dist/ n'est pas un détail : latest.yml
+ * contient le sha512 de l'installeur. Reconstruire pour republier donnerait un
+ * binaire différent, donc une signature qui ne correspond plus.
+ *
+ * Il a d'abord servi à relayer chaque version vers l'ancien dépôt « gvue » le
+ * temps que les installations migrent vers « gvue-releases » — migration
+ * terminée le 08/09/2026, ce second envoi n'a plus lieu d'être.
  *
  * Usage :
  *   set GH_TOKEN=ghp_...
- *   node scripts/relay-release.cjs gjelal-bjrm/gvue [--dry-run] [--draft]
+ *   node scripts/relay-release.cjs gjelal-bjrm/gvue-releases [--dry-run] [--draft]
  */
 const fs = require('node:fs')
 const path = require('node:path')
