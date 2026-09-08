@@ -82,6 +82,24 @@ describe('splitSshTokens', () => {
 })
 
 describe('sshCommandFor / sshSubtitle', () => {
+  it('monte les tunnels du serveur dans la commande (sinon rien n’écoute en local)', () => {
+    const cmd = sshCommandFor({
+      name: 'vps',
+      source: 'manual',
+      hostName: 'vps.example',
+      user: 'root',
+      port: 2247,
+      forwards: [
+        { type: 'local', listenPort: 8080, destHost: 'localhost', destPort: 80 },
+        { type: 'dynamic', listenPort: 1080 }
+      ]
+    })
+    expect(cmd).toContain('-L 8080:localhost:80')
+    expect(cmd).toContain('-D 1080')
+    expect(cmd).toContain('-p 2247')
+    expect(cmd).toContain('root@vps.example')
+  })
+
   it("un hôte du ssh_config se connecte par son alias (jamais doublé d'options)", () => {
     const h: SshHost = { name: 'vps', source: 'config', hostName: 'vps.exemple.com', user: 'x', port: 2222 }
     expect(sshCommandFor(h)).toBe('ssh vps')
