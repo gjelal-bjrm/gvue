@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.0.19",
+    "notes": [
+      "Les assistants IA travaillent dans vos terminaux déjà ouverts — y compris vos sessions SSH, sans redemander le mot de passe",
+      "Mode sélecteur : plus de fenêtre noire au démarrage",
+      "Ouvrir GVue directement sur le panneau Git (option --git)",
+      "L’aide (F1) précise ce que fait un glisser vers une autre application"
+    ]
+  },
+  {
     "version": "1.0.16",
     "notes": [
       "Correctif : glisser un fichier vers l’Explorateur Windows ne ferme plus GVue"
