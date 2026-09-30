@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.0.21",
+    "notes": [
+      "Fermer la fenêtre à la croix ne coupe plus vos terminaux : GVue se cache dans la barre système et vous retrouvez tout tel quel",
+      "Le nom de l’espace de travail chargé s’affiche dans la barre de titre",
+      "Terminal : clic droit sur un chemin sélectionné → « Aller sur ce chemin » (plus Copier / Coller)"
+    ]
+  },
+  {
     "version": "1.0.20",
     "notes": [
       "Les assistants IA pilotent vos terminaux SSH : commandes exécutées dans la session ouverte, avec le résultat réel (succès ou échec)",
