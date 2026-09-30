@@ -140,5 +140,7 @@ export const core: Record<string, string> = {
   "GVue a rencontré un problème d'affichage. Tes fichiers ne sont pas affectés. Recharge la fenêtre pour reprendre.":
     'GVue ran into a display problem. Your files are not affected. Reload the window to continue.',
   Recharger: 'Reload',
-  'Copier les détails': 'Copy details'
+  'Copier les détails': 'Copy details',
+  // Barre de titre : espace de travail charge
+  'Espace de travail chargé : {name}': 'Loaded workspace: {name}'
 }

@@ -13,6 +13,7 @@ export default function WorkspaceMenu(): JSX.Element {
   const save = useWorkspaceStore((s) => s.save)
   const load = useWorkspaceStore((s) => s.load)
   const remove = useWorkspaceStore((s) => s.remove)
+  const current = useWorkspaceStore((s) => s.current)
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
   const [saved, setSaved] = useState<string | null>(null)
@@ -67,8 +68,11 @@ export default function WorkspaceMenu(): JSX.Element {
                         setOpen(false)
                       }}
                       title={t('Charger « {name} »', { name: n })}
-                      className="min-w-0 flex-1 truncate px-2 py-1.5 text-left text-fg-secondary hover:text-fg"
+                      className={`min-w-0 flex-1 truncate px-2 py-1.5 text-left hover:text-fg ${
+                        current === n ? 'font-medium text-accent' : 'text-fg-secondary'
+                      }`}
                     >
+                      {current === n ? '● ' : ''}
                       {n}
                     </button>
                     <button

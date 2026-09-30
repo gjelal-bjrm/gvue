@@ -13,6 +13,12 @@ import { useTerminalStore } from './useTerminalStore'
  */
 interface WorkspaceStore {
   workspaces: Record<string, WorkspaceData>
+  /**
+   * Espace chargé (ou enregistré) en dernier — affiché dans la barre de titre.
+   * Deux espaces peuvent avoir des couleurs voisines : sans nom, on ne sait
+   * plus dans lequel on travaille (demande utilisateur).
+   */
+  current: string | null
   init: () => Promise<void>
   save: (name: string) => void
   load: (name: string) => Promise<void>
@@ -21,6 +27,7 @@ interface WorkspaceStore {
 
 export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
   workspaces: {},
+  current: null,
 
   init: async () => {
     try {
@@ -66,7 +73,7 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
       remoteHost: ui.remoteHost
     }
     const workspaces = { ...get().workspaces, [key]: data }
-    set({ workspaces })
+    set({ workspaces, current: key })
     void window.api.config.set('workspaces', workspaces)
   },
 
@@ -95,6 +102,7 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
         )
       return
     }
+    set({ current: key ?? wanted })
     const ui = useUiStore.getState()
     ui.setTerminalOpen(data.terminalOpen)
     ui.setPreviewOpen(data.previewOpen)
@@ -136,7 +144,7 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
   remove: (name) => {
     const workspaces = { ...get().workspaces }
     delete workspaces[name]
-    set({ workspaces })
+    set({ workspaces, current: get().current === name ? null : get().current })
     void window.api.config.set('workspaces', workspaces)
   }
 }))
