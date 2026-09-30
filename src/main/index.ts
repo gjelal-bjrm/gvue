@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog, protocol, net } from 'electron'
 import { pathToFileURL } from 'node:url'
 import { isAbsolute, join, normalize } from 'node:path'
-import { createWindow } from './window'
+import { createWindow, setHideOnClose } from './window'
 import { createTray, trayActive } from './tray'
 import { syncTidy } from './services/tidy'
 import { registerFsHandlers } from './ipc/fs'
@@ -213,7 +213,13 @@ if (!gotLock) {
   })
 }
 
+// « Quitter GVue » (plateau) ou arrêt du système : les fenêtres doivent
+// alors se fermer POUR DE BON, pas se cacher.
+let quitting = false
+setHideOnClose(() => app.isPackaged && trayActive() && !quitting)
+
 app.on('before-quit', () => {
+  quitting = true
   // Termine proprement tous les pseudo-terminaux et recherches encore vivants.
   killAll()
   killAllSearches()

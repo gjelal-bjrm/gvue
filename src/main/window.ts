@@ -17,6 +17,22 @@ import type { WindowState, WindowStatus } from '@shared/types'
  * et n'enregistre rien en partant — sinon le sélecteur écraserait la vraie
  * session de travail (plusieurs colonnes, plein écran) par la sienne.
  */
+/**
+ * Faut-il MASQUER la fenêtre à la croix plutôt que la détruire ? Décidé par
+ * index.ts (plateau actif, application empaquetée, pas en train de quitter) —
+ * window.ts n'importe pas tray.ts pour éviter le cycle.
+ *
+ * Pourquoi c'est vital : détruire la fenêtre détruit le renderer, donc les
+ * onglets de terminal. Les pseudo-terminaux, eux, survivaient dans le
+ * processus principal : un « npm run dev » continuait de tourner, invisible,
+ * en tenant son port — et la fenêtre recréée depuis le plateau n'en savait
+ * rien. Masquer garde tout en vie, exactement dans l'état où on l'a laissé.
+ */
+let shouldHideOnClose: () => boolean = () => false
+export function setHideOnClose(fn: () => boolean): void {
+  shouldHideOnClose = fn
+}
+
 export function createWindow(opts: { pick?: boolean } = {}): BrowserWindow {
   const saved = getConfig('window')
   const pick = opts.pick === true
@@ -85,7 +101,15 @@ export function createWindow(opts: { pick?: boolean } = {}): BrowserWindow {
     }
     setConfig('window', state)
   }
-  if (!pick) win.on('close', persist)
+  if (!pick) {
+    win.on('close', (e) => {
+      persist()
+      if (shouldHideOnClose()) {
+        e.preventDefault()
+        win.hide()
+      }
+    })
+  }
 
   // Notifie le renderer pour basculer l'icône agrandir/restaurer.
   const emitStatus = (): void => {
