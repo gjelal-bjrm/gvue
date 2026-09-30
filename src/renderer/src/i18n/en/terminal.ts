@@ -32,5 +32,10 @@ export const terminal: Record<string, string> = {
   'Aucun shell disponible.': 'No shell available.',
   '{label} (terminé)': '{label} (exited)',
   '{title} (terminé)': '{title} (exited)',
-  'Session SSH distante — {key}': 'Remote SSH session — {key}'
+  'Session SSH distante — {key}': 'Remote SSH session — {key}',
+  // Clic droit dans le terminal
+  'Aller sur ce chemin': 'Go to this path',
+  'Copier': 'Copy',
+  'Coller': 'Paste',
+  'Chemin introuvable — {path}': 'Path not found — {path}'
 }
