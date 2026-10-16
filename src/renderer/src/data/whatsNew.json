@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.0.22",
+    "notes": [
+      "Relancer GVue après l’avoir fermé à la croix réaffiche la même fenêtre, avec vos terminaux et l’historique des commandes (flèches haut/bas)",
+      "Plus d’invite de commande en double à l’ouverture d’un espace de travail",
+      "Le terminal se place où vous voulez : en bas, à droite ou à gauche des dossiers (bouton dans sa barre, mémorisé par espace de travail)",
+      "Aperçu : les tableaux Markdown s’affichent enfin en tableaux",
+      "Assistants IA : ils voient toutes vos fenêtres, réutilisent vos terminaux au lieu d’en ouvrir de nouveaux, peuvent interrompre une commande (Ctrl+C), fermer un terminal, et régler la disposition, la fenêtre et les espaces de travail"
+    ]
+  },
+  {
     "version": "1.0.21",
     "notes": [
       "Fermer la fenêtre à la croix ne coupe plus vos terminaux : GVue se cache dans la barre système et vous retrouvez tout tel quel",
