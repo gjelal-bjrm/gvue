@@ -72,6 +72,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   gridSize: 112,
   showHidden: false,
   linkTerminals: false,
+  terminalDock: 'bottom',
   mcpEnabled: false,
   customCommands: [],
   shelfEnabled: true,

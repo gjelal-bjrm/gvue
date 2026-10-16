@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { CopyProgress, ConflictInfo, ConflictMode } from '@shared/types'
+import type { CopyProgress, ConflictInfo, ConflictMode, TerminalDock } from '@shared/types'
 
 /** Presse-papiers de fichiers interne (entre volets d'une même fenêtre). */
 export interface FileClipboard {
@@ -61,6 +61,10 @@ interface UiState {
   terminalSplit: boolean
   /** Terminal en plein espace de la fenêtre (double-clic sur sa barre). */
   terminalMax: boolean
+  /** Position du panneau terminal (mémorisée). */
+  terminalDock: TerminalDock
+  setTerminalDock: (d: TerminalDock) => void
+  setTerminalMax: (v: boolean) => void
   toggleTerminalMax: () => void
   /** Vue Git détaillée (façon GitHub Desktop) affichée à la place des volets ? */
   gitViewOpen: boolean
@@ -149,6 +153,12 @@ export const useUiStore = create<UiState>((set) => ({
   whatsNewSince: null,
   terminalSplit: false,
   terminalMax: false,
+  terminalDock: 'bottom',
+  setTerminalDock: (d) => {
+    set({ terminalDock: d })
+    void window.api.config.set('terminalDock', d)
+  },
+  setTerminalMax: (v) => set((s) => ({ terminalMax: v, terminalOpen: v ? true : s.terminalOpen })),
   toggleTerminalMax: () => set((s) => ({ terminalMax: !s.terminalMax })),
   gitViewOpen: false,
   clipboard: null,
@@ -187,3 +197,13 @@ export const useUiStore = create<UiState>((set) => ({
   setPreviewOpen: (v) => set({ previewOpen: v }),
   setClipboard: (c) => set({ clipboard: c })
 }))
+
+// Position du panneau terminal : relue au démarrage (réglage mémorisé).
+void window.api.config
+  .get('terminalDock')
+  .then((d) => {
+    if (d === 'right' || d === 'left' || d === 'bottom') useUiStore.setState({ terminalDock: d })
+  })
+  .catch(() => {
+    /* config indisponible : reste en bas */
+  })

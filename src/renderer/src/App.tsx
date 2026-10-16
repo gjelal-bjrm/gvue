@@ -69,6 +69,7 @@ export default function App(): JSX.Element {
   const terminalSize = useUiStore((s) => s.terminalSize)
   const terminalGrow = useUiStore((s) => s.terminalGrow)
   const terminalMax = useUiStore((s) => s.terminalMax)
+  const terminalDock = useUiStore((s) => s.terminalDock)
   const appearanceOpen = useUiStore((s) => s.appearanceOpen)
   const previewOpen = useUiStore((s) => s.previewOpen)
   const remoteHost = useUiStore((s) => s.remoteHost)
@@ -432,7 +433,13 @@ export default function App(): JSX.Element {
               useTidyStore.getState().tidy?.enabled &&
                 useTidyStore.getState().tidy?.rules.some((r) => r.enabled && r.destDir.trim())
             ),
-            remoteHost: ui.remoteHost?.name ?? null
+            remoteHost: ui.remoteHost?.name ?? null,
+            showHidden: nav.showHidden,
+            hideGitIgnored: nav.hideGitIgnored,
+            terminalDock: ui.terminalDock,
+            terminalMax: ui.terminalMax,
+            terminalSplit: ui.terminalSplit,
+            workspace: useWorkspaceStore.getState().current ?? null
           }
         })
       }, 400)
@@ -444,7 +451,8 @@ export default function App(): JSX.Element {
       useUiStore.subscribe(push),
       useSearchStore.subscribe(push),
       useShelfStore.subscribe(push),
-      useAppearanceStore.subscribe(push)
+      useAppearanceStore.subscribe(push),
+      useWorkspaceStore.subscribe(push)
     ]
     push()
     return () => {
@@ -455,13 +463,40 @@ export default function App(): JSX.Element {
 
   // Actions demandées par un agent via MCP : terminal visible, révéler, toast.
   useEffect(() => {
-    const offTerm = window.api.mcp.onOpenTerminal(({ cwd, command, title }) => {
+    const offTerm = window.api.mcp.onOpenTerminal(({ cwd, command, title, split }) => {
       useUiStore.getState().setTerminalOpen(true)
+      if (split) useUiStore.getState().setTerminalSplit(true)
       if (command) {
         void useTerminalStore.getState().openTaskTab({ cwd, title: title || t('Agent'), command })
       } else {
-        void useTerminalStore.getState().openTab(undefined, cwd)
+        // Le titre demandé par l'agent remplace le nom du dossier.
+        void useTerminalStore
+          .getState()
+          .openTab(undefined, cwd)
+          .then((id) => {
+            if (id && title) useTerminalStore.getState().renameTab(id, title)
+          })
       }
+    })
+    const offClose = window.api.mcp.onCloseTerminal?.((ptyId) => {
+      useTerminalStore.getState().closeTab(ptyId)
+    })
+    const offRename = window.api.mcp.onRenameTerminal?.(({ ptyId, title }) => {
+      useTerminalStore.getState().renameTab(ptyId, title)
+    })
+    // Texte AFFICHÉ par un terminal (écran + historique de défilement) : bien
+    // plus fidèle que le flux brut, où les réécritures d'écran de cmd
+    // laissaient des lignes vides à la place de la bannière et du prompt.
+    const offRead = window.api.mcp.onReadTerminal?.(({ ptyId }, reply) => {
+      void import('./lib/terminalRegistry')
+        .then((m) => reply(m.getTerminalText(ptyId) || null))
+        .catch(() => reply(null))
+    })
+    const offSaveWs = window.api.mcp.onSaveWorkspace?.((name) => {
+      useWorkspaceStore.getState().save(name)
+    })
+    const offPreset = window.api.mcp.onApplyPreset?.((name) => {
+      useAppearanceStore.getState().applyPreset(name)
     })
     const offReveal = window.api.mcp.onReveal((p) => {
       void revealPath(p, t('Agent : chemin introuvable — {path}', { path: p }))
@@ -470,14 +505,20 @@ export default function App(): JSX.Element {
       useUiStore.getState().showToast(t('Agent : {message}', { message: m }))
     )
     // Pilotage de l'UI par un agent (captures dirigées, démonstrations).
-    const offSetUi = window.api.mcp.onSetUi?.(({ panel, open }) => {
+    const offSetUi = window.api.mcp.onSetUi?.(({ panel, open, maximized, split, dock }) => {
       const ui = useUiStore.getState()
       switch (panel) {
+        case 'hiddenFiles':
+          useNavStore.getState().setViewPrefs({ showHidden: open })
+          break
         case 'git':
           ui.setGitView ? ui.setGitView(open) : ui.toggleGitView()
           break
         case 'terminal':
+          if (dock) ui.setTerminalDock(dock)
+          if (split !== undefined) ui.setTerminalSplit(split)
           ui.setTerminalOpen(open)
+          if (maximized !== undefined) ui.setTerminalMax(open && maximized)
           break
         case 'preview':
           ui.setPreviewOpen ? ui.setPreviewOpen(open) : ui.togglePreview()
@@ -514,6 +555,11 @@ export default function App(): JSX.Element {
       offNotify()
       offSetUi?.()
       offSetTheme?.()
+      offClose?.()
+      offRename?.()
+      offRead?.()
+      offSaveWs?.()
+      offPreset?.()
     }
   }, [])
 
@@ -573,6 +619,33 @@ export default function App(): JSX.Element {
   const vKey = `v-${terminalOpen ? 't' : ''}`
   const hKey = `h-${appearanceOpen ? 'a' : ''}-${previewOpen ? 'p' : ''}`
 
+  // Panneau terminal : en bas (groupe vertical) ou sur un côté (groupe
+  // horizontal, à droite ou à gauche des volets, sur toute la hauteur).
+  const sideDock = terminalDock !== 'bottom'
+  const termHandle = sideDock ? (
+    <PanelResizeHandle className="group relative w-1.5 shrink-0">
+      <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-border transition-colors group-hover:bg-accent group-data-[resize-handle-active]:bg-accent" />
+    </PanelResizeHandle>
+  ) : (
+    // Poignée élargie (zone de 6 px, trait de 1 px) : facile à attraper.
+    <PanelResizeHandle className="group relative h-1.5 shrink-0">
+      <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border transition-colors group-hover:bg-accent group-data-[resize-handle-active]:bg-accent" />
+    </PanelResizeHandle>
+  )
+  const termPanel = (
+    <Panel
+      ref={terminalPanelRef}
+      defaultSize={sideDock ? 38 : terminalSize}
+      minSize={sideDock ? 18 : 12}
+      maxSize={80}
+      order={terminalDock === 'left' ? 1 : 3}
+    >
+      <Suspense fallback={null}>
+        <TerminalPanel />
+      </Suspense>
+    </Panel>
+  )
+
   return (
     <div className="flex h-full flex-col bg-bg text-fg">
       <TitleBar />
@@ -605,8 +678,18 @@ export default function App(): JSX.Element {
             <TerminalPanel />
           </Suspense>
         ) : (
-        <PanelGroup key={vKey} autoSaveId="gvue:vertical" direction="vertical">
-          <Panel minSize={30}>
+        <PanelGroup
+          key={`${vKey}-${terminalDock}`}
+          autoSaveId={sideDock ? `gvue:dock-${terminalDock}` : 'gvue:vertical'}
+          direction={sideDock ? 'horizontal' : 'vertical'}
+        >
+          {terminalOpen && terminalDock === 'left' && (
+            <>
+              {termPanel}
+              {termHandle}
+            </>
+          )}
+          <Panel minSize={30} order={2}>
             <PanelGroup key={hKey} autoSaveId="gvue:horizontal" direction="horizontal">
               <Panel defaultSize={18} minSize={12} maxSize={32}>
                 <Sidebar />
@@ -676,17 +759,10 @@ export default function App(): JSX.Element {
             </PanelGroup>
           </Panel>
 
-          {terminalOpen && (
+          {terminalOpen && terminalDock !== 'left' && (
             <>
-              {/* Poignée élargie (zone de 6 px, trait de 1 px) : facile à attraper. */}
-              <PanelResizeHandle className="group relative h-1.5 shrink-0">
-                <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border transition-colors group-hover:bg-accent group-data-[resize-handle-active]:bg-accent" />
-              </PanelResizeHandle>
-              <Panel ref={terminalPanelRef} defaultSize={terminalSize} minSize={12} maxSize={80}>
-                <Suspense fallback={null}>
-                  <TerminalPanel />
-                </Suspense>
-              </Panel>
+              {termHandle}
+              {termPanel}
             </>
           )}
         </PanelGroup>

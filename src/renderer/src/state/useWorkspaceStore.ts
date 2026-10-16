@@ -61,6 +61,7 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
       sidebarOrder: sb.order,
       sidebarCollapsed: sb.collapsed,
       terminalSplit: ui.terminalSplit,
+      terminalDock: ui.terminalDock,
       // Shell ET dossier : rouvrir « le même terminal » suppose de savoir OÙ.
       terminals: term.tabs.filter((t) => !t.exited).map((t) => ({ shell: t.shell.id, cwd: t.cwd })),
       showHidden: nav.showHidden,
@@ -108,6 +109,7 @@ export const useWorkspaceStore = create<WorkspaceStore>((set, get) => ({
     ui.setPreviewOpen(data.previewOpen)
     ui.setAppearanceOpen(data.appearanceOpen)
     if (data.terminalSplit !== undefined) ui.setTerminalSplit(data.terminalSplit)
+    if (data.terminalDock) ui.setTerminalDock(data.terminalDock)
     // Panneau Git et volet SFTP (undefined sur les anciens espaces : on ne
     // touche à rien plutôt que de fermer ce que l'utilisateur avait ouvert).
     if (data.gitViewOpen !== undefined) ui.setGitView(data.gitViewOpen)

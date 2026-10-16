@@ -37,7 +37,9 @@ interface TerminalState {
   loadShells: () => Promise<void>
   /** Définit le shell par défaut (persisté). */
   setDefaultShell: (id: string) => void
-  openTab: (shellId?: string, cwd?: string) => Promise<void>
+  openTab: (shellId?: string, cwd?: string) => Promise<string | null>
+  /** Renomme un onglet (titre demandé par l'utilisateur ou par un agent). */
+  renameTab: (id: string, title: string) => void
   /** Ouvre un onglet pour une tâche (cwd/titre/commande) et renvoie son ptyId. */
   openTaskTab: (opts: {
     cwd: string
@@ -121,7 +123,7 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
       list.find((s) => s.id === shellId) ?? list.find((s) => s.id === def) ?? list[0]
     if (!shell) {
       set({ error: t('Aucun shell disponible.') })
-      return
+      return null
     }
     const cwd = explicitCwd || activePane(useNavStore.getState()).path || shell.path
     try {
@@ -159,9 +161,17 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
         disposeExit
       }
       set((s) => ({ tabs: [...s.tabs, tab], activeId: ptyId, error: null }))
+      return ptyId
     } catch (e) {
       set({ error: e instanceof Error ? e.message : String(e) })
+      return null
     }
+  },
+
+  renameTab: (id, title) => {
+    const clean = title.trim()
+    if (!clean) return
+    set((s) => ({ tabs: s.tabs.map((tab) => (tab.id === id ? { ...tab, title: clean } : tab)) }))
   },
 
   openTaskTab: async ({ cwd, title, command, sshHostKey }) => {

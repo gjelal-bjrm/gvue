@@ -166,6 +166,16 @@ export interface JustRecipe {
 }
 
 /** État de l'interface (panneaux, vue, thème) exposé aux agents via MCP. */
+/** Pilotage d'un panneau par un agent (set_ui). */
+export interface McpSetUiRequest {
+  panel: string
+  open: boolean
+  /** Terminal : plein espace, côte à côte, position. */
+  maximized?: boolean
+  split?: boolean
+  dock?: TerminalDock
+}
+
 export interface McpUiState {
   gitViewOpen: boolean
   previewOpen: boolean
@@ -185,6 +195,15 @@ export interface McpUiState {
   remoteHost?: string | null
   /** Mode démo (données fictives affichées) — utile pour les captures. */
   demoMode?: boolean
+  /** Fichiers cachés affichés / fichiers ignorés par Git masqués. */
+  showHidden?: boolean
+  hideGitIgnored?: boolean
+  /** Disposition du panneau terminal. */
+  terminalDock?: TerminalDock
+  terminalMax?: boolean
+  terminalSplit?: boolean
+  /** Espace de travail chargé dans cette fenêtre (nom), sinon null. */
+  workspace?: string | null
 }
 
 export interface McpContext {
@@ -503,6 +522,9 @@ export interface WorkspacePane {
   group?: number
 }
 
+/** Où s'ancre le panneau terminal. */
+export type TerminalDock = 'bottom' | 'right' | 'left'
+
 /** Espace de travail : disposition des volets + état des panneaux + config. */
 export interface WorkspaceData {
   panes: WorkspacePane[]
@@ -521,6 +543,8 @@ export interface WorkspaceData {
   sidebarCollapsed?: Record<string, boolean>
   /** Terminaux affichés côte à côte (sinon onglets). */
   terminalSplit?: boolean
+  /** Position du panneau terminal (bas, droite, gauche). */
+  terminalDock?: TerminalDock
   /**
    * Terminaux ouverts, pour les rouvrir à l'identique. Chaque entrée porte le
    * shell ET son dossier de travail — sans le dossier, tous les terminaux
@@ -621,6 +645,8 @@ export interface AppConfig {
   showHidden: boolean
   /** Terminaux liés à l'onglet de dossier actif (filtrage du panneau). */
   linkTerminals: boolean
+  /** Position du panneau terminal : en bas (défaut), à droite ou à gauche. */
+  terminalDock: TerminalDock
   /** Serveur MCP local (agents IA) activé ? */
   mcpEnabled: boolean
   /** Commandes personnalisées du menu contextuel. */

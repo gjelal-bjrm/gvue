@@ -20,7 +20,10 @@ import {
   ArrowDown,
   Link2,
   Server,
-  Play
+  Play,
+  PanelBottom,
+  PanelLeft,
+  PanelRight
 } from 'lucide-react'
 import { useUiStore } from '../state/useUiStore'
 import { useTerminalStore } from '../state/useTerminalStore'
@@ -48,6 +51,11 @@ export default function TerminalPanel(): JSX.Element {
   const split = useUiStore((s) => s.terminalSplit)
   const toggleSplit = useUiStore((s) => s.toggleTerminalSplit)
   const maximized = useUiStore((s) => s.terminalMax)
+  const dock = useUiStore((s) => s.terminalDock)
+  const setDock = useUiStore((s) => s.setTerminalDock)
+  // Bouton de position : bas → droite → gauche → bas.
+  const nextDock = dock === 'bottom' ? 'right' : dock === 'right' ? 'left' : 'bottom'
+  const DOCK_LABEL = { bottom: t('Terminal en bas'), right: t('Terminal à droite'), left: t('Terminal à gauche') }
   const toggleMax = useUiStore((s) => s.toggleTerminalMax)
   const { shells, tabs, activeId, error, loadShells, openTab, ensureTab, closeTab, setActive } =
     useTerminalStore()
@@ -142,7 +150,9 @@ export default function TerminalPanel(): JSX.Element {
   }, [])
 
   return (
-    <div className="flex h-full flex-col border-t border-border bg-bg-tertiary">
+    <div
+      className={`flex h-full flex-col border-border bg-bg-tertiary ${dock === 'bottom' ? 'border-t' : dock === 'right' ? 'border-l' : 'border-r'}`}
+    >
       {/* En-tête + onglets. Double-clic (hors boutons) : plein espace / restaurer. */}
       <div
         onDoubleClick={(e) => {
@@ -340,6 +350,15 @@ export default function TerminalPanel(): JSX.Element {
             <Link2 size={14} />
           </HeaderBtn>
           <div className="mx-0.5 my-1 w-px bg-border" />
+          <HeaderBtn
+            label={t('Position : {current} — cliquer pour {next}', {
+              current: DOCK_LABEL[dock].toLowerCase(),
+              next: DOCK_LABEL[nextDock].toLowerCase()
+            })}
+            onClick={() => setDock(nextDock)}
+          >
+            {dock === 'bottom' ? <PanelBottom size={14} /> : dock === 'right' ? <PanelRight size={14} /> : <PanelLeft size={14} />}
+          </HeaderBtn>
           <HeaderBtn
             label={maximized ? t('Restaurer la taille du terminal') : t('Agrandir (plein espace)')}
             onClick={toggleMax}

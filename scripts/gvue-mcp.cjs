@@ -86,36 +86,52 @@ function callGvue(tool, args) {
 
 /* ------------------------------- Outils MCP ------------------------------ */
 
+const WIN = {
+  windowId: {
+    type: 'number',
+    description:
+      'Fenêtre GVue visée (voir get_context → windows). Par défaut : la fenêtre active ou la dernière utilisée.'
+  }
+}
+const TARGET = {
+  ptyId: { type: 'string', description: 'Terminal visé (voir list_terminals)' },
+  title: { type: 'string', description: 'À défaut : fragment du titre' },
+  server: { type: 'string', description: 'À défaut : fragment du serveur SSH (hôte:port:user)' }
+}
+
 const TOOLS = [
   {
     name: 'get_context',
     description:
-      "Contexte courant de l'explorateur GVue : colonnes et onglets ouverts (chemins), " +
-      'onglet actif, fichiers SÉLECTIONNÉS par l’utilisateur, dépôt Git courant ' +
-      '(racine + branche) et terminaux ouverts. À appeler en premier pour savoir ' +
-      'ce que l’utilisateur regarde.',
-    inputSchema: { type: 'object', properties: {}, additionalProperties: false }
+      "Contexte courant de GVue : TOUTES les fenêtres ouvertes (`windows`, chacune avec son " +
+      '`windowId`, ses colonnes, son dépôt Git, son espace de travail), la fenêtre active ' +
+      '(`activeWindowId`, dont `panes`/`repo` sont repris au premier niveau), les fichiers ' +
+      'SÉLECTIONNÉS par l’utilisateur et tous les terminaux (avec leur `windowId`). À appeler ' +
+      'en premier pour savoir ce que l’utilisateur regarde.',
+    inputSchema: { type: 'object', properties: { ...WIN }, additionalProperties: false }
   },
   {
     name: 'list_terminals',
     description:
-      'Liste les terminaux intégrés ouverts dans GVue (ptyId, titre, dossier, état, et ' +
-      '`sshHost` pour les sessions DISTANTES déjà connectées). ' +
-      "À CONSULTER EN PREMIER : travailler dans un terminal existant (run_in_terminal) " +
-      "évite d'en empiler un nouveau et réutilise une connexion SSH déjà établie.",
+      'Liste les terminaux intégrés de TOUTES les fenêtres GVue (ptyId, windowId, titre, ' +
+      'dossier, état, shell, et `sshHost` pour les sessions DISTANTES déjà connectées). ' +
+      "À CONSULTER EN PREMIER : l'utilisateur préfère qu'on travaille dans SES terminaux " +
+      '(run_in_terminal) plutôt que d’en ouvrir de nouveaux — cela réutilise aussi une ' +
+      'connexion SSH déjà établie.',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false }
   },
   {
     name: 'get_terminal_output',
     description:
-      "Sortie (logs) d'un terminal intégré de GVue — ex. le serveur de dev qui y tourne. " +
-      'Sans argument : le terminal le plus récent. Sinon cibler par ptyId ou par titre.',
+      "Texte affiché par un terminal intégré (écran + historique de défilement, comme " +
+      "l'utilisateur le voit) — ex. les logs du serveur de dev qui y tourne. Sans argument : " +
+      'le terminal le plus récent de la fenêtre active.',
     inputSchema: {
       type: 'object',
       properties: {
-        ptyId: { type: 'string', description: 'Identifiant exact (voir list_terminals)' },
-        title: { type: 'string', description: 'Fragment du titre du terminal' },
-        tailLines: { type: 'number', description: 'Nombre de lignes de fin (défaut 200, max 2000)' }
+        ...TARGET,
+        tailLines: { type: 'number', description: 'Nombre de lignes de fin (défaut 200, max 2000)' },
+        ...WIN
       },
       additionalProperties: false
     }
@@ -126,45 +142,123 @@ const TOOLS = [
       'Lance une commande dans un terminal DÉJÀ OUVERT de GVue, attend sa FIN et rend sa ' +
       'sortie avec son CODE DE SORTIE (`exitCode` 0 = succès ; `finished` faux = toujours ' +
       'en cours après le délai, cas normal pour un serveur qui tourne). ' +
-      "À PRÉFÉRER à open_terminal : n'ouvre pas d'onglet supplémentaire. " +
-      'Sur une session SSH ouverte par GVue (voir list_terminals / open_ssh), la commande ' +
-      "part sur le SERVEUR dans la connexion déjà authentifiée : rien n'est redemandé à " +
-      "l'utilisateur. Sert aussi à naviguer (cd, ls) puisque le shell garde son état. " +
-      'Sans cible : le dernier terminal vivant. La commande tourne dans le shell de ' +
-      "l'utilisateur, potentiellement distant — vérifiez la cible avant d'écrire. " +
-      'POUR JOINDRE UN SERVEUR : passez par open_ssh, jamais par un « ssh » tapé ici. ' +
-      "Lancé à la main, ssh ignore le mot de passe enregistré dans GVue (et avec " +
-      "BatchMode=yes il ne peut même pas le demander : « Permission denied » assuré " +
-      'sans clé publique).',
+      "C'EST L'OUTIL PAR DÉFAUT : n'ouvre pas d'onglet supplémentaire et travaille dans les " +
+      "terminaux de l'utilisateur. Sur une session SSH ouverte par GVue, la commande part sur " +
+      "le SERVEUR dans la connexion déjà authentifiée. Sert aussi à naviguer (cd, ls). " +
+      'Une commande SANS FIN (tail -f, serveur…) occupe le terminal : arrêtez-la ensuite avec ' +
+      'send_keys { keys: "ctrl+c" }, ou bornez-la (timeout 30 …). ' +
+      'POUR JOINDRE UN SERVEUR : passez par open_ssh, jamais par un « ssh » tapé ici ' +
+      '(il ignorerait le mot de passe enregistré dans GVue).',
     inputSchema: {
       type: 'object',
       properties: {
         command: { type: 'string', description: 'Commande à exécuter' },
-        ptyId: { type: 'string', description: 'Terminal visé (voir list_terminals)' },
-        title: { type: 'string', description: 'À défaut : fragment du titre' },
-        server: { type: 'string', description: 'À défaut : fragment du serveur SSH (hôte:port:user)' },
+        ...TARGET,
         submit: {
           type: 'boolean',
-          description: 'Valider par Entrée (défaut vrai ; faux pour répondre à une invite)'
+          description:
+            'Valider par Entrée (défaut vrai). Faux pour répondre à une invite ; les caractères ' +
+            'de contrôle sont alors acceptés (préférez send_keys).'
         },
         timeoutMs: {
           type: 'number',
           description:
-            "Attente MAXIMALE de la fin de la commande (défaut 20000, max 300000). " +
-            'Au-delà, la commande continue de tourner et la sortie est rendue telle quelle.'
-        }
+            'Attente MAXIMALE de la fin de la commande (défaut 20000, max 300000). Au-delà, la ' +
+            'commande continue de tourner et la sortie est rendue telle quelle.'
+        },
+        ...WIN
       },
       required: ['command'],
       additionalProperties: false
     }
   },
   {
-    name: 'navigate',
-    description: "Ouvre un dossier dans GVue (l'onglet actif y navigue, la fenêtre passe au premier plan).",
+    name: 'send_keys',
+    description:
+      'Envoie des touches à un terminal : « ctrl+c » (interrompre une commande sans fin), ' +
+      '« ctrl+d », « ctrl+z », « enter », « esc », « tab », « up », « down », « left », ' +
+      '« right », « backspace » — plusieurs séparées par des espaces (« up enter »).',
     inputSchema: {
       type: 'object',
-      properties: { path: { type: 'string', description: 'Chemin absolu du dossier' } },
+      properties: { keys: { type: 'string' }, ...TARGET, ...WIN },
+      required: ['keys'],
+      additionalProperties: false
+    }
+  },
+  {
+    name: 'close_terminal',
+    description:
+      'Ferme un terminal (termine son processus et retire l’onglet). À utiliser pour les ' +
+      'terminaux que VOUS avez ouverts et qui ne servent plus — pas ceux de l’utilisateur ' +
+      'sans son accord.',
+    inputSchema: {
+      type: 'object',
+      properties: { ...TARGET },
+      additionalProperties: false
+    }
+  },
+  {
+    name: 'open_terminal',
+    description:
+      'Ouvre un terminal intégré visible dans GVue (et y lance une commande si fournie) et ' +
+      'rend son `ptyId`. Sans commande, un terminal local DÉJÀ OUVERT dans ce dossier est ' +
+      'réutilisé (newTerminal: true pour en forcer un autre). À réserver aux commandes ' +
+      "longues (serveurs de dev…) qui méritent leur propre onglet ; pour le reste, préférez " +
+      'run_in_terminal dans un terminal existant. Donnez un `title` parlant (ex. « Serveur ' +
+      'dev »), sinon l’onglet prend le nom du dossier.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        cwd: { type: 'string', description: 'Dossier de travail (chemin absolu)' },
+        command: { type: 'string', description: 'Commande à lancer (optionnel : sinon shell vide)' },
+        title: { type: 'string', description: "Titre de l'onglet (recommandé)" },
+        newTerminal: { type: 'boolean', description: 'Forcer un nouveau terminal (défaut faux)' },
+        split: { type: 'boolean', description: 'Afficher les terminaux côte à côte (défaut faux)' },
+        ...WIN
+      },
+      required: ['cwd'],
+      additionalProperties: false
+    }
+  },
+  {
+    name: 'navigate',
+    description: "Ouvre un dossier dans GVue (la colonne active de la fenêtre visée y navigue).",
+    inputSchema: {
+      type: 'object',
+      properties: { path: { type: 'string', description: 'Chemin absolu du dossier' }, ...WIN },
       required: ['path'],
+      additionalProperties: false
+    }
+  },
+  {
+    name: 'reveal',
+    description:
+      "Révèle un fichier ou dossier dans GVue : navigue jusqu'à lui et le sélectionne. " +
+      "Un fichier caché (.gitignore, .env…) est rendu visible (affichage des fichiers cachés " +
+      'activé, signalé par `hiddenFilesShown`).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        path: { type: 'string', description: 'Chemin absolu' },
+        showHidden: {
+          type: 'boolean',
+          description: 'Afficher les fichiers cachés si nécessaire (défaut vrai)'
+        },
+        ...WIN
+      },
+      required: ['path'],
+      additionalProperties: false
+    }
+  },
+  {
+    name: 'notify',
+    description:
+      "Affiche une notification (toast) dans GVue — ex. « Build terminé ✓ ». Le message " +
+      'est préfixé « Agent : » côté interface.',
+    inputSchema: {
+      type: 'object',
+      properties: { message: { type: 'string' }, ...WIN },
+      required: ['message'],
       additionalProperties: false
     }
   },
@@ -180,69 +274,20 @@ const TOOLS = [
       type: 'object',
       properties: {
         id: { type: 'string' },
-        name: { type: 'string', description: 'Nom exact du lancement (voir list_launch_tasks)' }
+        name: { type: 'string', description: 'Nom exact du lancement (voir list_launch_tasks)' },
+        ...WIN
       },
-      additionalProperties: false
-    }
-  },
-  {
-    name: 'screenshot',
-    description:
-      "Capture d'écran de la fenêtre GVue (rendu réel de l'interface). Renvoie le chemin " +
-      "d'un PNG temporaire à ouvrir avec l'outil de lecture d'images. Indispensable pour " +
-      'vérifier visuellement un bug ou un changement d’UI.',
-    inputSchema: { type: 'object', properties: {}, additionalProperties: false }
-  },
-  {
-    name: 'open_terminal',
-    description:
-      'Ouvre un NOUVEAU terminal intégré visible dans GVue (et y lance une commande si ' +
-      "fournie). À réserver aux commandes longues (serveurs de dev…) qui méritent leur " +
-      "propre onglet : l'utilisateur voit la sortie en direct et le processus survit à la " +
-      "session de l'agent. Pour tout le reste, préférez run_in_terminal dans un terminal " +
-      'déjà ouvert — sinon les onglets s’accumulent.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        cwd: { type: 'string', description: 'Dossier de travail (chemin absolu)' },
-        command: { type: 'string', description: 'Commande à lancer (optionnel : sinon shell vide)' },
-        title: { type: 'string', description: "Titre de l'onglet (optionnel)" }
-      },
-      required: ['cwd'],
-      additionalProperties: false
-    }
-  },
-  {
-    name: 'reveal',
-    description:
-      "Révèle un fichier ou dossier dans GVue : navigue jusqu'à lui et le sélectionne. " +
-      "Utile pour MONTRER à l'utilisateur un fichier généré ou pertinent.",
-    inputSchema: {
-      type: 'object',
-      properties: { path: { type: 'string', description: 'Chemin absolu' } },
-      required: ['path'],
-      additionalProperties: false
-    }
-  },
-  {
-    name: 'notify',
-    description:
-      "Affiche une notification (toast) dans GVue — ex. « Build terminé ✓ ». Le message " +
-      'est préfixé « Agent : » côté interface.',
-    inputSchema: {
-      type: 'object',
-      properties: { message: { type: 'string' } },
-      required: ['message'],
       additionalProperties: false
     }
   },
   {
     name: 'set_ui',
     description:
-      "Ouvre ou ferme un panneau/dialogue de GVue : git (panneau Git), terminal, preview " +
-      "(aperçu), settings (paramètres), recycleBin (corbeille), servers (manager SSH/SFTP), " +
-      'tidyRules (règles de rangement), shortcuts (raccourcis), palette. Utile pour montrer ' +
-      "quelque chose à l'utilisateur ou préparer une capture d'écran.",
+      "Ouvre ou ferme un panneau/dialogue de GVue : git, terminal, preview (aperçu), settings, " +
+      'recycleBin, servers (manager SSH/SFTP), tidyRules, shortcuts, palette, hiddenFiles ' +
+      '(afficher les fichiers cachés). Pour le terminal : `maximized` (plein espace), `split` ' +
+      '(terminaux côte à côte) et `dock` (bottom | right | left : terminal sous les colonnes ' +
+      'ou à côté, sur toute la hauteur). Rend la main après le rendu.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -257,10 +302,15 @@ const TOOLS = [
             'servers',
             'tidyRules',
             'shortcuts',
-            'palette'
+            'palette',
+            'hiddenFiles'
           ]
         },
-        open: { type: 'boolean', description: 'true = ouvrir (défaut), false = fermer' }
+        open: { type: 'boolean', description: 'true = ouvrir (défaut), false = fermer' },
+        maximized: { type: 'boolean', description: 'Terminal : plein espace de la fenêtre' },
+        split: { type: 'boolean', description: 'Terminal : côte à côte (sinon onglets)' },
+        dock: { type: 'string', enum: ['bottom', 'right', 'left'], description: 'Terminal : position' },
+        ...WIN
       },
       required: ['panel'],
       additionalProperties: false
@@ -270,24 +320,99 @@ const TOOLS = [
     name: 'set_theme',
     description:
       "Applique un thème à GVue : 'auto', 'light', 'dark', ou l'id d'une palette " +
-      '(cyber, matrix, synthwave, tokyo, nord, oled, crt, paper).',
+      '(cyber, matrix, synthwave, tokyo, nord, oled, crt, paper). Rend la main une fois le ' +
+      'thème affiché (une capture juste après le montre bien).',
     inputSchema: {
       type: 'object',
-      properties: { theme: { type: 'string' } },
+      properties: { theme: { type: 'string' }, ...WIN },
       required: ['theme'],
       additionalProperties: false
     }
   },
   {
-    name: 'resize_window',
-    description:
-      'Redimensionne et recentre la fenêtre GVue (pixels) — pour des captures homogènes.',
+    name: 'list_presets',
+    description: "Liste les préréglages d'apparence enregistrés (thème, accent…).",
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false }
+  },
+  {
+    name: 'apply_preset',
+    description: "Applique un préréglage d'apparence (nom exact, voir list_presets).",
     inputSchema: {
       type: 'object',
-      properties: { width: { type: 'number' }, height: { type: 'number' } },
+      properties: { name: { type: 'string' }, ...WIN },
+      required: ['name'],
+      additionalProperties: false
+    }
+  },
+  {
+    name: 'list_workspaces',
+    description:
+      'Liste les espaces de travail enregistrés (colonnes, terminaux, position du terminal, ' +
+      'thème) et celui chargé dans chaque fenêtre. Un espace remet en une fois toute une ' +
+      'disposition : préférez-le à une reconstruction étape par étape.',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false }
+  },
+  {
+    name: 'load_workspace',
+    description: 'Charge un espace de travail (nom exact, voir list_workspaces) dans la fenêtre visée.',
+    inputSchema: {
+      type: 'object',
+      properties: { name: { type: 'string' }, ...WIN },
+      required: ['name'],
+      additionalProperties: false
+    }
+  },
+  {
+    name: 'save_workspace',
+    description:
+      'Enregistre la disposition courante de la fenêtre (colonnes, panneaux, terminaux, ' +
+      'apparence) comme espace de travail — remplace un espace du même nom.',
+    inputSchema: {
+      type: 'object',
+      properties: { name: { type: 'string' }, ...WIN },
+      required: ['name'],
+      additionalProperties: false
+    }
+  },
+  {
+    name: 'set_window',
+    description:
+      'Change l’état de la fenêtre GVue : maximized (vraiment agrandie, au sens de Windows), ' +
+      'fullscreen, normal, minimized, ou focus (premier plan).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        state: { type: 'string', enum: ['maximized', 'fullscreen', 'normal', 'minimized', 'focus'] },
+        ...WIN
+      },
+      required: ['state'],
+      additionalProperties: false
+    }
+  },
+  {
+    name: 'resize_window',
+    description: 'Redimensionne et recentre la fenêtre GVue (pixels) — pour des captures homogènes.',
+    inputSchema: {
+      type: 'object',
+      properties: { width: { type: 'number' }, height: { type: 'number' }, ...WIN },
       required: ['width', 'height'],
       additionalProperties: false
     }
+  },
+  {
+    name: 'screenshot',
+    description:
+      "Capture d'écran de la fenêtre GVue (rendu réel). Renvoie le chemin d'un PNG " +
+      "temporaire à ouvrir avec l'outil de lecture d'images.",
+    inputSchema: { type: 'object', properties: { ...WIN }, additionalProperties: false }
+  },
+  {
+    name: 'get_ui_state',
+    description:
+      "État de l'interface d'une fenêtre GVue : panneaux ouverts, disposition du terminal " +
+      '(position, plein espace, côte à côte), fichiers cachés affichés, mode liste/grille, ' +
+      'thème, espace de travail chargé, état de la fenêtre.',
+    inputSchema: { type: 'object', properties: { ...WIN }, additionalProperties: false }
   },
   {
     name: 'list_servers',
@@ -301,9 +426,9 @@ const TOOLS = [
     description:
       'Ouvre — ou REPREND — un terminal SSH sur le serveur indiqué (nom exact, voir ' +
       'list_servers) et rend son `ptyId`. Une session déjà ouverte vers ce serveur est ' +
-      "réutilisée. Le mot de passe enregistré dans GVue est fourni automatiquement à " +
-      "l'invite : l'utilisateur n'a rien à saisir. Enchaînez ensuite avec run_in_terminal " +
-      'sur le ptyId rendu.',
+      "réutilisée (newSession: true pour une deuxième, dont le ptyId est rendu). Le mot de " +
+      "passe enregistré dans GVue est fourni automatiquement à l'invite. Enchaînez avec " +
+      'run_in_terminal sur le ptyId rendu.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -311,7 +436,8 @@ const TOOLS = [
         newSession: {
           type: 'boolean',
           description: 'Forcer une nouvelle session même si une est déjà ouverte (défaut faux)'
-        }
+        },
+        ...WIN
       },
       required: ['name'],
       additionalProperties: false
@@ -319,22 +445,13 @@ const TOOLS = [
   },
   {
     name: 'open_sftp',
-    description:
-      "Ouvre l'explorateur de fichiers distant (SFTP) sur le serveur indiqué (voir list_servers).",
+    description: "Ouvre l'explorateur de fichiers distant (SFTP) sur le serveur indiqué (voir list_servers).",
     inputSchema: {
       type: 'object',
-      properties: { name: { type: 'string' } },
+      properties: { name: { type: 'string' }, ...WIN },
       required: ['name'],
       additionalProperties: false
     }
-  },
-  {
-    name: 'get_ui_state',
-    description:
-      "État de l'interface GVue : panneaux ouverts (Git, aperçu, terminal, recherche, " +
-      'paramètres), mode liste/grille, thème actif, contenu de l’étagère. Utile pour ' +
-      'déboguer « je ne vois pas X ».',
-    inputSchema: { type: 'object', properties: {}, additionalProperties: false }
   }
 ]
 

@@ -272,8 +272,25 @@ function heading(level: number, children: React.ReactNode, key: number): JSX.Ele
   }
 }
 
+/** Cellules d'une ligne de tableau GFM (« | a | b | ») ; « \| » reste un caractère. */
+export function tableCells(line: string): string[] {
+  let t = line.trim()
+  if (t.startsWith('|')) t = t.slice(1)
+  if (t.endsWith('|') && !t.endsWith('\\|')) t = t.slice(0, -1)
+  return t.split(/(?<!\\)\|/).map((c) => c.trim().replace(/\\\|/g, '|'))
+}
+
+/** Ligne de séparation d'un tableau GFM (« |---|:---:| ») → alignements, sinon null. */
+export function tableAligns(line: string): ('left' | 'center' | 'right' | undefined)[] | null {
+  if (!line.includes('-') || !/^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$/.test(line)) return null
+  return tableCells(line).map((c) =>
+    c.startsWith(':') && c.endsWith(':') ? 'center' : c.endsWith(':') ? 'right' : c.startsWith(':') ? 'left' : undefined
+  )
+}
+
 function isSpecial(line: string): boolean {
   return (
+    line.trim().startsWith('|') ||
     line.startsWith('#') ||
     line.startsWith('```') ||
     line.startsWith('>') ||
@@ -303,6 +320,50 @@ function renderMarkdown(src: string): React.ReactNode[] {
         <pre key={key++} className="my-2 overflow-auto rounded-app bg-bg-tertiary p-2.5 font-mono text-[12px] text-fg-secondary">
           {buf.join('\n')}
         </pre>
+      )
+      continue
+    }
+
+    // Tableau GFM : ligne d'en-tête suivie d'une ligne de séparation.
+    const aligns = line.includes('|') && i + 1 < lines.length ? tableAligns(lines[i + 1]) : null
+    if (aligns) {
+      const head = tableCells(line)
+      const rows: string[][] = []
+      i += 2
+      while (i < lines.length && lines[i].trim() !== '' && lines[i].includes('|')) {
+        rows.push(tableCells(lines[i]))
+        i++
+      }
+      const k = key++
+      blocks.push(
+        <div key={k} className="my-2 overflow-auto">
+          <table className="border-collapse text-[12.5px]">
+            <thead>
+              <tr>
+                {head.map((c, j) => (
+                  <th
+                    key={j}
+                    style={{ textAlign: aligns[j] }}
+                    className="border border-border bg-bg-tertiary px-2 py-1 text-left font-semibold"
+                  >
+                    {renderInline(c, `th${k}-${j}`)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r, ri) => (
+                <tr key={ri}>
+                  {head.map((_, j) => (
+                    <td key={j} style={{ textAlign: aligns[j] }} className="border border-border px-2 py-1 align-top">
+                      {renderInline(r[j] ?? '', `td${k}-${ri}-${j}`)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )
       continue
     }

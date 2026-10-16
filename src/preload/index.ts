@@ -39,6 +39,7 @@ import type {
   ConflictInfo,
   ArchiveEntry,
   McpContext,
+  McpSetUiRequest,
   SysClipboardFiles,
   JustRecipe,
   RecycleItem,
@@ -480,10 +481,12 @@ const api = {
       ipcRenderer.invoke(IPC.mcpStatus),
     /** Un agent demande un terminal visible (cwd + commande optionnelle). */
     onOpenTerminal: (
-      cb: (req: { cwd: string; command: string; title: string }) => void
+      cb: (req: { cwd: string; command: string; title: string; split?: boolean }) => void
     ): (() => void) => {
-      const listener = (_e: unknown, req: { cwd: string; command: string; title: string }): void =>
-        cb(req)
+      const listener = (
+        _e: unknown,
+        req: { cwd: string; command: string; title: string; split?: boolean }
+      ): void => cb(req)
       ipcRenderer.on(IPC.mcpOpenTerminal, listener)
       return () => ipcRenderer.removeListener(IPC.mcpOpenTerminal, listener)
     },
@@ -500,8 +503,8 @@ const api = {
       return () => ipcRenderer.removeListener(IPC.mcpNotify, listener)
     },
     /** Un agent ouvre/ferme un panneau ou un dialogue (captures, démos). */
-    onSetUi: (cb: (req: { panel: string; open: boolean }) => void): (() => void) => {
-      const listener = (_e: unknown, req: { panel: string; open: boolean }): void => cb(req)
+    onSetUi: (cb: (req: McpSetUiRequest) => void): (() => void) => {
+      const listener = (_e: unknown, req: McpSetUiRequest): void => cb(req)
       ipcRenderer.on(IPC.mcpSetUi, listener)
       return () => ipcRenderer.removeListener(IPC.mcpSetUi, listener)
     },
@@ -510,6 +513,39 @@ const api = {
       const listener = (_e: unknown, theme: string): void => cb(theme)
       ipcRenderer.on(IPC.mcpSetTheme, listener)
       return () => ipcRenderer.removeListener(IPC.mcpSetTheme, listener)
+    },
+    /** Un agent ferme un terminal (ptyId). */
+    onCloseTerminal: (cb: (ptyId: string) => void): (() => void) => {
+      const listener = (_e: unknown, ptyId: string): void => cb(ptyId)
+      ipcRenderer.on(IPC.mcpCloseTerminal, listener)
+      return () => ipcRenderer.removeListener(IPC.mcpCloseTerminal, listener)
+    },
+    /** Un agent renomme un terminal. */
+    onRenameTerminal: (cb: (req: { ptyId: string; title: string }) => void): (() => void) => {
+      const listener = (_e: unknown, req: { ptyId: string; title: string }): void => cb(req)
+      ipcRenderer.on(IPC.mcpRenameTerminal, listener)
+      return () => ipcRenderer.removeListener(IPC.mcpRenameTerminal, listener)
+    },
+    /** Le main demande le texte affiché d'un terminal ; la réponse repart par `reply`. */
+    onReadTerminal: (
+      cb: (req: { reqId: number; ptyId: string }, reply: (text: string | null) => void) => void
+    ): (() => void) => {
+      const listener = (_e: unknown, req: { reqId: number; ptyId: string }): void =>
+        cb(req, (text) => ipcRenderer.send(IPC.mcpReadTerminalReply, { reqId: req.reqId, text }))
+      ipcRenderer.on(IPC.mcpReadTerminal, listener)
+      return () => ipcRenderer.removeListener(IPC.mcpReadTerminal, listener)
+    },
+    /** Un agent enregistre l'espace de travail courant sous un nom. */
+    onSaveWorkspace: (cb: (name: string) => void): (() => void) => {
+      const listener = (_e: unknown, name: string): void => cb(name)
+      ipcRenderer.on(IPC.mcpSaveWorkspace, listener)
+      return () => ipcRenderer.removeListener(IPC.mcpSaveWorkspace, listener)
+    },
+    /** Un agent applique un préréglage d'apparence. */
+    onApplyPreset: (cb: (name: string) => void): (() => void) => {
+      const listener = (_e: unknown, name: string): void => cb(name)
+      ipcRenderer.on(IPC.mcpApplyPreset, listener)
+      return () => ipcRenderer.removeListener(IPC.mcpApplyPreset, listener)
     }
   },
   log: {

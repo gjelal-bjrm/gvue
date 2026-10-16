@@ -182,6 +182,15 @@ export const IPC = {
   mcpSetUi: 'mcp:setUi',
   /** Changer le thème appliqué. */
   mcpSetTheme: 'mcp:setTheme',
+  /** Fermer / renommer un terminal (ptyId). */
+  mcpCloseTerminal: 'mcp:closeTerminal',
+  mcpRenameTerminal: 'mcp:renameTerminal',
+  /** Lire le texte AFFICHÉ par un terminal (xterm) : requête puis réponse. */
+  mcpReadTerminal: 'mcp:readTerminal',
+  mcpReadTerminalReply: 'mcp:readTerminalReply',
+  /** Enregistrer l'espace de travail courant / appliquer un préréglage d'apparence. */
+  mcpSaveWorkspace: 'mcp:saveWorkspace',
+  mcpApplyPreset: 'mcp:applyPreset',
 
   // Mode sélecteur (--pick) : un autre outil G (GRay…) lance GVue pour
   // choisir un fichier ; GVue écrit le choix puis se ferme.
