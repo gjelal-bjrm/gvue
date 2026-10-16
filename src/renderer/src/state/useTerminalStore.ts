@@ -69,7 +69,13 @@ interface TerminalState {
 
 // Garde anti-doublon : évite d'ouvrir deux terminaux quand React StrictMode
 // monte le panneau deux fois en développement.
-let ensuring = false
+// Onglet « garanti » en cours de création, et restauration de session en cours.
+// Sans ces deux verrous, le panneau qui s'affiche au chargement d'un espace de
+// travail ouvrait son onglet par défaut PENDANT que la restauration nettoyait
+// puis rouvrait les siens : l'onglet arrivait après le ménage et s'ajoutait
+// (« deux invites de commande » à l'ouverture d'une session).
+let ensuring: Promise<void> | null = null
+let restoring = false
 
 export const useTerminalStore = create<TerminalState>((set, get) => ({
   shells: [],
@@ -213,23 +219,31 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
   },
 
   ensureTab: async () => {
-    if (get().tabs.length > 0 || ensuring) return
-    ensuring = true
-    try {
-      await get().openTab()
-    } finally {
-      ensuring = false
-    }
+    if (get().tabs.length > 0 || ensuring || restoring) return
+    ensuring = (async () => {
+      try {
+        await get().openTab()
+      } finally {
+        ensuring = null
+      }
+    })()
+    await ensuring
   },
 
   restore: async (entries) => {
-    if (get().shells.length === 0) await get().loadShells()
-    for (const t of [...get().tabs]) get().closeTab(t.id)
-    for (const e of entries) {
-      // Ancien format (id de shell seul) : pas de dossier mémorisé, on
-      // retombe sur le dossier actif comme avant.
-      if (typeof e === 'string') await get().openTab(e)
-      else await get().openTab(e.shell, e.cwd)
+    restoring = true
+    try {
+      if (ensuring) await ensuring
+      if (get().shells.length === 0) await get().loadShells()
+      for (const t of [...get().tabs]) get().closeTab(t.id)
+      for (const e of entries) {
+        // Ancien format (id de shell seul) : pas de dossier mémorisé, on
+        // retombe sur le dossier actif comme avant.
+        if (typeof e === 'string') await get().openTab(e)
+        else await get().openTab(e.shell, e.cwd)
+      }
+    } finally {
+      restoring = false
     }
   },
 

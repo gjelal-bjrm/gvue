@@ -147,7 +147,17 @@ if (!gotLock) {
     }
     void dirFromArgv(argv, app.isPackaged).then((dir) => {
       if (dir) sendToWindow(IPC.trayOpenPath, dir)
-      else if (!wantGit) createWindow()
+      else if (!wantGit) {
+        // Une fenêtre fermée à la croix est seulement CACHÉE (plateau) : la
+        // relance doit la réafficher, terminaux et historique des commandes
+        // intacts. En créer une nouvelle restaurait des invites neuves (sans
+        // historique) pendant que l'ancienne restait cachée avec les siennes.
+        const hidden = BrowserWindow.getAllWindows().find((w) => !w.isDestroyed() && !w.isVisible())
+        if (hidden) {
+          hidden.show()
+          hidden.focus()
+        } else createWindow()
+      }
       if (wantGit) sendToWindow(IPC.trayOpenGit, null)
     })
   })
