@@ -114,7 +114,9 @@ const TOOLS = [
     name: 'list_terminals',
     description:
       'Liste les terminaux intégrés de TOUTES les fenêtres GVue (ptyId, windowId, titre, ' +
-      'dossier, état, shell, et `sshHost` pour les sessions DISTANTES déjà connectées). ' +
+      'dossier, état, shell, et pour les sessions DISTANTES `sshHost` + `sshState` : ' +
+      '« connected » (ssh tourne), « connecting » (tout juste ouverte), « disconnected » ' +
+      '(connexion fermée : le shell LOCAL a repris la main — rouvrez avec open_ssh). ' +
       "À CONSULTER EN PREMIER : l'utilisateur préfère qu'on travaille dans SES terminaux " +
       '(run_in_terminal) plutôt que d’en ouvrir de nouveaux — cela réutilise aussi une ' +
       'connexion SSH déjà établie.',
@@ -418,15 +420,78 @@ const TOOLS = [
     name: 'list_servers',
     description:
       'Liste les serveurs SSH/SFTP connus de GVue (ajouts manuels + alias du ~/.ssh/config) : ' +
-      'nom, cible user@hôte:port, origine, nombre de tunnels.',
+      'nom, cible user@hôte:port, origine, sessions ouvertes et leur état, et le DÉTAIL des ' +
+      'tunnels (sens -L/-R/-D, écoute → destination, port local en écoute ou non, état : ' +
+      '« active », « inactive », « port-used-elsewhere », « unknown » pour un -R).',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false }
+  },
+  {
+    name: 'open_tunnel',
+    description:
+      'Rend un tunnel EFFECTIVEMENT actif : ouvre une session SSH portant ce tunnel (onglet ' +
+      '« serveur · tunnel port », mot de passe enregistré fourni automatiquement) et attend que ' +
+      'le port local écoute. Soit un tunnel déjà défini (listenPort), soit un tunnel ponctuel ' +
+      '(spec), qui n’est PAS enregistré. Le tunnel vit tant que cet onglet reste ouvert.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Serveur (voir list_servers)' },
+        listenPort: { type: 'number', description: 'Port d’écoute d’un tunnel défini sur ce serveur' },
+        spec: {
+          type: 'string',
+          description: 'À défaut : tunnel ponctuel, ex. « 14330:app.lan:1433 » (-L), « R 9000:localhost:9000 », « D 1080 »'
+        },
+        timeoutMs: { type: 'number', description: 'Attente maximale de l’écoute (défaut 20000)' },
+        ...WIN
+      },
+      required: ['name'],
+      additionalProperties: false
+    }
+  },
+  {
+    name: 'add_tunnel',
+    description:
+      'Ajoute un tunnel à la configuration d’un serveur géré par GVue (pas ceux du ~/.ssh/config). ' +
+      'L’UTILISATEUR doit confirmer dans GVue : sans son accord, rien n’est modifié. Le tunnel ' +
+      'est monté aux prochaines connexions ; open_tunnel le rend actif tout de suite.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Serveur (voir list_servers)' },
+        spec: {
+          type: 'string',
+          description: '« portLocal:hôte:portDistant » (-L), « R portServeur:hôte:port » (-R) ou « D port » (SOCKS)'
+        },
+        ...WIN
+      },
+      required: ['name', 'spec'],
+      additionalProperties: false
+    }
+  },
+  {
+    name: 'remove_tunnel',
+    description:
+      'Retire un tunnel de la configuration d’un serveur géré par GVue. L’UTILISATEUR doit ' +
+      'confirmer dans GVue. Une session déjà ouverte garde le tunnel jusqu’à sa fermeture.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Serveur (voir list_servers)' },
+        listenPort: { type: 'number', description: 'Port d’écoute du tunnel à retirer' },
+        type: { type: 'string', enum: ['local', 'remote', 'dynamic'], description: 'Sens, si ambigu' },
+        ...WIN
+      },
+      required: ['name', 'listenPort'],
+      additionalProperties: false
+    }
   },
   {
     name: 'open_ssh',
     description:
       'Ouvre — ou REPREND — un terminal SSH sur le serveur indiqué (nom exact, voir ' +
-      'list_servers) et rend son `ptyId`. Une session déjà ouverte vers ce serveur est ' +
-      "réutilisée (newSession: true pour une deuxième, dont le ptyId est rendu). Le mot de " +
+      'list_servers) et rend son `ptyId`. Une session ENCORE CONNECTÉE vers ce serveur est ' +
+      'réutilisée (newSession: true pour une deuxième, dont le ptyId est rendu) ; si la ' +
+      'connexion est tombée, une nouvelle session est ouverte (`reopened`). Le mot de ' +
       "passe enregistré dans GVue est fourni automatiquement à l'invite. Enchaînez avec " +
       'run_in_terminal sur le ptyId rendu.',
     inputSchema: {

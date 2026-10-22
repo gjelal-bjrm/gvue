@@ -180,7 +180,13 @@ const api = {
     available: (): Promise<boolean> => ipcRenderer.invoke(IPC.sshAvailable),
     /** Sessions PuTTY/WinSCP trouvées sur la machine (registre + WinSCP.ini). */
     importSources: (): Promise<{ putty: SshHost[]; winscp: SshHost[] }> =>
-      ipcRenderer.invoke(IPC.sshImportSources)
+      ipcRenderer.invoke(IPC.sshImportSources),
+    /** Serveurs manuels modifiés ailleurs (tunnel ajouté par un agent, confirmé). */
+    onHostsChanged: (cb: (hosts: SshHost[]) => void): (() => void) => {
+      const listener = (_e: unknown, hosts: SshHost[]): void => cb(hosts)
+      ipcRenderer.on(IPC.sshHostsChanged, listener)
+      return () => ipcRenderer.removeListener(IPC.sshHostsChanged, listener)
+    }
   },
   sftp: {
     connect: (

@@ -125,6 +125,9 @@ export default function Sidebar(): JSX.Element {
       .get('demoMode')
       .then((v) => setDemo(Boolean(v)))
       .catch(() => setDemo(false))
+    // Sans cela, la copie locale périmée écraserait au prochain enregistrement
+    // un tunnel ajouté par un agent.
+    return window.api.ssh.onHostsChanged?.(setManualHosts)
   }, [])
 
   // Hôtes du ssh_config affichés : selon le réglage (liste automatique ou

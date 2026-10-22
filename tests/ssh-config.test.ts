@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseSshConfig, splitSshTokens } from '../src/main/services/ssh-config'
+import { parseSshConfig, parseSshConfigForwards, splitSshTokens } from '../src/main/services/ssh-config'
 import { sshCommandFor, sshSubtitle, sshCdCommandFor, sshOptions } from '@renderer/lib/ssh'
 import type { SshHost } from '@shared/types'
 
@@ -159,5 +159,27 @@ describe('sshCommandFor / sshSubtitle', () => {
     expect(sshSubtitle({ name: 'web', source: 'config', hostName: 'web.fr', port: 22 })).toBe('web.fr')
     // Alias du ssh_config sans HostName : rien à montrer de plus que le nom.
     expect(sshSubtitle({ name: 'alias', source: 'config' })).toBe('')
+  })
+})
+
+describe('parseSshConfigForwards', () => {
+  it('lit LocalForward / RemoteForward / DynamicForward par alias', () => {
+    const text = [
+      'Host app-docker-01 docker',
+      '  HostName cqfd-cloud.ch',
+      '  LocalForward 14330 app.lan:1433',
+      '  RemoteForward=9000 localhost:9000',
+      '  DynamicForward 127.0.0.1:1080',
+      'Host autre',
+      '  HostName autre.ch'
+    ].join('\n')
+    const m = parseSshConfigForwards(text)
+    expect(m.get('app-docker-01')).toEqual([
+      { type: 'local', listenPort: 14330, listenHost: undefined, destHost: 'app.lan', destPort: 1433 },
+      { type: 'remote', listenPort: 9000, listenHost: undefined, destHost: 'localhost', destPort: 9000 },
+      { type: 'dynamic', listenPort: 1080, listenHost: '127.0.0.1' }
+    ])
+    expect(m.get('docker')).toHaveLength(3)
+    expect(m.get('autre')).toBeUndefined()
   })
 })

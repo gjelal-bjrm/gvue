@@ -3,7 +3,8 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { join } from 'node:path'
 import { homedir } from 'node:os'
-import type { SshHost } from '@shared/types'
+import type { SshForward, SshHost } from '@shared/types'
+import { forwardFromSshConfig } from '@shared/ssh-forward'
 
 /**
  * Lecture du `~/.ssh/config` STANDARD — le contraire de PuTTY/WinSCP qui
@@ -84,14 +85,53 @@ export function parseSshConfig(text: string): SshHost[] {
   return out
 }
 
+/**
+ * Tunnels déclarés dans le ssh_config, par alias (pur, testable). Gardés À PART
+ * des hôtes : ssh les applique déjà lui-même à la connexion, les ajouter à la
+ * commande du terminal les ouvrirait deux fois (« Address already in use »).
+ */
+export function parseSshConfigForwards(text: string): Map<string, SshForward[]> {
+  const out = new Map<string, SshForward[]>()
+  let current: string[] = []
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim()
+    if (!line || line.startsWith('#')) continue
+    const m = /^(\w+)\s*(?:=|\s)\s*(.+)$/.exec(line)
+    if (!m) continue
+    const key = m[1].toLowerCase()
+    if (key === 'host') {
+      current = splitSshTokens(m[2]).filter((a) => !/[*?]/.test(a) && !a.startsWith('!'))
+      continue
+    }
+    if (key === 'match') {
+      current = []
+      continue
+    }
+    const f = forwardFromSshConfig(key, unquote(m[2]))
+    if (!f) continue
+    for (const alias of current) out.set(alias, [...(out.get(alias) ?? []), f])
+  }
+  return out
+}
+
+async function readSshConfigText(): Promise<string | null> {
+  try {
+    return await fsp.readFile(join(homedir(), '.ssh', 'config'), 'utf8')
+  } catch {
+    return null
+  }
+}
+
 /** Hôtes du ~/.ssh/config de l'utilisateur (liste vide si absent/illisible). */
 export async function readSshConfigHosts(): Promise<SshHost[]> {
-  try {
-    const text = await fsp.readFile(join(homedir(), '.ssh', 'config'), 'utf8')
-    return parseSshConfig(text)
-  } catch {
-    return []
-  }
+  const text = await readSshConfigText()
+  return text === null ? [] : parseSshConfig(text)
+}
+
+/** Tunnels du ~/.ssh/config par alias (vide si absent/illisible). */
+export async function readSshConfigForwards(): Promise<Map<string, SshForward[]>> {
+  const text = await readSshConfigText()
+  return text === null ? new Map() : parseSshConfigForwards(text)
 }
 
 /** OpenSSH est-il disponible ? (intégré à Windows 10+, mais désactivable). */

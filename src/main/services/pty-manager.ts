@@ -33,6 +33,7 @@ function loadPty(): typeof import('node-pty') {
 }
 
 const sessions = new Map<string, IPty>()
+const startTimes = new Map<string, number>()
 let counter = 0
 
 // Tampon de sortie par terminal (côté main), plafonné : sert au serveur MCP
@@ -70,6 +71,13 @@ export function appendCapped(
 /** Sortie accumulée d'un terminal (brute, séquences ANSI incluses). */
 export function getPtyBuffer(id: string): string {
   return buffers.get(id)?.chunks.join('') ?? ''
+}
+
+/** Pid du shell d'un terminal vivant et instant de sa création (état SSH). */
+export function getPtyProcess(id: string): { pid: number; startedAt: number } | null {
+  const proc = sessions.get(id)
+  const startedAt = startTimes.get(id)
+  return proc && startedAt !== undefined ? { pid: proc.pid, startedAt } : null
 }
 
 /** Crée un pseudo-terminal et streame sa sortie via les callbacks fournis. */
@@ -115,9 +123,11 @@ export function createPty(opts: TerminalCreateOptions, onData: DataCb, onExit: E
   })
   proc.onExit(({ exitCode }) => {
     sessions.delete(id)
+    startTimes.delete(id)
     onExit(id, exitCode)
   })
   sessions.set(id, proc)
+  startTimes.set(id, Date.now())
   return id
 }
 
@@ -138,6 +148,7 @@ export function resizePty(id: string, cols: number, rows: number): void {
 export function killPty(id: string): void {
   const session = sessions.get(id)
   buffers.delete(id)
+  startTimes.delete(id)
   if (!session) return
   try {
     session.kill()

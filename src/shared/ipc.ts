@@ -156,6 +156,8 @@ export const IPC = {
   trayOpenPath: 'tray:openPath',
   trayRunTask: 'tray:runTask',
   trayOpenSsh: 'tray:openSsh',
+  /** La liste des serveurs manuels a changé hors de l'interface (agent MCP). */
+  sshHostsChanged: 'ssh:hostsChanged',
   trayBrowseSsh: 'tray:browseSsh',
   trayRunProject: 'tray:runProject',
   trayLoadWorkspace: 'tray:loadWorkspace',

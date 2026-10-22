@@ -2,12 +2,15 @@ import { createServer, type Server } from 'node:http'
 import { randomBytes } from 'node:crypto'
 import { writeFileSync, unlinkSync, mkdirSync } from 'node:fs'
 import { basename, join } from 'node:path'
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, dialog } from 'electron'
 import { IPC } from '@shared/ipc'
-import type { McpContext, TerminalDock } from '@shared/types'
-import { getPtyBuffer, writePty, killPty } from './pty-manager'
-import { getConfig } from './config-store'
-import { readSshConfigHosts } from './ssh-config'
+import type { McpContext, SshForward, SshHost, TerminalDock } from '@shared/types'
+import { parseForwards } from '@shared/ssh-forward'
+import { getPtyBuffer, getPtyProcess, writePty, killPty } from './pty-manager'
+import { sshRunningUnder, sshState, type SshState } from './process-tree'
+import { addForward, describeTunnel, isListening, removeForward, tunnelState } from './ssh-tunnels'
+import { getConfig, setConfig } from './config-store'
+import { readSshConfigForwards, readSshConfigHosts } from './ssh-config'
 import { hostKeyOf } from './sftp-manager'
 import { createWindow } from '../window'
 import { logInfo, logError } from './logger'
@@ -142,6 +145,47 @@ function findTerminal(args: Record<string, unknown>): Term | null {
   return null
 }
 
+type LiveTerm = Term & { sshState: SshState | null }
+
+/**
+ * Ajoute l'état RÉEL des sessions SSH (null pour un terminal local). Le shell
+ * qui a lancé `ssh` survit à la coupure : seul un processus ssh encore présent
+ * sous lui prouve que la session est ouverte.
+ */
+async function withSshState(terms: Term[]): Promise<LiveTerm[]> {
+  const procs = new Map(
+    terms.filter((t) => t.sshHost && !t.exited).map((t) => [t.ptyId, getPtyProcess(t.ptyId)] as const)
+  )
+  const pids = [...procs.values()].flatMap((p) => (p ? [p.pid] : []))
+  const running = await sshRunningUnder(pids)
+  return terms.map((t) => {
+    if (!t.sshHost) return { ...t, sshState: null }
+    const p = procs.get(t.ptyId)
+    if (t.exited || !p) return { ...t, sshState: 'disconnected' }
+    const alive = running ? (running.get(p.pid) ?? false) : null
+    return { ...t, sshState: sshState(alive, Date.now() - p.startedAt) }
+  })
+}
+
+const SSH_USABLE: ReadonlyArray<SshState | null> = ['connected', 'connecting', 'unknown']
+
+/**
+ * Comme findTerminal, mais une recherche par SERVEUR préfère une session
+ * réellement connectée à un vieil onglet dont la connexion est tombée.
+ */
+async function resolveTerminal(args: Record<string, unknown>): Promise<LiveTerm | null> {
+  const srv = typeof args.server === 'string' ? args.server.toLowerCase() : ''
+  if (srv && !args.ptyId && !args.title) {
+    const matches = await withSshState(
+      allTerminals().filter((t) => !t.exited && (t.sshHost ?? '').toLowerCase().includes(srv))
+    )
+    const pick = matches.find((t) => t.sshState === 'connected') ?? matches.find((t) => SSH_USABLE.includes(t.sshState))
+    if (pick || matches.length) return pick ?? matches[matches.length - 1]
+  }
+  const term = findTerminal(args)
+  return term ? (await withSshState([term]))[0] : null
+}
+
 /** Attend un terminal ABSENT de `before` qui satisfait `pred` (création côté interface). */
 async function waitNewTerminal(
   before: Set<string>,
@@ -198,6 +242,57 @@ function readDisplayedText(win: BrowserWindow, ptyId: string): Promise<string | 
   })
 }
 
+/* --------------------------------- Serveurs -------------------------------- */
+
+/** Serveur nommé (manuel d'abord, puis alias du ~/.ssh/config). */
+async function findServer(args: Record<string, unknown>): Promise<SshHost> {
+  const wanted = typeof args.name === 'string' ? args.name.trim().toLowerCase() : ''
+  if (!wanted) throw new Error('Paramètre « name » requis (voir list_servers).')
+  const manual = getConfig('sshHosts') ?? []
+  const fromConfig = await readSshConfigHosts()
+  const host =
+    manual.find((h) => h.name.toLowerCase() === wanted) ?? fromConfig.find((h) => h.name.toLowerCase() === wanted)
+  if (host) return host
+  const known = [...manual.map((h) => h.name), ...fromConfig.map((h) => h.name)]
+  throw new Error(
+    `Serveur introuvable : ${String(args.name)}. Serveurs connus de GVue : ${known.join(', ') || '(aucun)'}. ` +
+      "Ne lancez PAS « ssh » vous-même dans un terminal : sans clé publique, l'authentification " +
+      "échouera et le mot de passe enregistré ne sera pas utilisé. Demandez plutôt à l'utilisateur " +
+      "d'ajouter ce serveur dans GVue (gestionnaire de serveurs : hôte, port, utilisateur, mot de " +
+      'passe), puis rappelez open_ssh.'
+  )
+}
+
+/** Tunnels d'un serveur : ceux de GVue, sinon ceux de son bloc ~/.ssh/config. */
+function tunnelsOf(
+  host: SshHost,
+  configForwards: Map<string, SshForward[]>
+): { forward: SshForward; origin: 'gvue' | 'ssh_config' }[] {
+  if (host.source === 'manual') return (host.forwards ?? []).map((forward) => ({ forward, origin: 'gvue' }))
+  return (configForwards.get(host.name) ?? []).map((forward) => ({ forward, origin: 'ssh_config' }))
+}
+
+/**
+ * Toute modification de la configuration demandée par un agent passe par
+ * l'utilisateur : boîte de dialogue de GVue (fenêtre réaffichée), « Refuser »
+ * par défaut.
+ */
+async function confirmByUser(win: BrowserWindow, question: string): Promise<boolean> {
+  if (win.isMinimized()) win.restore()
+  if (!win.isVisible()) win.show()
+  const { response } = await dialog.showMessageBox(win, {
+    type: 'question',
+    title: 'GVue',
+    message: question,
+    detail: 'Demande d’un agent IA (serveur MCP de GVue). Rien n’est modifié sans votre accord.',
+    buttons: ['Autoriser', 'Refuser'],
+    defaultId: 1,
+    cancelId: 1,
+    noLink: true
+  })
+  return response === 0
+}
+
 /* ------------------------------- Outils MCP ------------------------------ */
 
 type ToolResult = unknown
@@ -233,12 +328,12 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<To
         // fenêtres sont détaillées dans `windows`.
         panes: ctx.panes,
         repo: ctx.repo,
-        terminals: allTerminals().map((t) => ({ ...t, hasOutput: !!getPtyBuffer(t.ptyId) }))
+        terminals: (await withSshState(allTerminals())).map((t) => ({ ...t, hasOutput: !!getPtyBuffer(t.ptyId) }))
       }
     }
 
     case 'list_terminals':
-      return allTerminals()
+      return withSshState(allTerminals())
 
     case 'get_terminal_output': {
       const lines = Math.min(2000, Math.max(1, Number(args.tailLines) || 200))
@@ -271,11 +366,19 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<To
       // ne refuser que le VIDE, pas le « blanc ».
       if (submit ? !command.trim() : command.length === 0)
         throw new Error('Paramètre « command » requis.')
-      const term = findTerminal(args)
+      const term = await resolveTerminal(args)
       if (!term) throw new Error('Aucun terminal ouvert dans GVue (voir list_terminals).')
       if (term.exited) {
         throw new Error(
           `Le terminal « ${term.title} » est terminé : rouvrez-en un (open_terminal) ou visez-en un autre.`
+        )
+      }
+      // Connexion tombée : le shell LOCAL a repris la main. Y envoyer une
+      // commande destinée au serveur l'exécuterait sur ce poste.
+      if (term.sshState === 'disconnected') {
+        throw new Error(
+          `La connexion SSH du terminal « ${term.title} » (${term.sshHost}) est FERMÉE : le shell local ` +
+            'a repris la main, rien n’a été exécuté. Rouvrez la session avec open_ssh (même nom de serveur).'
         )
       }
       const before = getPtyBuffer(term.ptyId).length
@@ -313,6 +416,7 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<To
         windowId: term.windowId,
         title: term.title,
         sshHost: term.sshHost ?? null,
+        sshState: term.sshState,
         finished: scan.done,
         exitCode: scan.code,
         output: tailLines(tidy(scan.output), 400),
@@ -634,34 +738,172 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<To
     case 'list_servers': {
       const manual = getConfig('sshHosts') ?? []
       const fromConfig = (await readSshConfigHosts()).filter((h) => !manual.some((m) => m.name === h.name))
+      const configForwards = await readSshConfigForwards()
+      const terms = await withSshState(allTerminals().filter((t) => t.sshHost && !t.exited))
+      const servers = await Promise.all(
+        [...manual, ...fromConfig].map(async (h) => {
+          const sessions = terms
+            .filter((t) => t.sshHost === hostKeyOf(h))
+            .map((t) => ({ ptyId: t.ptyId, windowId: t.windowId, title: t.title, sshState: t.sshState }))
+          const connected = sessions.some((s) => s.sshState === 'connected')
+          return {
+            name: h.name,
+            source: h.source,
+            target: `${h.user ? `${h.user}@` : ''}${h.hostName ?? h.name}${h.port ? `:${h.port}` : ''}`,
+            connected,
+            sessions,
+            tunnels: await Promise.all(
+              tunnelsOf(h, configForwards).map(async ({ forward, origin }) => {
+                const listening = await isListening(forward)
+                return {
+                  type: forward.type,
+                  ...describeTunnel(forward),
+                  origin,
+                  listening,
+                  state: tunnelState(forward, { listening, sessionConnected: connected })
+                }
+              })
+            )
+          }
+        })
+      )
+      return { servers }
+    }
+
+    case 'add_tunnel':
+    case 'remove_tunnel': {
+      const host = await findServer(args)
+      if (host.source === 'config' && !(getConfig('sshHosts') ?? []).some((m) => m.name === host.name)) {
+        throw new Error(
+          `« ${host.name} » est défini dans ~/.ssh/config, que GVue ne modifie jamais. Pour un ` +
+            'tunnel ponctuel, utilisez open_tunnel { spec } (rien n’est enregistré) ; pour un tunnel ' +
+            'permanent, l’utilisateur peut ajouter une ligne LocalForward à ce fichier.'
+        )
+      }
+      const manual = getConfig('sshHosts') ?? []
+      const win = targetWindow(args)
+      let next: typeof manual
+      let question: string
+      let summary: ReturnType<typeof describeTunnel>
+      if (name === 'add_tunnel') {
+        const r = addForward(manual, host.name, typeof args.spec === 'string' ? args.spec : '')
+        next = r.hosts
+        summary = describeTunnel(r.forward)
+        question = `Ajouter le tunnel ${summary.flag} ${summary.spec} au serveur « ${host.name} » ?`
+      } else {
+        const type = typeof args.type === 'string' ? (args.type as SshForward['type']) : undefined
+        const r = removeForward(manual, host.name, Number(args.listenPort), type)
+        next = r.hosts
+        summary = describeTunnel(r.removed)
+        question = `Retirer le tunnel ${summary.flag} ${summary.spec} du serveur « ${host.name} » ?`
+      }
+      if (!(await confirmByUser(win, question))) {
+        return { ok: false, refused: true, note: 'L’utilisateur a refusé : la configuration est inchangée.' }
+      }
+      setConfig('sshHosts', next)
+      for (const w of liveWindows()) w.webContents.send(IPC.sshHostsChanged, next)
       return {
-        servers: [...manual, ...fromConfig].map((h) => ({
-          name: h.name,
-          source: h.source,
-          target: `${h.user ? `${h.user}@` : ''}${h.hostName ?? h.name}${h.port ? `:${h.port}` : ''}`,
-          tunnels: h.forwards?.length ?? 0
-        }))
+        ok: true,
+        server: host.name,
+        tunnel: summary,
+        note:
+          name === 'add_tunnel'
+            ? 'Tunnel enregistré : il sera monté aux prochaines connexions. Pour l’activer tout de ' +
+              `suite : open_tunnel { name: "${host.name}", listenPort: ${Number(summary.listen.split(':').pop())} }.`
+            : 'Tunnel retiré de la configuration. Une session déjà ouverte le garde jusqu’à sa fermeture.'
+      }
+    }
+
+    case 'open_tunnel': {
+      const host = await findServer(args)
+      const configForwards = await readSshConfigForwards()
+      let forward: SshForward
+      let origin: 'gvue' | 'ssh_config' | 'adhoc' = 'adhoc'
+      if (typeof args.spec === 'string' && args.spec.trim()) {
+        const parsed = parseForwards(args.spec)
+        if (parsed.length !== 1) throw new Error(`Tunnel illisible : « ${args.spec} » (ex. « 14330:app.lan:1433 »).`)
+        forward = parsed[0]
+      } else {
+        const port = Number(args.listenPort)
+        const known = tunnelsOf(host, configForwards).find((t) => t.forward.listenPort === port)
+        if (!known) {
+          throw new Error(
+            `Aucun tunnel sur le port ${String(args.listenPort)} pour ${host.name} (voir list_servers), ` +
+              'ou passez un tunnel ponctuel : spec « portLocal:hôte:portDistant ».'
+          )
+        }
+        forward = known.forward
+        origin = known.origin
+      }
+      const desc = describeTunnel(forward)
+      const key = hostKeyOf(host)
+      const connected = (await withSshState(allTerminals().filter((t) => t.sshHost === key && !t.exited))).some(
+        (t) => t.sshState === 'connected'
+      )
+      if (await isListening(forward)) {
+        if (connected) return { ok: true, server: host.name, tunnel: desc, listening: true, state: 'active', reused: true }
+        throw new Error(
+          `Le port local ${forward.listenPort} est déjà occupé par un autre programme : choisissez un ` +
+            'autre port local (spec).'
+        )
+      }
+
+      // Session dédiée portant CE tunnel (un tunnel du ssh_config est déjà
+      // appliqué par ssh lui-même : ne pas le doubler).
+      const win = targetWindow(args)
+      const before = new Set(allTerminals().map((t) => t.ptyId))
+      deliver(win, IPC.trayOpenSsh, { ...host, forwards: origin === 'ssh_config' ? [] : [forward] })
+      const created = await waitNewTerminal(before, (t) => t.sshHost === key, 8000)
+      if (created) {
+        deliver(win, IPC.mcpRenameTerminal, { ptyId: created.ptyId, title: `${host.name} · tunnel ${forward.listenPort}` })
+      }
+      // Actif = le port écoute ET le ssh de la session tourne, deux fois de
+      // suite : un serveur qui accepte puis coupe aussitôt la session (pas de
+      // shell) ouvre le port l'espace d'un instant.
+      const timeoutMs = Math.min(120_000, Math.max(1000, Number(args.timeoutMs) || 20_000))
+      const deadline = Date.now() + timeoutMs
+      const probe = async (): Promise<{ listening: boolean | null; ssh: SshState | null }> => {
+        const [l, s] = await Promise.all([
+          isListening(forward),
+          created ? withSshState([created]).then((r) => r[0].sshState) : Promise.resolve(null)
+        ])
+        return { listening: l, ssh: s }
+      }
+      let listening: boolean | null = false
+      let stable = 0
+      while (Date.now() < deadline) {
+        const p = await probe()
+        const up = p.ssh === 'connected' && p.listening !== false
+        stable = up ? stable + 1 : 0
+        listening = up ? p.listening : false
+        if (stable >= 2 || p.ssh === 'disconnected') break
+        await new Promise((r) => setTimeout(r, 700))
+      }
+      if (stable < 2) listening = false
+      const output = created ? tailLines(tidy(stripAnsi(getPtyBuffer(created.ptyId))), 15) : ''
+      return {
+        ok: listening !== false,
+        server: host.name,
+        tunnel: desc,
+        origin,
+        ptyId: created?.ptyId ?? null,
+        listening,
+        state: listening ? 'active' : listening === null ? 'unknown' : 'inactive',
+        note:
+          listening === true
+            ? `Tunnel actif : ${desc.listen} → ${desc.destination ?? 'SOCKS'}. Il reste ouvert tant que ` +
+              'l’onglet de cette session l’est.'
+            : listening === null
+              ? 'Tunnel distant (-R) : il écoute sur le serveur, invérifiable d’ici. Session ouverte.'
+              : 'Le port local n’écoute toujours pas : connexion refusée, mot de passe absent ou ' +
+                'destination injoignable ? Voir `output` (fin du terminal).',
+        ...(listening === false ? { output } : {})
       }
     }
 
     case 'open_ssh':
     case 'open_sftp': {
-      const wanted = typeof args.name === 'string' ? args.name.trim().toLowerCase() : ''
-      if (!wanted) throw new Error('Paramètre « name » requis (voir list_servers).')
-      const manual = getConfig('sshHosts') ?? []
-      const host =
-        manual.find((h) => h.name.toLowerCase() === wanted) ??
-        (await readSshConfigHosts()).find((h) => h.name.toLowerCase() === wanted)
-      if (!host) {
-        const known = [...manual.map((h) => h.name), ...(await readSshConfigHosts()).map((h) => h.name)]
-        throw new Error(
-          `Serveur introuvable : ${args.name}. Serveurs connus de GVue : ${known.join(', ') || '(aucun)'}. ` +
-            "Ne lancez PAS « ssh » vous-même dans un terminal : sans clé publique, l'authentification " +
-            "échouera et le mot de passe enregistré ne sera pas utilisé. Demandez plutôt à l'utilisateur " +
-            "d'ajouter ce serveur dans GVue (gestionnaire de serveurs : hôte, port, utilisateur, mot de " +
-            'passe), puis rappelez open_ssh.'
-        )
-      }
+      const host = await findServer(args)
       const win = targetWindow(args)
 
       if (name === 'open_sftp') {
@@ -670,7 +912,12 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<To
       }
 
       const key = hostKeyOf(host)
-      const existing = allTerminals().find((t) => !t.exited && t.sshHost === key)
+      // Seule une session dont le ssh tourne ENCORE est réutilisable : un onglet
+      // dont la connexion est tombée est revenu au shell local.
+      const sessions = await withSshState(allTerminals().filter((t) => !t.exited && t.sshHost === key))
+      const existing =
+        sessions.find((t) => t.sshState === 'connected') ?? sessions.find((t) => SSH_USABLE.includes(t.sshState))
+      const stale = sessions.filter((t) => t.sshState === 'disconnected').map((t) => t.ptyId)
       if (existing && args.newSession !== true) {
         return {
           ok: true,
@@ -679,6 +926,7 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<To
           ptyId: existing.ptyId,
           windowId: existing.windowId,
           reused: true,
+          sshState: existing.sshState,
           note: 'Session déjà ouverte — réutilisée. Enchaînez avec run_in_terminal sur ce ptyId.'
         }
       }
@@ -696,11 +944,17 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<To
         ptyId: created?.ptyId ?? null,
         windowId: created?.windowId ?? win.id,
         reused: false,
-        note: created
-          ? 'Session ouverte. Le mot de passe enregistré, s’il existe, est fourni ' +
-            'automatiquement : laissez ~2 s avant la première commande (run_in_terminal).'
-          : 'Session demandée, mais son identifiant n’est pas encore visible — ' +
-            'appelez list_terminals dans un instant.'
+        ...(stale.length ? { reopened: true, disconnected: stale } : {}),
+        note:
+          (stale.length
+            ? `La session précédente (${stale.join(', ')}) avait perdu sa connexion : une nouvelle a été ` +
+              'ouverte (l’ancien onglet est laissé tel quel). '
+            : '') +
+          (created
+            ? 'Session ouverte. Le mot de passe enregistré, s’il existe, est fourni ' +
+              'automatiquement : laissez ~2 s avant la première commande (run_in_terminal).'
+            : 'Session demandée, mais son identifiant n’est pas encore visible — ' +
+              'appelez list_terminals dans un instant.')
       }
     }
 
