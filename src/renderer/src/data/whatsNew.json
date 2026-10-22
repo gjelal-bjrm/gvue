@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.0.23",
+    "notes": [
+      "Assistants IA : une session SSH dont la connexion est tombée est reconnue comme déconnectée — elle est rouverte au lieu d’être réutilisée, et aucune commande destinée au serveur ne part plus sur votre poste",
+      "Assistants IA : ils voient le détail de vos tunnels SSH (port local → destination, actif ou non), peuvent en ouvrir un à la demande, et en ajouter ou retirer avec votre accord",
+      "Assistants IA : la sortie des commandes qu’ils lancent dans vos terminaux est propre, et leur code de réussite ou d’échec est enfin juste sous cmd et PowerShell"
+    ]
+  },
+  {
     "version": "1.0.22",
     "notes": [
       "Relancer GVue après l’avoir fermé à la croix réaffiche la même fenêtre, avec vos terminaux et l’historique des commandes (flèches haut/bas)",
